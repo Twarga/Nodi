@@ -162,7 +162,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T139: **Add Go CI workflow**. Create `.github/workflows/go-ci.yml` that runs on push/PR to main: `go vet`, `go test ./...`, `golangci-lint run`. Must pass before Docker publish. Currently no CI at all — code is pushed without testing.
 - [x] T140: **Fix docker-publish.yml**. Update base images (T133). Add `test` step before build. Add multi-arch build (`linux/amd64`, `linux/arm64`). Add vulnerability scanning with trivy.
 - [x] T141: **Add release workflow**. Create `.github/workflows/release.yml` that triggers on GitHub release. Builds binaries for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64. Uploads artifacts. Updates Docker image tag. Generates CHANGELOG entry.
-- [ ] T142: **Add Dependabot config**. Create `.github/dependabot.yml` for Go modules and Docker base images. Auto-create PRs for security updates and version bumps.
+- [x] T142: **Add Dependabot config**. Create `.github/dependabot.yml` for Go modules and Docker base images. Auto-create PRs for security updates and version bumps.
 - [ ] T143: **Add issue and PR templates**. Create `.github/ISSUE_TEMPLATE/bug_report.yml`, `.github/ISSUE_TEMPLATE/feature_request.yml`, `.github/PULL_REQUEST_TEMPLATE.md`. Standardize contributions.
 - [ ] T144: **Add branch protection rules docs**. Document required branch protection: require PR reviews, require CI pass, require up-to-date branch. Add to contributing docs.
 
