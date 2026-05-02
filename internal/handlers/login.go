@@ -56,19 +56,17 @@ func Login(cfg *config.Config) http.HandlerFunc {
 		if req.Username == "" || req.Password == "" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(LoginResponse{Success: false, Message: "Username and password required"})
-			return
-		}
-
-		if req.Username != cfg.User {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(LoginResponse{Success: false, Message: "Invalid credentials"})
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(cfg.PassHash), []byte(req.Password)); err != nil {
-			log.Printf("Failed login attempt for user %s: %v", req.Username, err)
+		// Always run bcrypt comparison to prevent timing-based username enumeration.
+		// Even if username is wrong, we compare against the stored hash so the timing
+		// is identical to a correct username with wrong password.
+		bcryptErr := bcrypt.CompareHashAndPassword([]byte(cfg.PassHash), []byte(req.Password))
+
+		if req.Username != cfg.User || bcryptErr != nil {
+			log.Printf("Failed login attempt for user %s", req.Username)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(LoginResponse{Success: false, Message: "Invalid credentials"})
