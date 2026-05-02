@@ -153,7 +153,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T135: **Remove `front-end inspiration/` from git**. Add `front-end inspiration/` to `.gitignore`. This directory has 95 tracked source files with a space in the name, bloating the repo. It's a React/Vite reference project — not part of Nodi's runtime. Keep it locally but don't track it.
 - [x] T136: **Delete `web/templates/test.html`**. Leftover test file with broken CSS classes. Serves no purpose.
 - [x] T137: **Add `.editorconfig`**. Consistent indentation (Go: tabs, JS/HTML/CSS: 2 spaces), trailing newlines, UTF-8, no trailing whitespace. Ensures consistency across contributors.
-- [ ] T138: **Optimize `logo.png`**. Currently 1.4MB tracked in git. Compress to webP/PNG and reduce to <100KB, or convert to SVG. Consider git-lfs for large assets.
+- [x] T138: **Optimize `logo.png`**. Currently 1.4MB tracked in git. Compress to webP/PNG and reduce to <100KB, or convert to SVG. Consider git-lfs for large assets.
 
 ---
 
