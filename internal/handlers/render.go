@@ -10,6 +10,20 @@ import (
 // GlobalFuncs provides common helper functions for HTML templates.
 var GlobalFuncs = template.FuncMap{
 	"add": func(a, b int) int { return a + b },
+	"dict": func(values ...interface{}) (map[string]interface{}, error) {
+		if len(values)%2 != 0 {
+			return nil, fmt.Errorf("invalid dict call")
+		}
+		dict := make(map[string]interface{}, len(values)/2)
+		for i := 0; i < len(values); i += 2 {
+			key, ok := values[i].(string)
+			if !ok {
+				return nil, fmt.Errorf("dict keys must be strings")
+			}
+			dict[key] = values[i+1]
+		}
+		return dict, nil
+	},
 	"formatBytes": func(b int64) string {
 		const unit = 1024
 		if b < unit {

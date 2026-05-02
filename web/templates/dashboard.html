@@ -63,7 +63,7 @@
         </button>
       </div>
 
-      <button id="new-folder-btn" class="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-medium hover:bg-surface-hover transition-colors">
+      <button id="new-folder-btn" onclick="showModal('create-folder')" class="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-medium hover:bg-surface-hover transition-colors">
         <svg class="w-4 h-4"><use href="/static/icons.svg#icon-plus"></use></svg>
         <span>New Folder</span>
       </button>
@@ -105,5 +105,16 @@
       {{end}}
     </div>
   </div>
-</main>
 {{end}}
+
+{{define "modal-inner"}}
+  {{if eq .Id "create-folder"}}
+    {{template "create-folder-body" .}}
+  {{else if eq .Id "rename"}}
+    <!-- Placeholder for rename -->
+  {{else if eq .Id "delete"}}
+    <!-- Placeholder for delete -->
+  {{end}}
+{{end}}
+
+{{template "modal" dict "Id" "create-folder" "Title" "Create New Folder"}}

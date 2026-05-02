@@ -1,0 +1,16 @@
+{{define "modal"}}
+<div id="modal-{{.Id}}" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 animate-ql-fade-in">
+  <div class="absolute inset-0 bg-foreground/40 backdrop-blur-[2px]" onclick="closeModal('{{.Id}}')"></div>
+  <div class="relative w-full max-w-md rounded-lg border border-border bg-card text-card-foreground shadow-lg animate-ql-pop-in">
+    <div class="flex items-center justify-between border-b border-border px-5 py-3">
+      <h2 class="text-base font-semibold">{{.Title}}</h2>
+      <button onclick="closeModal('{{.Id}}')" class="text-muted-foreground hover:text-foreground" aria-label="Close">
+        <svg class="w-[18px] h-[18px]"><use href="/static/icons.svg#icon-x"></use></svg>
+      </button>
+    </div>
+    <div class="p-5">
+      {{template "modal-inner" .}}
+    </div>
+  </div>
+</div>
+{{end}}

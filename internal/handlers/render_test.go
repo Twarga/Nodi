@@ -72,6 +72,7 @@ func TestDashboardTemplateSyntax(t *testing.T) {
 		"../../web/templates/components/breadcrumbs.html",
 		"../../web/templates/components/file-row.html",
 		"../../web/templates/components/file-card.html",
+		"../../web/templates/components/modal.html",
 	}
 
 	tmpl, err := template.New("layout.html").Funcs(handlers.GlobalFuncs).ParseFiles(patterns...)

@@ -83,6 +83,31 @@
         closeAllMenus()
       }
     })
+
+    // ESC key listener for modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeAllMenus()
+        document.querySelectorAll('[id^="modal-"]').forEach(m => {
+           if(!m.classList.contains('hidden')) closeModal(m.id.replace('modal-', ''))
+        })
+      }
+    })
+  }
+
+  // --- Modal Logic ---
+  window.showModal = (id) => {
+    const modal = document.getElementById(`modal-${id}`)
+    if (modal) {
+      modal.classList.remove('hidden')
+      const input = modal.querySelector('input[autofocus]')
+      if (input) setTimeout(() => input.focus(), 50)
+    }
+  }
+
+  window.closeModal = (id) => {
+    const modal = document.getElementById(`modal-${id}`)
+    if (modal) modal.classList.add('hidden')
   }
 
   // --- Context Menu Logic ---
@@ -99,7 +124,33 @@
     document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'))
   }
 
-  // --- Action Placeholders ---
+  // --- File Actions ---
+  window.onCreateFolderSubmit = async () => {
+    const form = document.getElementById('create-folder-form')
+    const name = form.name.value
+    const path = new URLSearchParams(window.location.search).get('path') || '/'
+
+    try {
+      const resp = await fetch('/api/folder/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, name })
+      })
+
+      if (resp.ok) {
+        closeModal('create-folder')
+        form.reset()
+        window.location.reload() // Simple for now
+      } else {
+        const err = await resp.text()
+        alert(err)
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Internal error')
+    }
+  }
+
   window.onOpen = (name, isDir) => {
     if (isDir) {
       console.log('Opening directory:', name)

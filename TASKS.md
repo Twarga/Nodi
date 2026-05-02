@@ -35,8 +35,8 @@
 - [x] T24: Create context menus (Action Dropdown) for files using Vanilla JS dialogs or absolute layouts.
 - [x] T25: Implement Create Folder (`/api/folder/create`) passing `os.Mkdir` securely.
 - [x] T26: Implement Delete File/Folder (`/api/delete`) with `os.RemoveAll`.
-- [ ] T27: Implement Rename (`/api/rename`) with `os.Rename`.
-- [ ] T28: Wire Create Folder Modal in `dashboard.html` (`Modal.tsx` equivalent).
+- [x] T27: Implement Rename (`/api/rename`) with `os.Rename`.
+- [x] T28: Wire Create Folder Modal in `dashboard.html` (`Modal.tsx` equivalent).
 - [ ] T29: Wire Rename Modal taking prior state/filename.
 - [ ] T30: Wire Delete confirmation Modal.
 - [ ] T31: Add JS `fetch()` logic for actions to asynchronously update without reloading page. Add Toast Notifications (`sonner` aesthetic).
