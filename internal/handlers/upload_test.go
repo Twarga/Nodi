@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/config"
 )
 
 func TestUpload(t *testing.T) {

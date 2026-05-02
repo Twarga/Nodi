@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"nodi/internal/auth"
+	"github.com/Twarga/Nodi/internal/auth"
 	"strings"
 )
 

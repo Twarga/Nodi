@@ -13,8 +13,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"nodi/internal/config"
-	"nodi/internal/storage"
+	"github.com/Twarga/Nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/storage"
 )
 
 // FileInfo represents metadata for a file or directory.

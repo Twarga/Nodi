@@ -7,7 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/config"
 	"os"
 	"path/filepath"
 	"strings"

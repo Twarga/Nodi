@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"nodi/internal/config"
-	"nodi/internal/handlers"
-	"nodi/internal/middleware"
+	"github.com/Twarga/Nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/handlers"
+	"github.com/Twarga/Nodi/internal/middleware"
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {

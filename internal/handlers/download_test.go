@@ -3,8 +3,8 @@ package handlers_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"nodi/internal/config"
-	"nodi/internal/handlers"
+	"github.com/Twarga/Nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/handlers"
 	"os"
 	"path/filepath"
 	"strings"

@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"nodi/internal/auth"
-	"nodi/internal/config"
-	"nodi/internal/middleware"
+	"github.com/Twarga/Nodi/internal/auth"
+	"github.com/Twarga/Nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/middleware"
 )
 
 type DashboardData struct {

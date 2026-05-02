@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"nodi/internal/auth"
-	"nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/auth"
+	"github.com/Twarga/Nodi/internal/config"
 
 	"golang.org/x/crypto/bcrypt"
 )

@@ -1,5 +1,5 @@
-module nodi
+module github.com/Twarga/Nodi
 
-go 1.26.2
+go 1.25.0
 
-require golang.org/x/crypto v0.50.0 // indirect
+require golang.org/x/crypto v0.50.0

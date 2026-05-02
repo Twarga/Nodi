@@ -3,8 +3,8 @@ package middleware_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"nodi/internal/auth"
-	"nodi/internal/middleware"
+	"github.com/Twarga/Nodi/internal/auth"
+	"github.com/Twarga/Nodi/internal/middleware"
 	"testing"
 	"time"
 )
