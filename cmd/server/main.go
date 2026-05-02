@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/Twarga/Nodi/internal/config"
@@ -27,8 +28,9 @@ func generateRequestID() string {
 }
 
 var (
-	version   = "dev"
-	startTime = time.Now()
+	version      = "dev"
+	startTime    = time.Now()
+	requestCount int64
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -36,12 +38,22 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		reqID := generateRequestID()
 		w.Header().Set("X-Request-ID", reqID)
+		atomic.AddInt64(&requestCount, 1)
 
 		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(rw, r)
 
 		duration := time.Since(start)
 		log.Printf("[%s] %s %s %d %v", reqID, r.Method, r.URL.Path, rw.statusCode, duration)
+	})
+}
+
+func metricsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"requests_total": atomic.LoadInt64(&requestCount),
+		"uptime":         time.Since(startTime).Round(time.Second).String(),
+		"version":        version,
 	})
 }
 
@@ -88,9 +100,10 @@ func NewHandler(cfg *config.Config) http.Handler {
 	staticFiles := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", staticFiles))
 
-	// Health and version endpoints (no auth required)
+	// Health, version, and metrics endpoints (no auth required)
 	mux.HandleFunc("/api/health", healthHandler)
 	mux.HandleFunc("/api/version", versionHandler)
+	mux.HandleFunc("/api/metrics", metricsHandler)
 
 	// Protected root endpoint — renders dashboard
 	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret)(handlers.Dashboard(cfg)))
