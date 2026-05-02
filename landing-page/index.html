@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nodi - Neon self-hosted file manager</title>
+  <title>Nodi - Green self-hosted file manager</title>
   <meta name="description" content="Nodi is a fast self-hosted file manager for private servers, Docker volumes, uploads, folders, downloads, and secure browser-based file workflows.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://twarga.github.io/Nodi/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Nodi - Neon self-hosted file manager">
-  <meta property="og:description" content="A dark synthwave file manager for private servers, Docker storage, fast uploads, and precise web-based file workflows.">
+  <meta property="og:title" content="Nodi - Green self-hosted file manager">
+  <meta property="og:description" content="A dark green lab file manager for private servers, Docker storage, fast uploads, and precise web-based file workflows.">
   <meta property="og:url" content="https://twarga.github.io/Nodi/">
   <meta property="og:image" content="https://twarga.github.io/Nodi/og.svg">
   <meta name="twitter:card" content="summary_large_image">
@@ -24,18 +24,18 @@
       --color-ash-text: #6b7280;
       --color-silver-text: #e5e7eb;
       --color-polar-white: #ffffff;
-      --color-cyber-pink: #f472b6;
-      --color-neon-violet: #a855f7;
-      --color-faded-rose: #fbcfe8;
-      --color-magenta-glow: #ec4899;
+      --color-cyber-green: #34d399;
+      --color-neon-mint: #10b981;
+      --color-faded-mint: #bbf7d0;
+      --color-emerald-glow: #16a34a;
       --color-electric-cyan: #22d3ee;
-      --color-virtual-violet: #c084fc;
+      --color-virtual-cyan: #22d3ee;
       --color-system-green: #34d399;
       --color-warning-yellow: #fcd34d;
       --color-danger-red: #f87171;
-      --gradient-pink-pulse: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(236, 72, 153, .5), rgba(0, 0, 0, 0));
-      --gradient-pink-fade: linear-gradient(rgba(244, 114, 182, .03), rgba(20, 21, 26, .5));
-      --gradient-cosmos: radial-gradient(134.26% 244.64% at 42.92% -80.36%, rgb(179, 1, 179) 25.45%, rgb(56, 29, 189) 100%);
+      --gradient-green-pulse: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(22, 163, 74, .5), rgba(0, 0, 0, 0));
+      --gradient-green-fade: linear-gradient(rgba(52, 211, 153, .03), rgba(20, 21, 26, .5));
+      --gradient-cosmos: radial-gradient(134.26% 244.64% at 42.92% -80.36%, rgb(22, 163, 74) 25.45%, rgb(20, 184, 166) 100%);
       --font-system-ui: system-ui, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-jetbrains-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       --text-caption: 12px;
@@ -49,7 +49,7 @@
       --radius-3xl: 30px;
       --radius-full: 9999px;
       --shadow-xl: rgba(0, 0, 0, .25) 0 25px 50px -12px;
-      --shadow-md: rgba(131, 24, 67, .1) 0 10px 15px -3px, rgba(131, 24, 67, .1) 0 4px 6px -4px;
+      --shadow-md: rgba(20, 83, 45, .1) 0 10px 15px -3px, rgba(20, 83, 45, .1) 0 4px 6px -4px;
       color-scheme: dark;
       font-family: var(--font-system-ui);
     }
@@ -60,8 +60,8 @@
       margin: 0;
       min-height: 100vh;
       background:
-        radial-gradient(circle at 50% -18%, rgba(236, 72, 153, .22), transparent 34rem),
-        radial-gradient(circle at 86% 18%, rgba(168, 85, 247, .18), transparent 26rem),
+        radial-gradient(circle at 50% -18%, rgba(22, 163, 74, .22), transparent 34rem),
+        radial-gradient(circle at 86% 18%, rgba(16, 185, 129, .18), transparent 26rem),
         linear-gradient(180deg, #0d0e11 0%, #111217 42%, #0d0e11 100%);
       color: var(--color-silver-text);
       overflow-x: hidden;
@@ -96,7 +96,7 @@
       top: -44px;
       z-index: 30;
       border-radius: var(--radius-lg);
-      background: var(--color-magenta-glow);
+      background: var(--color-emerald-glow);
       color: var(--color-polar-white);
       padding: 10px 14px;
       font-weight: 800;
@@ -135,12 +135,12 @@
       height: 38px;
       display: grid;
       place-items: center;
-      border: 1px solid rgba(244, 114, 182, .45);
+      border: 1px solid rgba(52, 211, 153, .45);
       border-radius: var(--radius-lg);
-      background: linear-gradient(180deg, rgba(244, 114, 182, .16), rgba(168, 85, 247, .08));
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 0 28px rgba(236, 72, 153, .18);
+      background: linear-gradient(180deg, rgba(52, 211, 153, .16), rgba(16, 185, 129, .08));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 0 28px rgba(22, 163, 74, .18);
     }
-    .brand-mark svg { width: 24px; height: 24px; color: var(--color-cyber-pink); }
+    .brand-mark svg { width: 24px; height: 24px; color: var(--color-cyber-green); }
     .navlinks {
       display: flex;
       align-items: center;
@@ -166,18 +166,18 @@
       justify-content: center;
       gap: 10px;
       min-height: 48px;
-      border: 1px solid rgba(244, 114, 182, .35);
+      border: 1px solid rgba(52, 211, 153, .35);
       border-radius: var(--radius-lg);
-      background: var(--color-magenta-glow);
+      background: var(--color-emerald-glow);
       color: var(--color-polar-white);
       padding: 16px 36px;
       font-weight: 800;
-      box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset, 0 16px 38px rgba(236, 72, 153, .22);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset, 0 16px 38px rgba(22, 163, 74, .22);
       transition: transform .16s ease, box-shadow .16s ease;
     }
     .primary-cta:hover, .button.primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset, 0 20px 46px rgba(236, 72, 153, .3);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset, 0 20px 46px rgba(22, 163, 74, .3);
     }
     .button.ghost {
       display: inline-flex;
@@ -207,8 +207,8 @@
       width: min(760px, 90vw);
       height: 1px;
       transform: translateX(-50%);
-      background: var(--gradient-pink-pulse);
-      box-shadow: 0 0 54px rgba(236, 72, 153, .5);
+      background: var(--gradient-green-pulse);
+      box-shadow: 0 0 54px rgba(22, 163, 74, .5);
     }
     .badge {
       display: inline-flex;
@@ -216,10 +216,10 @@
       gap: 8px;
       width: fit-content;
       margin: 0 auto 24px;
-      border: 1px solid rgba(244, 114, 182, .28);
+      border: 1px solid rgba(52, 211, 153, .28);
       border-radius: var(--radius-full);
-      background: rgba(244, 114, 182, .09);
-      color: var(--color-faded-rose);
+      background: rgba(52, 211, 153, .09);
+      color: var(--color-faded-mint);
       padding: 5px 10px;
       font-size: var(--text-caption);
       line-height: 1.5;
@@ -242,8 +242,8 @@
       letter-spacing: normal;
       font-weight: 800;
     }
-    .accent { color: var(--color-cyber-pink); text-shadow: 0 0 34px rgba(244, 114, 182, .28); }
-    .violet { color: var(--color-virtual-violet); }
+    .accent { color: var(--color-cyber-green); text-shadow: 0 0 34px rgba(52, 211, 153, .28); }
+    .cyan-tag { color: var(--color-virtual-cyan); }
     .hero-copy {
       max-width: 740px;
       margin: 24px auto 0;
@@ -309,7 +309,7 @@
       white-space: nowrap;
     }
     .prompt { color: var(--color-electric-cyan); }
-    .pink { color: var(--color-cyber-pink); }
+    .green-accent { color: var(--color-cyber-green); }
     .green { color: var(--color-system-green); }
     section { padding: 96px 0; }
     .section-head {
@@ -318,7 +318,7 @@
       text-align: center;
     }
     .kicker {
-      color: var(--color-cyber-pink);
+      color: var(--color-cyber-green);
       font-size: var(--text-caption);
       font-weight: 900;
       line-height: 1.5;
@@ -347,7 +347,7 @@
       min-height: 230px;
       border: 1px solid var(--color-graphite-accent);
       border-radius: 5px;
-      background: linear-gradient(180deg, rgba(244, 114, 182, .035), rgba(20, 21, 26, .92));
+      background: linear-gradient(180deg, rgba(52, 211, 153, .035), rgba(20, 21, 26, .92));
       padding: 32px;
       overflow: hidden;
     }
@@ -356,13 +356,13 @@
       position: absolute;
       inset: auto 0 0;
       height: 1px;
-      background: var(--gradient-pink-pulse);
+      background: var(--gradient-green-pulse);
       opacity: .48;
     }
     .feature-card svg {
       width: 28px;
       height: 28px;
-      color: var(--color-cyber-pink);
+      color: var(--color-cyber-green);
       margin-bottom: 22px;
     }
     .feature-card h3 {
@@ -454,8 +454,8 @@
     .bar-fill {
       height: 100%;
       border-radius: var(--radius-md);
-      background: var(--color-cyber-pink);
-      box-shadow: 0 0 20px rgba(244, 114, 182, .42);
+      background: var(--color-cyber-green);
+      box-shadow: 0 0 20px rgba(52, 211, 153, .42);
     }
     .code-block {
       background: var(--color-charcoal-canvas);
@@ -474,15 +474,15 @@
     }
     .tag {
       border-radius: var(--radius-full);
-      background: rgba(244, 114, 182, .15);
-      color: var(--color-faded-rose);
+      background: rgba(52, 211, 153, .15);
+      color: var(--color-faded-mint);
       padding: 4px 8px;
       font-size: 12px;
       font-weight: 850;
     }
-    .tag.violet {
-      background: rgba(168, 85, 247, .17);
-      color: var(--color-virtual-violet);
+    .tag.cyan-tag {
+      background: rgba(16, 185, 129, .17);
+      color: var(--color-virtual-cyan);
     }
     .product-shell {
       border: 1px solid var(--color-slate-border);
@@ -523,9 +523,9 @@
       background: var(--color-obsidian-base);
     }
     .rail span:first-child {
-      border-color: rgba(244, 114, 182, .5);
-      background: rgba(244, 114, 182, .16);
-      box-shadow: 0 0 24px rgba(244, 114, 182, .16);
+      border-color: rgba(52, 211, 153, .5);
+      background: rgba(52, 211, 153, .16);
+      box-shadow: 0 0 24px rgba(52, 211, 153, .16);
     }
     .file-stage { padding: 24px; min-width: 0; }
     .crumbs {
@@ -554,7 +554,7 @@
       font-size: 12px;
       font-weight: 850;
     }
-    .chip.primary { background: var(--color-magenta-glow); border-color: var(--color-magenta-glow); }
+    .chip.primary { background: var(--color-emerald-glow); border-color: var(--color-emerald-glow); }
     .file-table {
       border: 1px solid var(--color-slate-border);
       border-radius: var(--radius-lg);
@@ -592,8 +592,8 @@
       display: grid;
       place-items: center;
       border-radius: var(--radius-md);
-      background: rgba(244, 114, 182, .12);
-      color: var(--color-cyber-pink);
+      background: rgba(52, 211, 153, .12);
+      color: var(--color-cyber-green);
       flex: none;
       font-family: var(--font-jetbrains-mono);
       font-size: 12px;
@@ -602,10 +602,10 @@
     .cyan { color: var(--color-electric-cyan); }
     .muted { color: var(--color-ash-text); }
     .cta {
-      border: 1px solid rgba(244, 114, 182, .28);
+      border: 1px solid rgba(52, 211, 153, .28);
       border-radius: var(--radius-xl);
       background:
-        radial-gradient(circle at 24% 0%, rgba(236, 72, 153, .18), transparent 30rem),
+        radial-gradient(circle at 24% 0%, rgba(22, 163, 74, .18), transparent 30rem),
         var(--color-obsidian-base);
       padding: 48px;
       text-align: center;
@@ -655,7 +655,7 @@
       flex-wrap: wrap;
     }
     .foot nav { display: flex; gap: 18px; flex-wrap: wrap; }
-    .foot a:hover { color: var(--color-cyber-pink); }
+    .foot a:hover { color: var(--color-cyber-green); }
 
     @media (max-width: 940px) {
       .navlinks a:not(.primary-cta) { display: none; }
@@ -736,7 +736,7 @@
   <main id="main">
     <section class="shell hero" id="top">
       <div>
-        <div class="badge"><span class="badge-dot"></span>Private files. Neon-fast web controls.</div>
+        <div class="badge"><span class="badge-dot"></span>Private files. Green-fast web controls.</div>
         <h1>Nodi is a <span class="accent">self-hosted</span> file manager for servers that should feel <span class="accent">instant</span>.</h1>
         <p class="hero-copy">A compact Go backend, secure browser sessions, Docker-ready storage, durable uploads, and a dark lab interface built for people who manage real files every day.</p>
         <div class="hero-actions">
@@ -750,14 +750,14 @@
             <span>command line input</span>
             <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash">Copy</button>
           </div>
-          <code><span class="prompt">$</span> curl -fsSL <span class="pink">https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh</span> | bash</code>
+          <code><span class="prompt">$</span> curl -fsSL <span class="green-accent">https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh</span> | bash</code>
         </div>
       </div>
     </section>
 
     <section class="shell" id="features">
       <div class="section-head">
-        <div class="kicker">Synthwave Dark Lab</div>
+        <div class="kicker">Green Dark Lab</div>
         <h2>Minimal surface area. Maximum file control.</h2>
         <p>Nodi stays focused on the workflows a file manager cannot afford to fake: upload, refresh, browse, rename, delete, download, and keep every path inside your configured root.</p>
       </div>
@@ -794,11 +794,11 @@
             </ul>
             <div class="tag-row">
               <span class="tag">REPLACES CLOUD DRIVE SPRAWL</span>
-              <span class="tag violet">DOCKER READY</span>
+              <span class="tag cyan-tag">DOCKER READY</span>
               <span class="tag">GO BACKEND</span>
             </div>
           </div>
-          <pre class="code-block"><span class="pink">server</span> := <span class="cyan">nodi</span>.Serve(root)
+          <pre class="code-block"><span class="green-accent">server</span> := <span class="cyan">nodi</span>.Serve(root)
 server.Uploads.StageInside(root)
 server.Paths.Confine(root)
 server.Listen(<span class="green">":7319"</span>)</pre>
