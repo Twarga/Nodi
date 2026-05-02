@@ -1,13 +1,13 @@
-# Node — Full Product Specification
+# Nodi — Full Product Specification
 
 > Lightweight, self-hosted web file manager for homelabs and personal cloud replacement.
 > This document is the single source of truth. An AI coding agent should be able to implement the entire product from this file alone without asking any questions.
 
 ---
 
-## 0. What Is Node
+## 0. What Is Nodi
 
-Node is a **minimalist, self-hosted web file manager** designed to run on low-resource hardware with zero dependencies beyond a single binary and a Docker container.
+Nodi is a **minimalist, self-hosted web file manager** designed to run on low-resource hardware with zero dependencies beyond a single binary and a Docker container.
 
 The user logs in, browses directories via breadcrumbs, uploads files via drag-and-drop, and manages them (download, rename, delete) through a fast, responsive interface. There is no sync client, no office suite, no search indexing, no multi-user complexity, and no cloud tie-ins.
 
@@ -194,7 +194,7 @@ type UploadProgress struct {
 Height: 56px. Full width. Background: surface. Bottom border: 1px.
 
 Left:
-- Wordmark: "Node" (16px, font-weight 600)
+- Wordmark: "Nodi" (16px, font-weight 600)
 - Storage pill: "45.2 GB / 512 GB" (12px, muted, right-aligned in pill)
 
 Right:
@@ -290,7 +290,7 @@ Progress integration:
 
 ### Project Layout
 ```
-quantum-lite/
+nodi/
 ├── cmd/server/main.go              # Entry point, flag parsing, server init
 ├── internal/
 │   ├── auth/
@@ -413,18 +413,18 @@ go run ./cmd/server
 npx tailwindcss -i ./web/static/input.css -o ./web/static/output.css --minify
 
 # Build Go binary (stripped, optimized)
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o quantum-lite ./cmd/server
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o nodi ./cmd/server
 
 # Docker build
-docker build -t quantum-lite:latest .
+docker build -t nodi:latest .
 ```
 
 ### Docker Compose (Example)
 ```yaml
 services:
-  quantum-lite:
-    image: quantum-lite:latest
-    container_name: quantum-lite
+  nodi:
+    image: nodi:latest
+    container_name: nodi
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -531,7 +531,7 @@ These may be added in v2 based on user demand. v1 remains strictly focused on up
 
 - **Go standard library**: BSD 3-Clause
 - **Tailwind CSS**: MIT
-- **Node codebase**: MIT or Apache 2.0 (maintainer choice)
+- **Nodi codebase**: MIT or Apache 2.0 (maintainer choice)
 - **No third-party JS frameworks** → zero dependency audit required
 - **Alpine Linux**: MIT/GPL mixed (standard distro compliance)
 - **Icons**: Custom SVG or public domain (e.g., Heroicons MIT)
