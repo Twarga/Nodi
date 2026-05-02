@@ -2,12 +2,12 @@ package handlers_test
 
 import (
 	"context"
-	"net/http"
-	"net/http/httptest"
 	"github.com/Twarga/Nodi/internal/auth"
 	"github.com/Twarga/Nodi/internal/config"
 	"github.com/Twarga/Nodi/internal/handlers"
 	"github.com/Twarga/Nodi/internal/middleware"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"

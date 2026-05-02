@@ -2,10 +2,10 @@ package handlers_test
 
 import (
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"github.com/Twarga/Nodi/internal/config"
 	"github.com/Twarga/Nodi/internal/handlers"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"

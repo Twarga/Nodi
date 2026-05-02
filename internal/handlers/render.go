@@ -62,7 +62,7 @@ func RenderTemplate(w http.ResponseWriter, data interface{}, patterns ...string)
 		http.Error(w, "Template Error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	// By default executes the first pattern's filename (e.g. layout.html)
 	// But we use layout.html as the primary wrapper.
 	err = tmpl.ExecuteTemplate(w, "layout.html", data)

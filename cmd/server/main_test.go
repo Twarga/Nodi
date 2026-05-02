@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/Twarga/Nodi/internal/config"
 	"net/http"
 	"net/http/httptest"
-	"github.com/Twarga/Nodi/internal/config"
 	"os"
 	"testing"
 )

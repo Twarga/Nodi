@@ -3,10 +3,10 @@ package handlers_test
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"github.com/Twarga/Nodi/internal/config"
 	"github.com/Twarga/Nodi/internal/handlers"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,7 +19,7 @@ func TestDelete_Success(t *testing.T) {
 	// Create a folder and a file to delete
 	folderPath := filepath.Join(tmpRoot, "to_delete")
 	os.Mkdir(folderPath, 0755)
-	
+
 	filePath := filepath.Join(tmpRoot, "to_delete.txt")
 	os.WriteFile(filePath, []byte("goodbye"), 0644)
 

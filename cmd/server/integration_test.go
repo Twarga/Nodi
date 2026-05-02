@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/Twarga/Nodi/internal/config"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"github.com/Twarga/Nodi/internal/config"
 	"os"
 	"path/filepath"
 	"strings"

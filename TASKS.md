@@ -159,7 +159,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 ## Phase 22: CI/CD & Automation
 
-- [ ] T139: **Add Go CI workflow**. Create `.github/workflows/go-ci.yml` that runs on push/PR to main: `go vet`, `go test ./...`, `golangci-lint run`. Must pass before Docker publish. Currently no CI at all — code is pushed without testing.
+- [x] T139: **Add Go CI workflow**. Create `.github/workflows/go-ci.yml` that runs on push/PR to main: `go vet`, `go test ./...`, `golangci-lint run`. Must pass before Docker publish. Currently no CI at all — code is pushed without testing.
 - [ ] T140: **Fix docker-publish.yml**. Update base images (T133). Add `test` step before build. Add multi-arch build (`linux/amd64`, `linux/arm64`). Add vulnerability scanning with trivy.
 - [ ] T141: **Add release workflow**. Create `.github/workflows/release.yml` that triggers on GitHub release. Builds binaries for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64. Uploads artifacts. Updates Docker image tag. Generates CHANGELOG entry.
 - [ ] T142: **Add Dependabot config**. Create `.github/dependabot.yml` for Go modules and Docker base images. Auto-create PRs for security updates and version bumps.

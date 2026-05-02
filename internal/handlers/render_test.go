@@ -2,8 +2,8 @@ package handlers_test
 
 import (
 	"bytes"
-	"html/template"
 	"github.com/Twarga/Nodi/internal/handlers"
+	"html/template"
 	"testing"
 )
 

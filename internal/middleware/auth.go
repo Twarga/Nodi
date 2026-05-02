@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"context"
-	"net/http"
 	"github.com/Twarga/Nodi/internal/auth"
+	"net/http"
 	"strings"
 )
 
