@@ -183,7 +183,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 - [x] T151: **Add `/api/health` endpoint**. Returns `{"status":"ok","version":"0.1.0","uptime":"2h30m"}`. Used by Docker healthcheck, load balancers, and monitoring. Replace current Docker HEALTHCHECK with a curl to this endpoint.
 - [x] T152: **Add `/api/version` endpoint**. Returns `{"version":"0.1.0","go_version":"1.24","build_time":"2026-05-02T12:00:00Z"}`. Useful for debugging and automated updates.
-- [ ] T153: **Add request logging with request IDs**. Generate UUID per request. Log method, path, status, duration, request ID. Include request ID in 500 error responses for debugging. Store in request context for downstream handlers.
+- [x] T153: **Add request logging with request IDs**. Generate UUID per request. Log method, path, status, duration, request ID. Include request ID in 500 error responses for debugging. Store in request context for downstream handlers.
 - [ ] T154: **Add metrics endpoint** (optional). `GET /api/metrics` returns JSON with: total requests, active uploads, storage used, uptime. Useful for monitoring dashboards (Grafana, Prometheus scrape format could be added later).
 - [ ] T155: **Add graceful shutdown**. On SIGINT/SIGTERM: stop accepting new connections, finish in-flight requests (with timeout), close database/file handles cleanly, log shutdown. Don't just `log.Fatal(http.ListenAndServe(...))`.
 - [ ] T156: **Add startup self-check**. On boot, verify: QL_ROOT exists and is writable, QL_COOKIE_SECRET is ≥32 bytes, QL_PORT is valid, templates parse correctly, static assets directory exists. Fail fast with clear error messages before accepting connections.

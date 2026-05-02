@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +14,18 @@ import (
 	"github.com/Twarga/Nodi/internal/middleware"
 )
 
+type contextKey string
+
+const requestIDKey contextKey = "request-id"
+
+func generateRequestID() string {
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		return "unknown"
+	}
+	return hex.EncodeToString(b)
+}
+
 var (
 	version   = "dev"
 	startTime = time.Now()
@@ -20,12 +34,14 @@ var (
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		reqID := generateRequestID()
+		w.Header().Set("X-Request-ID", reqID)
 
 		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(rw, r)
 
 		duration := time.Since(start)
-		log.Printf("%s %s %d %v", r.Method, r.URL.Path, rw.statusCode, duration)
+		log.Printf("[%s] %s %s %d %v", reqID, r.Method, r.URL.Path, rw.statusCode, duration)
 	})
 }
 
