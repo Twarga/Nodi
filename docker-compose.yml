@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  nodi:
+    build: .
+    container_name: nodi
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - QL_PORT=8080
+      - QL_ROOT=/data
+      - QL_USER=${QL_USER:-admin}
+      - QL_PASS_HASH=${QL_PASS_HASH}
+      - QL_COOKIE_SECRET=${QL_COOKIE_SECRET}
+      - QL_THEME=${QL_THEME:-system}
+    volumes:
+      - ./data:/data
+    # Optional: use .env file if present
+    env_file:
+      - .env

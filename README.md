@@ -70,9 +70,15 @@ Prerequisites:
 # Get dependencies
 go mod tidy
 
-# Watch CSS
-npx tailwindcss -i ./web/static/input.css -o ./web/static/output.css --watch
+## 🚀 Deployment
 
-# Start server
-go run ./cmd/server
+### Docker (Recommended)
+1. Copy `.env.example` to `.env` and fill in your configuration.
+2. Run `docker-compose up -d`.
+3. Access Nodi at `http://localhost:8080`.
+
+### Manual Build
+1. Build CSS: `./tailwindcss-linux-x64 -i ./web/static/input.css -o ./web/static/output.css --minify`
+2. Build Go: `go build -o nodi ./cmd/server`
+3. Run: `./nodi`
 ```

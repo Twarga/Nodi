@@ -49,8 +49,8 @@
 
 ## Phase 6: Packaging & Docker
 - [x] T36: Build Dockerfile via Multi-Stage build (Node/Alpine for Tailwind -> Go Alpine for compilation -> Run Alpine container).
-- [ ] T37: Expose config properly using default `.env` examples.
-- [ ] T38: Create `docker-compose.yml` demonstrating full volume mounts and secure variables.
+- [x] T37: Expose config properly using default `.env` examples.
+- [x] T38: Create `docker-compose.yml` demonstrating full volume mounts and secure variables.
 
 ## Phase 7: GitHub Pages Landing Page
 - [ ] T39: Create `landing-page/` directory.
