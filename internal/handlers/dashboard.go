@@ -1,9 +1,8 @@
 package handlers
 
 import (
-	"html/template"
-	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"nodi/internal/auth"
@@ -14,6 +13,8 @@ import (
 type DashboardData struct {
 	Username string
 	Initial  string
+	Path     []BreadcrumbSegment
+	Files    []FileInfo
 }
 
 func Dashboard(cfg *config.Config) http.HandlerFunc {
@@ -24,10 +25,19 @@ func Dashboard(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		tmpl, err := template.ParseFiles("web/templates/layout.html", "web/templates/dashboard.html")
+		subPath := r.URL.Query().Get("path")
+		fullPath, err := SafePath(cfg.Root, subPath)
 		if err != nil {
-			log.Printf("Dashboard template parsing error: %v", err)
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		files, err := ListFiles(fullPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				http.Error(w, "Not Found", http.StatusNotFound)
+				return
+			}
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -36,10 +46,25 @@ func Dashboard(cfg *config.Config) http.HandlerFunc {
 		if len(session.User) > 0 {
 			initial = string(session.User[0])
 		}
-		data := DashboardData{Username: session.User, Initial: initial}
-		if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
-			log.Printf("Dashboard template execution error: %v", err)
+
+		data := DashboardData{
+			Username: session.User,
+			Initial:  initial,
+			Path:     BuildBreadcrumbs(subPath),
+			Files:    files,
 		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		RenderTemplate(
+			w,
+			data,
+			"web/templates/layout.html",
+			"web/templates/dashboard.html",
+			"web/templates/components/breadcrumbs.html",
+			"web/templates/components/file-row.html",
+			"web/templates/components/file-card.html",
+			"web/templates/components/modal.html",
+		)
 	}
 }
 

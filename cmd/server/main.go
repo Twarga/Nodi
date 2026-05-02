@@ -14,10 +14,10 @@ import (
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(rw, r)
-		
+
 		duration := time.Since(start)
 		log.Printf("%s %s %d %v", r.Method, r.URL.Path, rw.statusCode, duration)
 	})
@@ -33,23 +33,18 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-func main() {
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatalf("Config error: %v", err)
-	}
-
-	fmt.Printf("Nodi starting on port %s\n", cfg.Port)
-	fmt.Printf("Serving files from: %s\n", cfg.Root)
-
+func NewHandler(cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
-	
+
+	staticFiles := http.FileServer(http.Dir("web/static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", staticFiles))
+
 	// Protected root endpoint — renders dashboard
 	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret)(handlers.Dashboard(cfg)))
 
 	// T12: Rate Limiter (5 requests per 15 minutes)
 	loginRateLimiter := middleware.NewRateLimiter(5, 15*time.Minute)
-	
+
 	// T11 & T12: Login endpoint protected by rate limiter
 	mux.Handle("/login", middleware.RateLimit(loginRateLimiter)(handlers.Login(cfg)))
 
@@ -71,8 +66,18 @@ func main() {
 	// Logout endpoint
 	mux.Handle("/logout", http.HandlerFunc(handlers.Logout()))
 
-	handler := loggingMiddleware(mux)
+	return loggingMiddleware(mux)
+}
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Config error: %v", err)
+	}
+
+	fmt.Printf("Nodi starting on port %s\n", cfg.Port)
+	fmt.Printf("Serving files from: %s\n", cfg.Root)
 
 	log.Printf("Listening on :%s", cfg.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Port, handler))
+	log.Fatal(http.ListenAndServe(":"+cfg.Port, NewHandler(cfg)))
 }

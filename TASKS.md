@@ -63,7 +63,7 @@
 - [x] T44: Create `run.sh` convenience script for local development and testing.
 
 ## Phase 9: MVP Repair & Release Hardening
-- [ ] T45: Fix runtime routing and dashboard rendering. Serve `/static/` assets, load all dashboard component templates, and make authenticated `/` return the app shell instead of `500`.
+- [x] T45: Fix runtime routing and dashboard rendering. Serve `/static/` assets, load all dashboard component templates, and make authenticated `/` return the app shell instead of `500`.
 - [ ] T46: Harden file path confinement. Replace prefix-based path checks, reject root escapes, protect against symlink traversal, and add regression tests.
 - [ ] T47: Complete file API behavior. Implement secure downloads, return stable JSON arrays from `/browse`, enforce `QL_MAX_UPLOAD`, and add endpoint tests.
 - [ ] T48: Harden auth and HTTP security controls. Fix login rate-limit identity, add production-safe cookie/security headers, and test the behavior.

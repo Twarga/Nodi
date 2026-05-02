@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"io"
 	"nodi/internal/config"
 	"nodi/internal/storage"
 	"regexp"
-	"io"
 )
 
 var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9._ -]+$`)
@@ -28,6 +28,63 @@ type FileInfo struct {
 	MIME    string    `json:"mime"`
 }
 
+type BreadcrumbSegment struct {
+	Name string
+	Path string
+}
+
+func BuildBreadcrumbs(subPath string) []BreadcrumbSegment {
+	cleanPath := filepath.Clean("/" + strings.TrimPrefix(subPath, "/"))
+	if cleanPath == "/" || cleanPath == "." {
+		return []BreadcrumbSegment{}
+	}
+
+	parts := strings.Split(strings.Trim(cleanPath, "/"), "/")
+	segments := make([]BreadcrumbSegment, 0, len(parts))
+	current := ""
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		current += "/" + part
+		segments = append(segments, BreadcrumbSegment{Name: part, Path: current})
+	}
+	return segments
+}
+
+func ListFiles(fullPath string) ([]FileInfo, error) {
+	entries, err := os.ReadDir(fullPath)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]FileInfo, 0, len(entries))
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		files = append(files, FileInfo{
+			Name:    entry.Name(),
+			Size:    info.Size(),
+			IsDir:   entry.IsDir(),
+			ModTime: info.ModTime(),
+			Ext:     storage.GetExt(entry.Name()),
+			MIME:    storage.GetMIME(entry.Name()),
+		})
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		if files[i].IsDir != files[j].IsDir {
+			return files[i].IsDir
+		}
+		return strings.ToLower(files[i].Name) < strings.ToLower(files[j].Name)
+	})
+
+	return files, nil
+}
+
 // SafePath resolves a subpath against a root directory and ensures no traversal.
 func SafePath(root, subPath string) (string, error) {
 	absRoot, err := filepath.Abs(root)
@@ -38,7 +95,7 @@ func SafePath(root, subPath string) (string, error) {
 	// Join the absolute root with the subpath
 	// filepath.Join will clean the resulting path
 	fullPath := filepath.Join(absRoot, filepath.FromSlash(subPath))
-	
+
 	// Evaluate the absolute path of the result
 	absFull, err := filepath.Abs(fullPath)
 	if err != nil {
@@ -63,7 +120,7 @@ func Browse(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		entries, err := os.ReadDir(fullPath)
+		files, err := ListFiles(fullPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				http.Error(w, "Not Found", http.StatusNotFound)
@@ -72,31 +129,6 @@ func Browse(cfg *config.Config) http.HandlerFunc {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-
-		var files []FileInfo
-		for _, entry := range entries {
-			info, err := entry.Info()
-			if err != nil {
-				continue
-			}
-
-			files = append(files, FileInfo{
-				Name:    entry.Name(),
-				Size:    info.Size(),
-				IsDir:   entry.IsDir(),
-				ModTime: info.ModTime(),
-				Ext:     storage.GetExt(entry.Name()),
-				MIME:    storage.GetMIME(entry.Name()),
-			})
-		}
-
-		// Sort: Dis first, then by name case-insensitive
-		sort.Slice(files, func(i, j int) bool {
-			if files[i].IsDir != files[j].IsDir {
-				return files[i].IsDir
-			}
-			return strings.ToLower(files[i].Name) < strings.ToLower(files[j].Name)
-		})
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(files)
@@ -269,7 +301,7 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 		r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*1024)
 
 		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32MB in-memory buffer
-			http.Error(w, "Failed to parse form: " + err.Error(), http.StatusBadRequest)
+			http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -298,7 +330,7 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 
 		for _, fileHeader := range files {
 			res := Result{Name: fileHeader.Filename}
-			
+
 			// Open the uploaded file
 			src, err := fileHeader.Open()
 			if err != nil {
@@ -325,7 +357,7 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 				continue
 			}
 			tempPath := tempFile.Name()
-			
+
 			// Stream to temp file
 			if _, err := io.Copy(tempFile, src); err != nil {
 				tempFile.Close()
@@ -351,4 +383,3 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 		json.NewEncoder(w).Encode(results)
 	}
 }
-
