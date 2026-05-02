@@ -10,7 +10,7 @@ RUN npm install --no-audit --no-fund -D tailwindcss@3.4.17
 RUN npx tailwindcss -i ./web/static/input.css -o ./web/static/output.css --minify
 
 # Stage 2: Back-end Build (Go)
-FROM golang:1.26-alpine AS builder
+FROM golang:1.24-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o nodi ./cmd/server
 
 # Stage 3: Runtime
-FROM alpine:3.22
+FROM alpine:3.21
 RUN apk add --no-cache ca-certificates \
     && addgroup -S nodi \
     && adduser -S -G nodi -h /app nodi

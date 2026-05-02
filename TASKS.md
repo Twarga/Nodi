@@ -148,7 +148,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T130: **Add LICENSE file**. Create `LICENSE` with MIT license text. README and landing page claim MIT but no LICENSE file exists — the repo has no legal license. Without it, default copyright applies (all rights reserved).
 - [x] T131: **Fix go.mod module path**. Change `module nodi` to `module github.com/Twarga/Nodi`. Fix all import paths accordingly. The current bare `nodi` path breaks `go install` and `go get` for external consumers.
 - [x] T132: **Fix go.mod Go version**. Change `go 1.26.2` to `go 1.24` (or whatever stable version is current). Go 1.26 does not exist as a stable release — this breaks `go mod tidy` and all downstream tooling.
-- [ ] T133: **Fix Dockerfile base images**. Replace `golang:1.26-alpine` with `golang:1.24-alpine` and `alpine:3.22` with `alpine:3.21`. Current base images don't exist — Docker build WILL FAIL.
+- [x] T133: **Fix Dockerfile base images**. Replace `golang:1.26-alpine` with `golang:1.24-alpine` and `alpine:3.22` with `alpine:3.21`. Current base images don't exist — Docker build WILL FAIL.
 - [ ] T134: **Update plan.md**. Rename all references from "Node"/"quantum-lite" to "Nodi". Remove outdated technical decisions. Bring it in line with the current codebase and TASKS.md.
 - [ ] T135: **Remove `front-end inspiration/` from git**. Add `front-end inspiration/` to `.gitignore`. This directory has 95 tracked source files with a space in the name, bloating the repo. It's a React/Vite reference project — not part of Nodi's runtime. Keep it locally but don't track it.
 - [ ] T136: **Delete `web/templates/test.html`**. Leftover test file with broken CSS classes. Serves no purpose.
