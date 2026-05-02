@@ -66,24 +66,20 @@
   }
 
   function updateToggleButton(theme) {
-    const btn = document.getElementById('theme-toggle')
-    if (!btn) return
-    const icon = btn.querySelector('.theme-icon')
-    if (!icon) return
+    const buttons = document.querySelectorAll('#theme-toggle, [data-theme-toggle]')
+    if (buttons.length === 0) return
+    const active = theme === SYSTEM_THEME ? getSystemTheme() : theme
+    const label = theme === SYSTEM_THEME ? `System theme (${active})` : `${theme[0].toUpperCase()}${theme.slice(1)} theme`
+    const iconMarkup = active === 'dark'
+      ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+      : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
 
-    if (theme === SYSTEM_THEME) {
-      const active = getSystemTheme()
-      icon.innerHTML = active === 'dark'
-        ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
-        : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
-      btn.setAttribute('aria-label', 'System theme')
-    } else if (theme === 'dark') {
-      icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
-      btn.setAttribute('aria-label', 'Dark theme')
-    } else {
-      icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
-      btn.setAttribute('aria-label', 'Light theme')
-    }
+    buttons.forEach((btn) => {
+      const icon = btn.querySelector('.theme-icon')
+      if (icon) icon.innerHTML = iconMarkup
+      btn.setAttribute('aria-label', label)
+      btn.setAttribute('title', `Theme: ${theme}`)
+    })
   }
 
   function init() {
@@ -98,10 +94,9 @@
       }
     })
 
-    const toggleBtn = document.getElementById('theme-toggle')
-    if (toggleBtn) {
+    document.querySelectorAll('#theme-toggle, [data-theme-toggle]').forEach((toggleBtn) => {
       toggleBtn.addEventListener('click', cycleTheme)
-    }
+    })
 
     initViewToggle()
     initUploadButton()
@@ -167,12 +162,10 @@
       const isGrid = view === 'grid'
       list.classList.toggle('hidden', isGrid)
       grid.classList.toggle('hidden', !isGrid)
-      listBtn.classList.toggle('bg-surface-hover', !isGrid)
-      listBtn.classList.toggle('text-foreground', !isGrid)
-      listBtn.classList.toggle('text-muted-foreground', isGrid)
-      gridBtn.classList.toggle('bg-surface-hover', isGrid)
-      gridBtn.classList.toggle('text-foreground', isGrid)
-      gridBtn.classList.toggle('text-muted-foreground', !isGrid)
+      listBtn.classList.toggle('is-active', !isGrid)
+      gridBtn.classList.toggle('is-active', isGrid)
+      listBtn.setAttribute('aria-pressed', String(!isGrid))
+      gridBtn.setAttribute('aria-pressed', String(isGrid))
       try {
         localStorage.setItem('ql-view', view)
       } catch { /* ignore */ }
