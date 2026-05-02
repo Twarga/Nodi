@@ -1,6 +1,16 @@
 {{define "title"}}Nodi{{end}}
 
 {{define "content"}}
+<div id="drop-overlay" class="drop-overlay hidden">
+    <div class="drop-overlay-content">
+        <svg class="drop-overlay-icon"><use href="/static/icons.svg#icon-upload-cloud"></use></svg>
+        <div>
+            <p class="text-xl font-semibold text-foreground">Drop files to upload</p>
+            <p class="text-sm text-muted-foreground mt-1">Release to start uploading to the current folder</p>
+        </div>
+    </div>
+</div>
+
 <header class="sticky top-0 z-30 h-14 border-b border-border bg-surface/95 backdrop-blur-sm">
   <div class="mx-auto flex h-full max-w-[1400px] items-center justify-between px-4 sm:px-6">
     <div class="flex items-center gap-2.5">

@@ -93,6 +93,43 @@
         })
       }
     })
+
+    // Drag and Drop Logic
+    const overlay = document.getElementById('drop-overlay')
+    let dragCounter = 0
+
+    window.addEventListener('dragenter', (e) => {
+      e.preventDefault()
+      dragCounter++
+      if (overlay) overlay.classList.remove('hidden')
+    })
+
+    window.addEventListener('dragleave', (e) => {
+      e.preventDefault()
+      dragCounter--
+      if (dragCounter === 0 && overlay) overlay.classList.add('hidden')
+    })
+
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault()
+    })
+
+    window.addEventListener('drop', (e) => {
+      e.preventDefault()
+      dragCounter = 0
+      if (overlay) overlay.classList.add('hidden')
+      
+      const files = e.dataTransfer.files
+      if (files.length > 0) {
+        onUpload(files)
+      }
+    })
+  }
+
+  window.onUpload = (files) => {
+    console.log('Uploading files:', files)
+    toast(`Preparing to upload ${files.length} file(s)...`, 'info')
+    // TODO: Implement actual upload logic (T33)
   }
 
   // --- Modal Logic ---

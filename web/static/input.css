@@ -167,3 +167,17 @@
 .toast-icon { @apply h-4 w-4 shrink-0; }
 .toast-message { @apply flex-1 font-medium; }
 .toast-close { @apply text-muted-foreground hover:text-foreground; }
+
+/* Drag & Drop Overlay */
+.drop-overlay {
+  @apply fixed inset-0 z-[110] flex items-center justify-center bg-background/60 backdrop-blur-sm transition-all duration-200;
+}
+.drop-overlay.hidden {
+  @apply opacity-0 pointer-events-none;
+}
+.drop-overlay-content {
+  @apply flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-primary/50 bg-surface p-12 text-center animate-ql-pop-in;
+}
+.drop-overlay-icon {
+  @apply h-12 w-12 text-primary animate-bounce;
+}
