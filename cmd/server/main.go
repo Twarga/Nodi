@@ -53,6 +53,9 @@ func main() {
 	// T11 & T12: Login endpoint protected by rate limiter
 	mux.Handle("/login", middleware.RateLimit(loginRateLimiter)(handlers.Login(cfg)))
 
+	// T22: Browse endpoint
+	mux.Handle("/browse", middleware.AuthRequired(cfg.CookieSecret)(handlers.Browse(cfg)))
+
 	// Logout endpoint
 	mux.Handle("/logout", http.HandlerFunc(handlers.Logout()))
 
