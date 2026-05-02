@@ -322,12 +322,30 @@
       xhr.onload = () => {
         const status = item.querySelector('.upload-status')
         if (xhr.status === 200) {
+          let result = null
+          try {
+            const results = JSON.parse(xhr.responseText)
+            result = Array.isArray(results) ? results[0] : null
+          } catch { /* handled below */ }
+
+          if (result && result.error) {
+            if (status) {
+              status.textContent = 'Failed'
+              status.classList.replace('text-muted-foreground', 'text-destructive')
+            }
+            const bar = item.querySelector('.progress-bar')
+            if (bar) {
+              bar.style.width = '100%'
+              bar.classList.add('bg-destructive')
+            }
+            toast(`${file.name}: ${result.error}`, 'error')
+            return
+          }
+
           if (status) {
             status.textContent = 'Complete'
             status.classList.replace('text-muted-foreground', 'text-success')
           }
-          // Refresh item list if this was the last upload or after each success?
-          // To keep it SPA-like, we refresh the view.
           refreshItems()
         } else {
           if (status) {
@@ -448,7 +466,7 @@
     segments.forEach((seg, i) => {
       currentPath += '/' + seg
       html += `
-        <svg class="h-3.5 w-3.5 text-muted-foreground/40 shrink-0"><use href="/static/icons.svg#icon-chevron-right"></use></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" class="text-muted-foreground/40 shrink-0" aria-hidden="true"><use href="/static/icons.svg#icon-chevron-right"></use></svg>
         <a href="?path=${encodeURIComponent(currentPath)}" onclick="event.preventDefault(); navigate('${escapeHTML(escapeJSString(currentPath))}')" 
            class="truncate max-w-[120px] transition-colors ${i === segments.length - 1 ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}">
           ${escapeHTML(seg)}

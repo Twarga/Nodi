@@ -8,16 +8,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"nodi/internal/config"
 	"nodi/internal/storage"
 )
-
-var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9._ -]+$`)
 
 // FileInfo represents metadata for a file or directory.
 type FileInfo struct {
@@ -131,6 +129,22 @@ func isWithinRoot(root, path string) bool {
 	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
+func validName(name string) bool {
+	name = strings.TrimSpace(name)
+	if name == "" || name == "." || name == ".." {
+		return false
+	}
+	if !utf8.ValidString(name) || utf8.RuneCountInString(name) > 255 {
+		return false
+	}
+	for _, r := range name {
+		if r == '/' || r == '\\' || r == 0 || r < 32 || strings.ContainsRune(`'"<>&`, r) {
+			return false
+		}
+	}
+	return true
+}
+
 // Browse returns a handler that lists directory contents as JSON.
 func Browse(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +189,7 @@ func CreateFolder(cfg *config.Config) http.HandlerFunc {
 		}
 
 		req.Name = strings.TrimSpace(req.Name)
-		if req.Name == "" || !nameRegex.MatchString(req.Name) {
+		if !validName(req.Name) {
 			http.Error(w, "Invalid folder name", http.StatusBadRequest)
 			return
 		}
@@ -266,7 +280,7 @@ func Rename(cfg *config.Config) http.HandlerFunc {
 		}
 
 		req.NewName = strings.TrimSpace(req.NewName)
-		if req.NewName == "" || !nameRegex.MatchString(req.NewName) {
+		if !validName(req.NewName) {
 			http.Error(w, "Invalid new name", http.StatusBadRequest)
 			return
 		}
@@ -406,7 +420,7 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 			defer src.Close()
 
 			// Securely resolve destination
-			if !nameRegex.MatchString(fileHeader.Filename) {
+			if !validName(fileHeader.Filename) {
 				res.Error = "Invalid filename"
 				results = append(results, res)
 				continue
@@ -414,8 +428,8 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 
 			dstPath := filepath.Join(basePath, fileHeader.Filename)
 
-			// T34: Use temporal staging
-			tempFile, err := os.CreateTemp("", "nodi-upload-*")
+			// Stage in the destination directory so final rename stays atomic across Docker volumes.
+			tempFile, err := os.CreateTemp(basePath, ".nodi-upload-*")
 			if err != nil {
 				res.Error = "Staging failed"
 				results = append(results, res)

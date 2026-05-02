@@ -79,7 +79,7 @@ func TestRename_InvalidName(t *testing.T) {
 	cfg := &config.Config{Root: tmpRoot}
 	handler := handlers.Rename(cfg)
 
-	invalidNames := []string{"", "  ", "name/with/slash", "name*star"}
+	invalidNames := []string{"", "  ", "name/with/slash", ".", "..", "bad'name"}
 
 	for _, name := range invalidNames {
 		body, _ := json.Marshal(map[string]string{
