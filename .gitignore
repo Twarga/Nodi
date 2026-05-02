@@ -6,6 +6,7 @@
 *.dylib
 /server
 /bin/
+/tailwindcss-linux-x64
 
 # Go build
 /bin/

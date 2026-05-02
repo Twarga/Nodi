@@ -26,7 +26,7 @@ QL_PORT=8080
 QL_ROOT=./data
 QL_USER=admin
 # Hash for 'admin'
-QL_PASS_HASH=\$2y\$10\$y58t9Y6PqBf9N6qA58t9Ye8Zp6iS6Y7YmS6i6Y7YmS6i6Y7YmS6i6
+QL_PASS_HASH=\$2b\$10\$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy
 QL_COOKIE_SECRET=local-development-secret-keep-it-safe-123
 QL_THEME=system
 EOF

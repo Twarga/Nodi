@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Go-1.22+-1f1f1f?style=flat-square&logo=go&logoColor=00ADD8" alt="Go" />
+  <img src="https://img.shields.io/badge/Go-1.26+-1f1f1f?style=flat-square&logo=go&logoColor=00ADD8" alt="Go" />
   <img src="https://img.shields.io/badge/Vanilla_JS-Frontend-1f1f1f?style=flat-square&logo=javascript&logoColor=F7DF1E" alt="Vanilla JS" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-1f1f1f?style=flat-square&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Docker-Packaging-1f1f1f?style=flat-square&logo=docker&logoColor=2496ED" alt="Docker" />
@@ -51,7 +51,7 @@ curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash
 ## Development
 
 Prerequisites:
-- [Go 1.22+](https://go.dev/)
+- [Go 1.26+](https://go.dev/)
 - [Docker](https://www.docker.com/) (optional)
 
 To start the project locally for testing:

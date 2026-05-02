@@ -68,5 +68,5 @@
 - [x] T47: Complete file API behavior. Implement secure downloads, return stable JSON arrays from `/browse`, enforce `QL_MAX_UPLOAD`, and add endpoint tests.
 - [x] T48: Harden auth and HTTP security controls. Fix login rate-limit identity, add production-safe cookie/security headers, and test the behavior.
 - [x] T49: Repair frontend file-manager workflows. Remove unsafe file-name HTML injection, wire upload/delete/download/view toggles, and keep SPA navigation stable.
-- [ ] T50: Fix installation and packaging. Align Go/Docker versions, replace invalid default hashes, remove committed binary drift, and verify local/Docker startup docs.
+- [x] T50: Fix installation and packaging. Align Go/Docker versions, replace invalid default hashes, remove committed binary drift, and verify local/Docker startup docs.
 - [ ] T51: Add end-to-end quality gates. Cover login, dashboard, static assets, browse, create, rename, delete, upload, download, traversal rejection, and symlink rejection.

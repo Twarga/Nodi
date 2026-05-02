@@ -76,7 +76,7 @@ QL_ROOT=/data
 QL_USER=admin
 # Use 'htpasswd -B' to generate a real hash for your password
 # Default hash below is for 'admin'
-QL_PASS_HASH=\$2y\$10\$y58t9Y6PqBf9N6qA58t9Ye8Zp6iS6Y7YmS6i6Y7YmS6i6Y7YmS6i6
+QL_PASS_HASH=\$2b\$10\$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy
 QL_COOKIE_SECRET=$COOKIE_SECRET
 QL_THEME=system
 EOF
