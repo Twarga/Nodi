@@ -12,7 +12,10 @@ import (
 
 	"nodi/internal/config"
 	"nodi/internal/storage"
+	"regexp"
 )
+
+var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9._ -]+$`)
 
 // FileInfo represents metadata for a file or directory.
 type FileInfo struct {
@@ -96,5 +99,58 @@ func Browse(cfg *config.Config) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(files)
+	}
+}
+
+// CreateFolder returns a handler that creates a new directory.
+func CreateFolder(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Path string `json:"path"`
+			Name string `json:"name"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		req.Name = strings.TrimSpace(req.Name)
+		if req.Name == "" || !nameRegex.MatchString(req.Name) {
+			http.Error(w, "Invalid folder name", http.StatusBadRequest)
+			return
+		}
+
+		// Resolve base path
+		basePath, err := SafePath(cfg.Root, req.Path)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		targetPath := filepath.Join(basePath, req.Name)
+
+		// Final check to ensure the target is still within root (extra safety)
+		if _, err := SafePath(cfg.Root, filepath.Join(req.Path, req.Name)); err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		if err := os.Mkdir(targetPath, 0755); err != nil {
+			if os.IsExist(err) {
+				http.Error(w, "Folder already exists", http.StatusConflict)
+				return
+			}
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Folder created"})
 	}
 }
