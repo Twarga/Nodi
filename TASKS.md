@@ -48,7 +48,7 @@
 - [x] T35: Render Upload List (`UploadList.tsx` equivalent) progress UI beneath breadcrumbs updating via JS streams/polling.
 
 ## Phase 6: Packaging & Docker
-- [ ] T36: Build Dockerfile via Multi-Stage build (Node/Alpine for Tailwind -> Go Alpine for compilation -> Run Alpine container).
+- [x] T36: Build Dockerfile via Multi-Stage build (Node/Alpine for Tailwind -> Go Alpine for compilation -> Run Alpine container).
 - [ ] T37: Expose config properly using default `.env` examples.
 - [ ] T38: Create `docker-compose.yml` demonstrating full volume mounts and secure variables.
 

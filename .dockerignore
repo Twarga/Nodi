@@ -1,0 +1,12 @@
+.git
+.gitignore
+tailwindcss-linux-x64
+server
+logo.png
+front-end inspiration
+plan.md
+TASKS.md
+data/
+uploads/
+/tmp/
+*.log
