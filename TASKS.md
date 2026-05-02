@@ -70,3 +70,15 @@
 - [x] T49: Repair frontend file-manager workflows. Remove unsafe file-name HTML injection, wire upload/delete/download/view toggles, and keep SPA navigation stable.
 - [x] T50: Fix installation and packaging. Align Go/Docker versions, replace invalid default hashes, remove committed binary drift, and verify local/Docker startup docs.
 - [x] T51: Add end-to-end quality gates. Cover login, dashboard, static assets, browse, create, rename, delete, upload, download, traversal rejection, and symlink rejection.
+
+## Phase 10: File Manager Usability
+- [x] T52: Add selectable files and folders in list view and grid view.
+- [x] T53: Add select-all, clear selection, selected count, and selected item highlighting.
+- [x] T54: Add bulk delete with confirmation using the existing protected delete API.
+- [x] T55: Verify nested-folder upload, select, and bulk-delete workflows in browser automation.
+- [ ] T56: Add move/copy selected items between folders.
+- [ ] T57: Add keyboard shortcuts for selection and actions (`Esc`, `Delete`, `Ctrl+A`, `Enter`).
+- [ ] T58: Add sorting controls for name, size, type, and modified date.
+- [ ] T59: Add search/filter within the current folder.
+- [ ] T60: Add breadcrumb-safe drag/drop uploads and visible current upload target.
+- [ ] T61: Add richer file preview for images/text/PDF metadata.

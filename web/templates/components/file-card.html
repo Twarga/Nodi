@@ -1,6 +1,10 @@
 {{define "file-card"}}
-<div class="group relative aspect-square rounded-lg border border-border bg-surface p-3 cursor-pointer hover:border-border-strong hover:bg-surface-hover transition-colors animate-ql-fade-in flex flex-col"
+<div class="selectable-item group relative aspect-square rounded-lg border border-border bg-surface p-3 cursor-pointer hover:border-border-strong hover:bg-surface-hover transition-colors animate-ql-fade-in flex flex-col"
+     data-name="{{.Name}}"
      onclick="onOpen('{{.Name}}', {{.IsDir}})">
+  <div class="absolute left-2 top-2 z-10" onclick="event.stopPropagation()">
+    <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select {{.Name}}" data-name="{{.Name}}" onchange="toggleSelection('{{.Name}}', this.checked)">
+  </div>
   <div class="flex-1 flex items-center justify-center">
     <svg class="w-12 h-12 {{if .IsDir}}text-icon-folder{{else}}text-icon-{{.MIME}}{{end}}">
       <use href="/static/icons.svg#icon-{{if .IsDir}}folder{{else if eq .MIME "image"}}image{{else if eq .MIME "video"}}film{{else if eq .MIME "pdf"}}file-text{{else}}file{{end}}"></use>

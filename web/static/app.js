@@ -2,6 +2,7 @@
   const STORAGE_KEY = 'ql-theme'
   const SYSTEM_THEME = 'system'
   const themes = [SYSTEM_THEME, 'light', 'dark']
+  const selectedNames = new Set()
 
   function getSystemTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -101,6 +102,7 @@
     initViewToggle()
     initUploadButton()
     initLoginForm()
+    updateSelectionUI()
 
     // Global menu management
     document.addEventListener('click', (e) => {
@@ -397,6 +399,118 @@
     document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'))
   }
 
+  function getSelectableNames() {
+    return Array.from(document.querySelectorAll('.selectable-item[data-name]'))
+      .map((item) => item.dataset.name)
+      .filter(Boolean)
+      .filter((name, index, names) => names.indexOf(name) === index)
+  }
+
+  function updateSelectionUI() {
+    const visibleNames = new Set(getSelectableNames())
+    Array.from(selectedNames).forEach((name) => {
+      if (!visibleNames.has(name)) selectedNames.delete(name)
+    })
+
+    document.querySelectorAll('.selectable-item[data-name]').forEach((item) => {
+      const selected = selectedNames.has(item.dataset.name)
+      item.classList.toggle('is-selected', selected)
+    })
+
+    document.querySelectorAll('.item-selector[data-name]').forEach((input) => {
+      input.checked = selectedNames.has(input.dataset.name)
+    })
+
+    const count = selectedNames.size
+    const bar = document.getElementById('selection-bar')
+    const countEl = document.getElementById('selection-count')
+    if (bar) bar.classList.toggle('hidden', count === 0)
+    if (countEl) countEl.textContent = count === 1 ? '1 selected' : `${count} selected`
+
+    const allBox = document.getElementById('select-all-checkbox')
+    if (allBox) {
+      const names = getSelectableNames()
+      allBox.checked = names.length > 0 && names.every((name) => selectedNames.has(name))
+      allBox.indeterminate = names.some((name) => selectedNames.has(name)) && !allBox.checked
+    }
+  }
+
+  window.toggleSelection = (name, selected) => {
+    if (selected) {
+      selectedNames.add(name)
+    } else {
+      selectedNames.delete(name)
+    }
+    updateSelectionUI()
+  }
+
+  window.toggleSelectAll = (selected) => {
+    getSelectableNames().forEach((name) => {
+      if (selected) selectedNames.add(name)
+      else selectedNames.delete(name)
+    })
+    updateSelectionUI()
+  }
+
+  window.selectAllVisible = () => {
+    getSelectableNames().forEach((name) => selectedNames.add(name))
+    updateSelectionUI()
+  }
+
+  window.clearSelection = () => {
+    selectedNames.clear()
+    updateSelectionUI()
+  }
+
+  window.onBulkDelete = () => {
+    if (selectedNames.size === 0) return
+    const names = Array.from(selectedNames)
+    const countEl = document.getElementById('bulk-delete-count')
+    const listEl = document.getElementById('bulk-delete-list')
+    if (countEl) countEl.textContent = names.length === 1 ? '1 selected item' : `${names.length} selected items`
+    if (listEl) {
+      listEl.innerHTML = names.map((name) => `<div class="truncate py-1">${escapeHTML(name)}</div>`).join('')
+    }
+    showModal('bulk-delete')
+  }
+
+  window.onBulkDeleteConfirm = async () => {
+    const names = Array.from(selectedNames)
+    if (names.length === 0) {
+      closeModal('bulk-delete')
+      return
+    }
+
+    const failures = []
+    for (const name of names) {
+      const path = joinPath(getCurrentPath(), name)
+      try {
+        const resp = await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path })
+        })
+        if (!resp.ok) {
+          const err = await resp.text()
+          failures.push(`${name}: ${err || resp.statusText}`)
+        }
+      } catch {
+        failures.push(`${name}: network error`)
+      }
+    }
+
+    closeModal('bulk-delete')
+    clearSelection()
+    await refreshItems()
+
+    if (failures.length > 0) {
+      toast(`Deleted with ${failures.length} failure${failures.length === 1 ? '' : 's'}`, 'error')
+      console.error('Bulk delete failures:', failures)
+    } else {
+      toast(`Deleted ${names.length} item${names.length === 1 ? '' : 's'}`, 'success')
+    }
+  }
+
   // --- File Actions ---
   window.onCreateFolderSubmit = async () => {
     const form = document.getElementById('create-folder-form')
@@ -426,6 +540,7 @@
 
   window.onOpen = (name, isDir) => {
     if (isDir) {
+      clearSelection()
       const newPath = joinPath(getCurrentPath(), name)
       
       const url = new URL(window.location)
@@ -471,6 +586,7 @@
   }
 
   window.navigate = (path) => {
+    clearSelection()
     const url = new URL(window.location)
     url.searchParams.set('path', path)
     window.history.pushState({}, '', url)
@@ -479,6 +595,7 @@
   }
 
   window.addEventListener('popstate', () => {
+    clearSelection()
     refreshItems()
     const path = new URLSearchParams(window.location.search).get('path') || '/'
     updateBreadcrumbs(path)
@@ -558,18 +675,20 @@
 
     if (files.length === 0) {
       const emptyState = `
-        <li class="flex flex-col items-center justify-center py-20 opacity-40">
+        <li class="empty-state">
           <svg class="w-16 h-16 mb-4"><use href="/static/icons.svg#icon-folder"></use></svg>
           <p class="text-lg font-medium">This folder is empty</p>
         </li>
       `
       listContainer.innerHTML = emptyState
       gridContainer.innerHTML = ''
+      updateSelectionUI()
       return
     }
 
     listContainer.innerHTML = files.map(f => renderFileRow(f)).join('')
     gridContainer.innerHTML = files.map(f => renderFileCard(f)).join('')
+    updateSelectionUI()
   }
 
   function renderFileRow(f) {
@@ -581,8 +700,12 @@
     const key = fileKey(f.name)
     
     return `
-      <li class="group grid grid-cols-1 sm:grid-cols-[1fr_110px_160px_56px] items-center gap-4 px-4 py-2.5 hover:bg-surface-hover transition-all border-b border-border/50 last:border-0"
+      <li class="selectable-item group grid grid-cols-[34px_1fr_56px] sm:grid-cols-[34px_1fr_110px_160px_56px] items-center gap-4 px-4 py-2.5 hover:bg-surface-hover transition-all border-b border-border/50 last:border-0"
+          data-name="${name}"
           onclick="onOpen('${actionName}', ${f.is_dir})">
+        <div onclick="event.stopPropagation()">
+          <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select ${name}" data-name="${name}" onchange="toggleSelection('${actionName}', this.checked)">
+        </div>
         <div class="flex items-center gap-3 min-w-0">
           <svg class="h-5 w-5 shrink-0 ${icon.colorClass}"><use href="/static/icons.svg#${icon.id}"></use></svg>
           <span class="truncate text-sm font-medium">${name}</span>
@@ -616,8 +739,12 @@
     const actionName = escapeHTML(escapeJSString(f.name))
     const key = fileKey(f.name)
     return `
-      <div class="group relative flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-4 text-center hover:bg-surface-hover transition-all hover:shadow-md cursor-pointer"
+      <div class="selectable-item group relative flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-4 text-center hover:bg-surface-hover transition-all hover:shadow-md cursor-pointer"
+           data-name="${name}"
            onclick="onOpen('${actionName}', ${f.is_dir})">
+        <div class="absolute left-2 top-2 z-10" onclick="event.stopPropagation()">
+          <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select ${name}" data-name="${name}" onchange="toggleSelection('${actionName}', this.checked)">
+        </div>
         <div class="flex h-16 w-full items-center justify-center rounded-lg bg-background/40">
            <svg class="h-10 w-10 ${icon.colorClass}"><use href="/static/icons.svg#${icon.id}"></use></svg>
         </div>
