@@ -1,61 +1,67 @@
 # Nodi
 
 <p align="center">
-  <img src="./logo.png" alt="Nodi logo" width="320" />
+  <img src="./logo.png" alt="Nodi logo" width="180" />
 </p>
 
-**Nodi** is a lightweight, self-hosted web file manager built for speed and simplicity. It provides a polished, asynchronous interface for managing your files via Docker or as a standalone binary.
+<p align="center">
+  A lightweight, self-hosted web file manager built for speed, security, and a quiet technical aesthetic.
+</p>
 
-## ✨ Features
+<p align="center">
+  <img src="https://img.shields.io/badge/Go-1.22+-1f1f1f?style=flat-square&logo=go&logoColor=00ADD8" alt="Go" />
+  <img src="https://img.shields.io/badge/Vanilla_JS-Frontend-1f1f1f?style=flat-square&logo=javascript&logoColor=F7DF1E" alt="Vanilla JS" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-1f1f1f?style=flat-square&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Docker-Packaging-1f1f1f?style=flat-square&logo=docker&logoColor=2496ED" alt="Docker" />
+  <img src="https://img.shields.io/badge/Alpine-Linux-1f1f1f?style=flat-square&logo=alpinelinux&logoColor=white" alt="Alpine" />
+</p>
 
-- **Quiet Technical UI**: Dense, editorial-inspired monastic design.
-- **Async Workflow**: SPA-like navigation and operations (Create, Rename, Delete) with real-time feedback.
-- **Secure Uploads**: Granular progress tracking and atomic staging for large file uploads.
-- **Fast Search**: Instant directory browsing and breadcrumb-based navigation.
-- **Theme Aware**: First-class support for Light, Dark, and System modes.
-- **Tiny Footprint**: Multi-stage Docker build resulting in a minimal runtime image (~20MB).
+## What it is
 
-## 🚀 Fast Install
+Nodi is a minimalist file management solution for users who value density and performance. It serves as a private cloud alternative that runs directly on your hardware, providing a monastic interface for interacting with your local files.
 
-Run the following command to set up Nodi on your server instantly:
+## Core workflow
+
+1. Authenticate securely via BCrypt-backed login
+2. Browse directories with zero-latency SPA navigation
+3. Manage assets with async Rename, Create, and Delete actions
+4. Track large uploads with real-time UI progress bars
+5. Toggle between Light and Dark modes instantly
+
+## Tech stack
+
+- **Backend**: Go (standard library + `http.ServeMux`)
+- **Frontend**: Vanilla JavaScript (ES Modules)
+- **Styling**: Tailwind CSS v3
+- **Packaging**: Multi-stage Docker build
+- **OS**: Alpine Linux
+
+## Status
+
+**Ready for deployment.** Initial feature set for Phase 1-6 is complete, including core file actions and advanced upload mechanics.
+
+## Deployment (Fast Install)
+
+Run the one-click installer on any Linux server with Docker installed:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash
 ```
 
-## 🛠️ Configuration
+## Development
 
-Nodi is configured via environment variables. Copy `.env.example` to `.env` to customize your installation.
+Prerequisites:
+- [Go 1.22+](https://go.dev/)
+- [Docker](https://www.docker.com/) (optional)
 
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `QL_PORT` | Port to listen on | `8080` |
-| `QL_USER` | Admin username | `admin` |
-| `QL_PASS_HASH` | BCrypt hash of the admin password | (Required) |
-| `QL_ROOT` | Root directory for file storage | `/data` |
-| `QL_COOKIE_SECRET` | 32+ character string for session signing | (Required) |
-| `QL_THEME` | Default UI theme (`light`, `dark`, `system`) | `system` |
+To start the project locally for testing:
 
-## 🏗️ Development
-
-### Local Build
-1. **Frontend**: Compile Tailwind CSS
-   ```bash
-   ./tailwindcss-linux-x64 -i ./web/static/input.css -o ./web/static/output.css --minify
-   ```
-2. **Backend**: Build the Go binary
-   ```bash
-   go build -o nodi ./cmd/server
-   ```
-3. **Run**:
-   ```bash
-   ./nodi
-   ```
-
-### Docker
 ```bash
-docker-compose up --build
+chmod +x run.sh
+./run.sh
 ```
 
-## 📄 License
+This will download the Tailwind CLI, compile the CSS, scaffold a default `.env`, and start the server.
+
+## License
 MIT License. Created by [Twarga](https://github.com/Twarga).
