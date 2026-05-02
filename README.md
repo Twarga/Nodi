@@ -1,12 +1,10 @@
+# Nodi
+
 <p align="center">
-  <img src="./logo.png" alt="Nodi logo" width="180" />
+  <img src="./logo.png" alt="Nodi logo" width="320" />
 </p>
 
-<p align="center"># Nodi
-
 **Nodi** is a lightweight, self-hosted web file manager built for speed and simplicity. It provides a polished, asynchronous interface for managing your files via Docker or as a standalone binary.
-
-![Nodi Dashboard](/logo.png)
 
 ## ✨ Features
 
