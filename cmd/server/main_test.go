@@ -51,3 +51,35 @@ func TestNewHandler_SetsSecurityHeaders(t *testing.T) {
 		t.Fatal("expected Content-Security-Policy header")
 	}
 }
+
+func TestHealthEndpoint(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+	w := httptest.NewRecorder()
+
+	NewHandler(&config.Config{CookieSecret: "test-secret"}).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if ct := w.Header().Get("Content-Type"); ct != "application/json" {
+		t.Fatalf("expected Content-Type application/json, got %q", ct)
+	}
+	body := w.Body.String()
+	if body == "" {
+		t.Fatal("expected non-empty health response body")
+	}
+}
+
+func TestVersionEndpoint(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/version", nil)
+	w := httptest.NewRecorder()
+
+	NewHandler(&config.Config{CookieSecret: "test-secret"}).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if ct := w.Header().Get("Content-Type"); ct != "application/json" {
+		t.Fatalf("expected Content-Type application/json, got %q", ct)
+	}
+}

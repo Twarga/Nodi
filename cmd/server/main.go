@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,11 @@ import (
 	"github.com/Twarga/Nodi/internal/config"
 	"github.com/Twarga/Nodi/internal/handlers"
 	"github.com/Twarga/Nodi/internal/middleware"
+)
+
+var (
+	version   = "dev"
+	startTime = time.Now()
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -43,11 +49,32 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"version": version,
+		"uptime":  time.Since(startTime).Round(time.Second).String(),
+	})
+}
+
+func versionHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"version":    version,
+		"go_version": "1.24",
+	})
+}
+
 func NewHandler(cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 
 	staticFiles := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", staticFiles))
+
+	// Health and version endpoints (no auth required)
+	mux.HandleFunc("/api/health", healthHandler)
+	mux.HandleFunc("/api/version", versionHandler)
 
 	// Protected root endpoint — renders dashboard
 	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret)(handlers.Dashboard(cfg)))
