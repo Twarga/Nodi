@@ -1,9 +1,10 @@
 {{define "file-row"}}
 <li class="selectable-item ql-row-hover group grid grid-cols-[34px_1fr_56px] sm:grid-cols-[34px_1fr_110px_160px_56px] items-center gap-4 border-b border-border last:border-b-0 px-4 py-2.5 cursor-pointer animate-ql-fade-in"
     data-name="{{.Name}}"
-    onclick="onOpen('{{.Name}}', {{.IsDir}})">
-  <div onclick="event.stopPropagation()">
-    <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select {{.Name}}" data-name="{{.Name}}" onchange="toggleSelection('{{.Name}}', this.checked)">
+    data-is-dir="{{.IsDir}}"
+    data-action="open">
+  <div data-stop-propagation>
+    <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select {{.Name}}" data-name="{{.Name}}" data-action="toggle-select">
   </div>
   <div class="flex items-center gap-3 min-w-0">
     <svg class="w-5 h-5 {{if .IsDir}}text-icon-folder{{else}}text-icon-{{.MIME}}{{end}}">
@@ -18,20 +19,19 @@
     {{formatRelative .ModTime}}
   </div>
   <div class="relative flex justify-end">
-    <button onclick="event.stopPropagation(); toggleMenu('{{.Name}}')" class="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground opacity-60 group-hover:opacity-100 hover:bg-secondary hover:text-foreground transition-all">
+    <button data-stop-propagation data-action="toggle-menu" data-name="{{.Name}}" class="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground opacity-60 group-hover:opacity-100 hover:bg-secondary hover:text-foreground transition-all">
       <svg class="w-4 h-4"><use href="/static/icons.svg#icon-more"></use></svg>
     </button>
-    <!-- Menu Placeholder - To be handled by JS or static templates -->
-    <div id="menu-{{.Name}}" class="hidden absolute right-0 top-9 z-20 w-44 rounded-md border border-border bg-popover py-1 shadow-md animate-ql-fade-in">
+    <div id="menu-{{fileKey .Name}}" class="hidden absolute right-0 top-9 z-20 w-44 rounded-md border border-border bg-popover py-1 shadow-md animate-ql-fade-in">
         {{if not .IsDir}}
-        <button onclick="onDownload('{{.Name}}')" class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover">
+        <button data-action="download" data-name="{{.Name}}" class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover">
             <svg class="w-[15px] h-[15px]"><use href="/static/icons.svg#icon-download"></use></svg> Download
         </button>
         {{end}}
-        <button onclick="onRename('{{.Name}}')" class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover">
+        <button data-action="rename" data-name="{{.Name}}" class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover">
             <svg class="w-[15px] h-[15px]"><use href="/static/icons.svg#icon-edit"></use></svg> Rename
         </button>
-        <button onclick="onDelete('{{.Name}}')" class="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-surface-hover">
+        <button data-action="delete" data-name="{{.Name}}" class="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-surface-hover">
             <svg class="w-[15px] h-[15px]"><use href="/static/icons.svg#icon-trash"></use></svg> Delete
         </button>
     </div>

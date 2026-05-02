@@ -109,10 +109,71 @@
     initLoginForm()
     updateSelectionUI()
 
-    // Global menu management
+    // Event delegation for file actions (replaces inline onclick handlers)
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('[id^="menu-"]') && !e.target.closest('button[onclick*="toggleMenu"]')) {
-        closeAllMenus()
+      const target = e.target
+
+      // If clicked inside a stop-propagation container without a specific action,
+      // don't let it bubble to parent actions (e.g. clicking checkbox container)
+      const stopContainer = target.closest('[data-stop-propagation]')
+      const actionEl = target.closest('[data-action]')
+
+      if (!actionEl) {
+        // Clicked outside menus — close them
+        if (!target.closest('[id^="menu-"]')) {
+          closeAllMenus()
+        }
+        return
+      }
+
+      // If inside stop-propagation and the action is on an ancestor, ignore
+      if (stopContainer && !stopContainer.contains(actionEl) && actionEl.contains(stopContainer)) {
+        return
+      }
+
+      const action = actionEl.dataset.action
+      const name = actionEl.dataset.name
+
+      if (action === 'open') {
+        const isDir = actionEl.dataset.isDir === 'true'
+        onOpen(name, isDir)
+        return
+      }
+
+      if (action === 'toggle-menu') {
+        e.stopPropagation()
+        toggleMenu(name)
+        return
+      }
+
+      if (action === 'download') {
+        e.stopPropagation()
+        onDownload(name)
+        return
+      }
+
+      if (action === 'rename') {
+        e.stopPropagation()
+        onRename(name)
+        return
+      }
+
+      if (action === 'delete') {
+        e.stopPropagation()
+        onDelete(name)
+        return
+      }
+
+      if (action === 'dismiss-toast') {
+        actionEl.closest('.toast')?.remove()
+        return
+      }
+    })
+
+    document.addEventListener('change', (e) => {
+      const target = e.target
+      if (target.dataset.action === 'toggle-select') {
+        toggleSelection(target.dataset.name, target.checked)
       }
     })
 
@@ -657,7 +718,7 @@
     toast.innerHTML = `
       <svg class="toast-icon"><use href="/static/icons.svg#icon-${icon}"></use></svg>
       <div class="toast-message">${escapeHTML(message)}</div>
-      <button class="toast-close" onclick="this.parentElement.remove()">
+      <button class="toast-close" data-action="dismiss-toast">
         <svg class="h-4 w-4"><use href="/static/icons.svg#icon-x"></use></svg>
       </button>
     `
@@ -711,15 +772,15 @@
     const size = f.is_dir ? '--' : formatBytes(f.size)
     const date = new Date(f.mod_time).toLocaleDateString() // Simple for now
     const name = escapeHTML(f.name)
-    const actionName = escapeHTML(escapeJSString(f.name))
     const key = fileKey(f.name)
     
     return `
       <li class="selectable-item group grid grid-cols-[34px_1fr_56px] sm:grid-cols-[34px_1fr_110px_160px_56px] items-center gap-4 px-4 py-2.5 hover:bg-surface-hover transition-all border-b border-border/50 last:border-0"
           data-name="${name}"
-          onclick="onOpen('${actionName}', ${f.is_dir})">
-        <div onclick="event.stopPropagation()">
-          <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select ${name}" data-name="${name}" onchange="toggleSelection('${actionName}', this.checked)">
+          data-is-dir="${f.is_dir}"
+          data-action="open">
+        <div data-stop-propagation>
+          <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select ${name}" data-name="${name}" data-action="toggle-select">
         </div>
         <div class="flex items-center gap-3 min-w-0">
           <svg class="h-5 w-5 shrink-0 ${icon.colorClass}"><use href="/static/icons.svg#${icon.id}"></use></svg>
@@ -727,19 +788,19 @@
         </div>
         <div class="hidden sm:block text-right text-xs text-muted-foreground tabular">${size}</div>
         <div class="hidden sm:block text-xs text-muted-foreground tabular">${date}</div>
-        <div class="flex justify-end pr-1 relative" onclick="event.stopPropagation()">
-            <button onclick="toggleMenu('${actionName}')" class="p-1.5 rounded-md hover:bg-surface-hover hover:text-foreground text-muted-foreground transition-colors">
+        <div class="flex justify-end pr-1 relative" data-stop-propagation>
+            <button data-action="toggle-menu" data-name="${name}" class="p-1.5 rounded-md hover:bg-surface-hover hover:text-foreground text-muted-foreground transition-colors">
                 <svg class="h-4 w-4"><use href="/static/icons.svg#icon-more-vertical"></use></svg>
             </button>
             <div id="menu-${key}" class="hidden absolute right-0 top-9 w-44 rounded-md border border-border bg-popover py-1 shadow-lg z-40 animate-ql-pop-in">
-                <button onclick="onDownload('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+                <button data-action="download" data-name="${name}" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
                     <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-download"></use></svg> Download
                 </button>
-                <button onclick="onRename('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+                <button data-action="rename" data-name="${name}" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
                     <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-edit"></use></svg> Rename
                 </button>
                 <div class="my-1 border-t border-border"></div>
-                <button onclick="onDelete('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
+                <button data-action="delete" data-name="${name}" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
                     <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-trash"></use></svg> Delete
                 </button>
             </div>
@@ -751,14 +812,14 @@
   function renderFileCard(f) {
     const icon = getIconForFile(f)
     const name = escapeHTML(f.name)
-    const actionName = escapeHTML(escapeJSString(f.name))
     const key = fileKey(f.name)
     return `
       <div class="selectable-item group relative flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-4 text-center hover:bg-surface-hover transition-all hover:shadow-md cursor-pointer"
            data-name="${name}"
-           onclick="onOpen('${actionName}', ${f.is_dir})">
-        <div class="absolute left-2 top-2 z-10" onclick="event.stopPropagation()">
-          <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select ${name}" data-name="${name}" onchange="toggleSelection('${actionName}', this.checked)">
+           data-is-dir="${f.is_dir}"
+           data-action="open">
+        <div class="absolute left-2 top-2 z-10" data-stop-propagation>
+          <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select ${name}" data-name="${name}" data-action="toggle-select">
         </div>
         <div class="flex h-16 w-full items-center justify-center rounded-lg bg-background/40">
            <svg class="h-10 w-10 ${icon.colorClass}"><use href="/static/icons.svg#${icon.id}"></use></svg>
@@ -768,20 +829,20 @@
           <p class="text-[11px] text-muted-foreground mt-0.5 tabular">${f.is_dir ? 'Folder' : formatBytes(f.size)}</p>
         </div>
         
-        <button onclick="event.stopPropagation(); toggleMenu('${actionName}')" 
+        <button data-stop-propagation data-action="toggle-menu" data-name="${name}" 
                 class="absolute top-2 right-2 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-surface transition-all text-muted-foreground">
            <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-more-vertical"></use></svg>
         </button>
         
         <div id="menu-grid-${key}" class="hidden absolute right-2 top-8 w-40 rounded-md border border-border bg-popover py-1 shadow-lg z-40 animate-ql-pop-in text-left">
-            <button onclick="onDownload('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+            <button data-action="download" data-name="${name}" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
                 <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-download"></use></svg> Download
             </button>
-            <button onclick="onRename('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+            <button data-action="rename" data-name="${name}" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
                 <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-edit"></use></svg> Rename
             </button>
             <div class="my-1 border-t border-border"></div>
-            <button onclick="onDelete('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
+            <button data-action="delete" data-name="${name}" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
                 <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-trash"></use></svg> Delete
             </button>
         </div>

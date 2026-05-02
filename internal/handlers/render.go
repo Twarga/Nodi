@@ -53,6 +53,18 @@ var GlobalFuncs = template.FuncMap{
 		}
 		return t.Format("2006-01-02")
 	},
+	"fileKey": func(name string) string {
+		// Match the JS fileKey() logic: replace non-alphanumeric with underscore
+		b := make([]byte, len(name))
+		for i, c := range []byte(name) {
+			if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
+				b[i] = c
+			} else {
+				b[i] = '_'
+			}
+		}
+		return string(b)
+	},
 }
 
 // RenderTemplate is a helper to parse and execute patterns with GlobalFuncs.

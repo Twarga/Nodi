@@ -1,9 +1,10 @@
 {{define "file-card"}}
 <div class="selectable-item group relative aspect-square rounded-lg border border-border bg-surface p-3 cursor-pointer hover:border-border-strong hover:bg-surface-hover transition-colors animate-ql-fade-in flex flex-col"
      data-name="{{.Name}}"
-     onclick="onOpen('{{.Name}}', {{.IsDir}})">
-  <div class="absolute left-2 top-2 z-10" onclick="event.stopPropagation()">
-    <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select {{.Name}}" data-name="{{.Name}}" onchange="toggleSelection('{{.Name}}', this.checked)">
+     data-is-dir="{{.IsDir}}"
+     data-action="open">
+  <div class="absolute left-2 top-2 z-10" data-stop-propagation>
+    <input type="checkbox" class="selection-checkbox item-selector" aria-label="Select {{.Name}}" data-name="{{.Name}}" data-action="toggle-select">
   </div>
   <div class="flex-1 flex items-center justify-center">
     <svg class="w-12 h-12 {{if .IsDir}}text-icon-folder{{else}}text-icon-{{.MIME}}{{end}}">
@@ -15,20 +16,20 @@
     <div class="text-xs text-muted-foreground tabular truncate">{{formatRelative .ModTime}}</div>
   </div>
 
-  <button onclick="event.stopPropagation(); toggleMenu('{{.Name}}')" class="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-secondary hover:text-foreground transition-all">
+  <button data-stop-propagation data-action="toggle-menu" data-name="{{.Name}}" class="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-secondary hover:text-foreground transition-all">
     <svg class="w-[15px] h-[15px]"><use href="/static/icons.svg#icon-more"></use></svg>
   </button>
 
-  <div id="menu-grid-{{.Name}}" class="hidden absolute right-2 top-10 z-20 w-40 rounded-md border border-border bg-popover py-1 shadow-md animate-ql-fade-in">
+  <div id="menu-grid-{{fileKey .Name}}" class="hidden absolute right-2 top-10 z-20 w-40 rounded-md border border-border bg-popover py-1 shadow-md animate-ql-fade-in">
     {{if not .IsDir}}
-    <button onclick="onDownload('{{.Name}}')" class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover">
+    <button data-action="download" data-name="{{.Name}}" class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover">
         <svg class="w-[15px] h-[15px]"><use href="/static/icons.svg#icon-download"></use></svg> Download
     </button>
     {{end}}
-    <button onclick="onRename('{{.Name}}')" class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover">
+    <button data-action="rename" data-name="{{.Name}}" class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover">
         <svg class="w-[15px] h-[15px]"><use href="/static/icons.svg#icon-edit"></use></svg> Rename
     </button>
-    <button onclick="onDelete('{{.Name}}')" class="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-surface-hover">
+    <button data-action="delete" data-name="{{.Name}}" class="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-surface-hover">
         <svg class="w-[15px] h-[15px]"><use href="/static/icons.svg#icon-trash"></use></svg> Delete
     </button>
   </div>

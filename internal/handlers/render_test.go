@@ -5,6 +5,7 @@ import (
 	"github.com/Twarga/Nodi/internal/handlers"
 	"html/template"
 	"testing"
+	"time"
 )
 
 func TestLayoutTemplateSyntax(t *testing.T) {
@@ -102,4 +103,53 @@ func TestDashboardTemplateSyntax(t *testing.T) {
 	if len(html) == 0 {
 		t.Errorf("Executed dashboard template is empty")
 	}
+}
+
+func TestFileRowNoXSS(t *testing.T) {
+	tmpl, err := template.New("file-row").Funcs(handlers.GlobalFuncs).ParseFiles("../../web/templates/components/file-row.html")
+	if err != nil {
+		t.Fatalf("Failed to parse file-row.html: %v", err)
+	}
+
+	// Malicious filename that would break out of inline JS strings
+	maliciousName := `foo');alert('xss`
+
+	data := struct {
+		Name    string
+		IsDir   bool
+		Size    int64
+		ModTime time.Time
+		MIME    string
+	}{
+		Name:    maliciousName,
+		IsDir:   false,
+		Size:    1024,
+		ModTime: time.Now(),
+		MIME:    "text",
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.ExecuteTemplate(&buf, "file-row", data)
+	if err != nil {
+		t.Fatalf("Failed to execute file-row template: %v", err)
+	}
+
+	html := buf.String()
+
+	// The malicious string should be HTML-escaped, not appear raw in JS context
+	if bytes.Contains(buf.Bytes(), []byte(`onclick="`)) {
+		t.Errorf("file-row.html still contains inline onclick — XSS vulnerability")
+	}
+
+	// The name should appear as a data attribute (safe context)
+	if !bytes.Contains(buf.Bytes(), []byte(`data-name="`)) {
+		t.Errorf("file-row.html missing data-name attribute")
+	}
+
+	// Verify the escaped name appears somewhere in output
+	if !bytes.Contains(buf.Bytes(), []byte("foo")) {
+		t.Errorf("Expected filename content not found in output")
+	}
+
+	_ = html
 }
