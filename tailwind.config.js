@@ -63,13 +63,40 @@ module.exports = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
-      keyframes: {
-        'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
-        'accordion-up': { from: { height: 'var(--radix-accordion-content-height)' }, to: { height: '0' } },
-      },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'ql-fade-in': 'ql-fade-in 150ms ease-out both',
+        'ql-slide-in-right': 'ql-slide-in-right 180ms ease-out both',
+        'ql-pop-in': 'ql-pop-in 160ms ease-out both',
+        'ql-shake': 'ql-shake 420ms cubic-bezier(.36,.07,.19,.97) both',
+        'ql-pulse-soft': 'ql-pulse-soft 1.6s ease-in-out infinite',
+      },
+      keyframes: {
+        'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
+        'accordion-up': { from: { height: 'var(--radix-accordion-content-height)' }, to: { height: '0' } },
+        'ql-fade-in': {
+          from: { opacity: '0', transform: 'translateY(4px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'ql-slide-in-right': {
+          from: { opacity: '0', transform: 'translateX(12px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        'ql-pop-in': {
+          '0%': { opacity: '0', transform: 'scale(0.96)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'ql-shake': {
+          '10%, 90%': { transform: 'translateX(-2px)' },
+          '20%, 80%': { transform: 'translateX(3px)' },
+          '30%, 50%, 70%': { transform: 'translateX(-5px)' },
+          '40%, 60%': { transform: 'translateX(5px)' },
+        },
+        'ql-pulse-soft': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.55' },
+        },
       },
     },
   },

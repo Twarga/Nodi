@@ -96,7 +96,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    box-sizing: border-box;
   }
 
   html, body {
@@ -120,36 +120,10 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-@keyframes ql-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes ql-slide-in-right {
-  from { opacity: 0; transform: translateX(12px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes ql-pop-in {
-  0%   { opacity: 0; transform: scale(0.96); }
-  100% { opacity: 1; transform: scale(1); }
-}
-@keyframes ql-shake {
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(3px); }
-  30%, 50%, 70% { transform: translateX(-5px); }
-  40%, 60% { transform: translateX(5px); }
-}
-@keyframes ql-pulse-soft {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.55; }
-}
-
-.animate-ql-fade-in        { animation: ql-fade-in 150ms ease-out both; }
-.animate-ql-slide-in-right { animation: ql-slide-in-right 180ms ease-out both; }
-.animate-ql-pop-in         { animation: ql-pop-in 160ms ease-out both; }
-.animate-ql-shake          { animation: ql-shake 420ms cubic-bezier(.36,.07,.19,.97) both; }
-.animate-ql-pulse-soft     { animation: ql-pulse-soft 1.6s ease-in-out infinite; }
 
 /* Toast Notifications (Sonner-style) */
 .toast-container {
@@ -180,4 +154,24 @@
 }
 .drop-overlay-icon {
   @apply h-12 w-12 text-primary animate-bounce;
+}
+
+/* Upload List Panel */
+.upload-panel {
+  @apply fixed bottom-5 left-5 z-[90] w-80 rounded-xl border border-border bg-card shadow-xl transition-all duration-300 translate-y-full opacity-0;
+}
+.upload-panel.active {
+  @apply translate-y-0 opacity-100;
+}
+.upload-list {
+  @apply max-h-60 overflow-y-auto no-scrollbar py-1;
+}
+.upload-item {
+  @apply px-4 py-3 border-b border-border/50 last:border-0;
+}
+.progress-container {
+  @apply mt-2 h-1 w-full overflow-hidden rounded-full bg-muted;
+}
+.progress-bar {
+  @apply h-full bg-primary transition-all duration-300;
 }

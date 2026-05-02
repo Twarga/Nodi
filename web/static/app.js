@@ -127,9 +127,77 @@
   }
 
   window.onUpload = (files) => {
-    console.log('Uploading files:', files)
-    toast(`Preparing to upload ${files.length} file(s)...`, 'info')
-    // TODO: Implement actual upload logic (T33)
+    const panel = document.getElementById('upload-panel')
+    const list = document.getElementById('upload-list')
+    if (!panel || !list) return
+
+    panel.classList.add('active')
+    
+    Array.from(files).forEach((file, index) => {
+      const id = `upload-${Date.now()}-${index}`
+      const item = document.createElement('div')
+      item.className = 'upload-item'
+      item.id = id
+      item.innerHTML = `
+        <div class="flex items-center justify-between gap-3 overflow-hidden">
+          <span class="truncate text-sm font-medium">${file.name}</span>
+          <span class="upload-status text-[10px] tabular uppercase text-muted-foreground">Pending</span>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar w-0"></div>
+        </div>
+      `
+      list.prepend(item)
+
+      const formData = new FormData()
+      formData.append('path', currentPath)
+      formData.append('files', file)
+
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', '/api/upload', true)
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100)
+          const bar = item.querySelector('.progress-bar')
+          const status = item.querySelector('.upload-status')
+          if (bar) bar.style.width = `${percent}%`
+          if (status) status.textContent = `${percent}%`
+        }
+      }
+
+      xhr.onload = () => {
+        const status = item.querySelector('.upload-status')
+        if (xhr.status === 200) {
+          if (status) {
+            status.textContent = 'Complete'
+            status.classList.replace('text-muted-foreground', 'text-success')
+          }
+          // Refresh item list if this was the last upload or after each success?
+          // To keep it SPA-like, we refresh the view.
+          refreshItems(currentPath)
+        } else {
+          if (status) {
+            status.textContent = 'Error'
+            status.classList.replace('text-muted-foreground', 'text-destructive')
+          }
+          toast(`Upload failed for ${file.name}`, 'error')
+        }
+        
+        // Hide panel if all items are done (optional polish)
+      }
+
+      xhr.onerror = () => {
+        const status = item.querySelector('.upload-status')
+        if (status) {
+          status.textContent = 'Failed'
+          status.classList.replace('text-muted-foreground', 'text-destructive')
+        }
+        toast(`Network error during upload of ${file.name}`, 'error')
+      }
+
+      xhr.send(formData)
+    })
   }
 
   // --- Modal Logic ---
