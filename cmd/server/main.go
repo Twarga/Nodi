@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/Twarga/Nodi/internal/config"
@@ -147,6 +151,33 @@ func main() {
 	fmt.Printf("Nodi starting on port %s\n", cfg.Port)
 	fmt.Printf("Serving files from: %s\n", cfg.Root)
 
-	log.Printf("Listening on :%s", cfg.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Port, NewHandler(cfg)))
+	srv := &http.Server{
+		Addr:         ":" + cfg.Port,
+		Handler:      NewHandler(cfg),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	// Graceful shutdown on SIGINT/SIGTERM
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		log.Printf("Listening on :%s", cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	log.Println("Shutdown signal received, draining connections...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("Graceful shutdown failed: %v", err)
+	}
+	log.Println("Server stopped gracefully")
 }
