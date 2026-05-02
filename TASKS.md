@@ -11,7 +11,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T57: **Fix XSS in server-rendered filenames**. Remove all inline `onclick`/`on*` attributes from templates that embed `{{.Name}}`. Replace with event delegation in app.js using `data-*` attributes only. Go templates escape HTML attributes safely but not JS string contexts.
 - [x] T58: **Fix username enumeration in login**. Return identical error message ("Invalid credentials") regardless of whether username exists or password is wrong.
 - [x] T59: **Enforce POST-only on `/logout`**. Reject GET with 405. Prevents `<img src="/logout">` forced-logout attacks.
-- [ ] T60: **Fix upload file handle leak**. Move `defer src.Close()` inside per-file loop so each handle closes immediately, not after entire multipart request finishes.
+- [x] T60: **Fix upload file handle leak**. Move `defer src.Close()` inside per-file loop so each handle closes immediately, not after entire multipart request finishes.
 - [ ] T61: **Add CSP nonce**. Replace `unsafe-inline` in Content-Security-Policy with per-request nonce. Inject into `<script>` and `<style>` tags.
 
 ---

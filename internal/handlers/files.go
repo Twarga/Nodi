@@ -417,7 +417,6 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 				results = append(results, res)
 				continue
 			}
-			defer src.Close()
 
 			// Securely resolve destination
 			if !validName(fileHeader.Filename) {
@@ -439,12 +438,14 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 
 			// Stream to temp file
 			if _, err := io.Copy(tempFile, src); err != nil {
+				src.Close()
 				tempFile.Close()
 				os.Remove(tempPath)
 				res.Error = "Failed to write data"
 				results = append(results, res)
 				continue
 			}
+			src.Close()
 			tempFile.Close()
 
 			// Atomic rename to final destination
