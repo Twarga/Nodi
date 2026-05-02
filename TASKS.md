@@ -26,8 +26,8 @@
 
 ## Phase 3: Dashboard Layout & File Reading
 - [x] T19: Implement TopBar layout (`TopBar.tsx` equivalent) featuring "Nodi" logo and user pill in `dashboard.html`.
-- [ ] T20: Implement Breadcrumbs (`Breadcrumbs.tsx` equivalent) component structure. 
-- [ ] T21: Construct `internal/handlers/files.go` with safe path resolution logic (chroot to `QL_ROOT`).
+- [x] T20: Implement Breadcrumbs (`Breadcrumbs.tsx` equivalent) component structure. 
+- [x] T21: Construct `internal/handlers/files.go` with safe path resolution logic (chroot to `QL_ROOT`).
 - [ ] T22: Implement `GET /browse` to read directories using `os.Stat` and `readdir`. Transform into `.json` or `.html` block.
 - [ ] T23: Render Main Dashboard view (`FileList.tsx` and `FileGrid.tsx` equivalents) with toggle styles.
 
