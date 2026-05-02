@@ -9,6 +9,7 @@ import (
 
 	"github.com/Twarga/Nodi/internal/auth"
 	"github.com/Twarga/Nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/middleware"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -34,7 +35,8 @@ func Login(cfg *config.Config) http.HandlerFunc {
 				return
 			}
 
-			if err := tmpl.ExecuteTemplate(w, "layout.html", nil); err != nil {
+			data := struct{ Nonce string }{Nonce: middleware.GetNonce(r)}
+			if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
 				log.Printf("Template execution error: %v", err)
 			}
 			return

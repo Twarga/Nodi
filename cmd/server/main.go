@@ -66,7 +66,6 @@ func securityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -139,7 +138,7 @@ func NewHandler(cfg *config.Config) http.Handler {
 	// Logout endpoint
 	mux.Handle("/logout", http.HandlerFunc(handlers.Logout()))
 
-	return loggingMiddleware(securityHeaders(middleware.CSRFProtect(mux)))
+	return loggingMiddleware(securityHeaders(middleware.CSPNonce(middleware.CSRFProtect(mux))))
 }
 
 func main() {

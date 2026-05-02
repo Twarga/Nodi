@@ -86,6 +86,7 @@ func TestDashboardTemplateSyntax(t *testing.T) {
 		Initial  string
 		Path     interface{}
 		Files    []interface{}
+		Nonce    string
 	}
 
 	var buf bytes.Buffer

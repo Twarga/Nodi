@@ -15,6 +15,7 @@ type DashboardData struct {
 	Initial  string
 	Path     []BreadcrumbSegment
 	Files    []FileInfo
+	Nonce    string
 }
 
 func Dashboard(cfg *config.Config) http.HandlerFunc {
@@ -57,6 +58,7 @@ func Dashboard(cfg *config.Config) http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		RenderTemplate(
 			w,
+			r,
 			data,
 			"web/templates/layout.html",
 			"web/templates/dashboard.html",

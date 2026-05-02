@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"reflect"
 	"time"
+
+	"github.com/Twarga/Nodi/internal/middleware"
 )
 
 // GlobalFuncs provides common helper functions for HTML templates.
@@ -67,19 +70,31 @@ var GlobalFuncs = template.FuncMap{
 	},
 }
 
-// RenderTemplate is a helper to parse and execute patterns with GlobalFuncs.
-func RenderTemplate(w http.ResponseWriter, data interface{}, patterns ...string) {
+// RenderTemplate parses and executes templates with nonce injection.
+func RenderTemplate(w http.ResponseWriter, r *http.Request, data interface{}, patterns ...string) {
+	// Automatically inject CSP nonce if not already in data
+	nonce := middleware.GetNonce(r)
+	if nonce != "" && data != nil {
+		v := reflect.ValueOf(data)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		if v.Kind() == reflect.Struct {
+			f := v.FieldByName("Nonce")
+			if f.IsValid() && f.CanSet() && f.Kind() == reflect.String && f.String() == "" {
+				f.SetString(nonce)
+			}
+		}
+	}
+
 	tmpl, err := template.New("base").Funcs(GlobalFuncs).ParseFiles(patterns...)
 	if err != nil {
 		http.Error(w, "Template Error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// By default executes the first pattern's filename (e.g. layout.html)
-	// But we use layout.html as the primary wrapper.
 	err = tmpl.ExecuteTemplate(w, "layout.html", data)
 	if err != nil {
-		// Log error but we might have already written headers
 		fmt.Printf("Execution Error: %v\n", err)
 	}
 }
