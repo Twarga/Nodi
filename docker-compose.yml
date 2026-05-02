@@ -1,3 +1,7 @@
+# Nodi - Self-hosted web file manager
+# Copy this file and create a nodi.env from .env.example before running.
+# See docs/installation.md for full setup instructions.
+
 services:
   nodi:
     image: ghcr.io/twarga/nodi:latest
@@ -12,12 +16,14 @@ services:
         format: raw
     volumes:
       - nodi-data:/data
+    # Health check verifies the login page is reachable
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7319/login"]
       interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    # Security hardening
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -25,6 +31,22 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    # Resource limits to prevent runaway consumption
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+    # Log rotation to prevent disk fill
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   nodi-data:
+    driver: local
