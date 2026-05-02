@@ -33,7 +33,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T69: **Add file overwrite protection**. Return 409 Conflict when uploading a file that exists. Show toast "File already exists — overwrite?" with confirm button.
 - [x] T70: **Relax `validName()`**. Allow `'`, `&`, `"` in filenames. Only reject `/`, `\`, null bytes, control chars.
 - [x] T71: **Add pagination to `/browse`**. `?page=N&limit=M` query params. Include `total` and `hasMore` in JSON. Default limit: 200.
-- [ ] T72: **Add sorting controls**. `?sort=name|size|modified&order=asc|desc` on `/browse`. Default: folders-first, then alpha. Sort UI buttons in workspace bar. Persist choice in localStorage.
+- [x] T72: **Add sorting controls**. `?sort=name|size|modified&order=asc|desc` on `/browse`. Default: folders-first, then alpha.
 - [ ] T73: **Add filename search/filter**. Search input in workspace bar. Client-side filter for small dirs. `?search=q` server param for large dirs. Highlight matches.
 - [ ] T74: **Add move/copy between folders**. `POST /api/move {src, dst}` and `POST /api/copy {src, dst}`. Context menu "Move to…"/"Copy to…" with folder tree picker. Multi-select bulk move/copy.
 - [ ] T75: **Add keyboard shortcuts**. `Esc` close modal/clear selection, `Delete` delete selected, `Ctrl+A` select all, `Enter` open, `Backspace` go up. Show `?` help overlay.

@@ -165,6 +165,45 @@ func Browse(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Sorting
+		sortBy := r.URL.Query().Get("sort")
+		order := strings.ToLower(r.URL.Query().Get("order"))
+		if order != "asc" && order != "desc" {
+			order = "asc"
+		}
+		switch sortBy {
+		case "size":
+			sort.Slice(files, func(i, j int) bool {
+				if files[i].IsDir != files[j].IsDir {
+					return files[i].IsDir
+				}
+				if order == "asc" {
+					return files[i].Size < files[j].Size
+				}
+				return files[i].Size > files[j].Size
+			})
+		case "modified":
+			sort.Slice(files, func(i, j int) bool {
+				if files[i].IsDir != files[j].IsDir {
+					return files[i].IsDir
+				}
+				if order == "asc" {
+					return files[i].ModTime.Before(files[j].ModTime)
+				}
+				return files[i].ModTime.After(files[j].ModTime)
+			})
+		default: // "name" or empty
+			sort.Slice(files, func(i, j int) bool {
+				if files[i].IsDir != files[j].IsDir {
+					return files[i].IsDir
+				}
+				if order == "asc" {
+					return strings.ToLower(files[i].Name) < strings.ToLower(files[j].Name)
+				}
+				return strings.ToLower(files[i].Name) > strings.ToLower(files[j].Name)
+			})
+		}
+
 		// Pagination
 		limit := 200
 		page := 1
