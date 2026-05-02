@@ -192,3 +192,66 @@ func Delete(cfg *config.Config) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]string{"message": "Item deleted"})
 	}
 }
+
+// Rename returns a handler that renames a file or directory.
+func Rename(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			OldPath string `json:"oldPath"`
+			NewName string `json:"newName"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		req.NewName = strings.TrimSpace(req.NewName)
+		if req.NewName == "" || !nameRegex.MatchString(req.NewName) {
+			http.Error(w, "Invalid new name", http.StatusBadRequest)
+			return
+		}
+
+		oldFullPath, err := SafePath(cfg.Root, req.OldPath)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Ensure we don't rename root
+		if req.OldPath == "/" {
+			http.Error(w, "Cannot rename root", http.StatusForbidden)
+			return
+		}
+
+		// Construct new path in the same directory
+		parentDir := filepath.Dir(oldFullPath)
+		newFullPath := filepath.Join(parentDir, req.NewName)
+
+		// Extra safety check: resolve the subpath version too
+		subDir := filepath.Dir(req.OldPath)
+		if _, err := SafePath(cfg.Root, filepath.Join(subDir, req.NewName)); err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Check if target already exists
+		if _, err := os.Stat(newFullPath); err == nil {
+			http.Error(w, "Target already exists", http.StatusConflict)
+			return
+		}
+
+		if err := os.Rename(oldFullPath, newFullPath); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Item renamed"})
+	}
+}
