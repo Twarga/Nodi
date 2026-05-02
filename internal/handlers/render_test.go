@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"bytes"
 	"html/template"
+	"nodi/internal/handlers"
 	"testing"
 )
 
@@ -38,12 +39,7 @@ func TestLoginTemplateSyntax(t *testing.T) {
 }
 
 func TestBreadcrumbsTemplateSyntax(t *testing.T) {
-	funcMap := template.FuncMap{
-		"add": func(a, b int) int { return a + b },
-		"not": func(b bool) bool { return !b },
-	}
-
-	tmpl, err := template.New("breadcrumbs.html").Funcs(funcMap).ParseFiles("../../web/templates/components/breadcrumbs.html")
+	tmpl, err := template.New("breadcrumbs.html").Funcs(handlers.GlobalFuncs).ParseFiles("../../web/templates/components/breadcrumbs.html")
 	if err != nil {
 		t.Fatalf("Failed to parse breadcrumbs.html: %v", err)
 	}
@@ -70,18 +66,33 @@ func TestBreadcrumbsTemplateSyntax(t *testing.T) {
 }
 
 func TestDashboardTemplateSyntax(t *testing.T) {
+	patterns := []string{
+		"../../web/templates/layout.html",
+		"../../web/templates/dashboard.html",
+		"../../web/templates/components/breadcrumbs.html",
+		"../../web/templates/components/file-row.html",
+		"../../web/templates/components/file-card.html",
+	}
+
+	tmpl, err := template.New("layout.html").Funcs(handlers.GlobalFuncs).ParseFiles(patterns...)
+	if err != nil {
+		t.Fatalf("Failed to parse dashboard templates: %v", err)
+	}
+
 	type DashboardData struct {
 		Username string
 		Initial  string
-	}
-
-	tmpl, err := template.ParseFiles("../../web/templates/layout.html", "../../web/templates/dashboard.html")
-	if err != nil {
-		t.Fatalf("Failed to parse layout and dashboard templates: %v", err)
+		Path     interface{}
+		Files    []interface{}
 	}
 
 	var buf bytes.Buffer
-	err = tmpl.ExecuteTemplate(&buf, "layout.html", DashboardData{Username: "admin", Initial: "A"})
+	err = tmpl.ExecuteTemplate(&buf, "layout.html", DashboardData{
+		Username: "admin",
+		Initial:  "A",
+		Path:     []interface{}{},
+		Files:    []interface{}{},
+	})
 	if err != nil {
 		t.Fatalf("Failed to execute dashboard template: %v", err)
 	}

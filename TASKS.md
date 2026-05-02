@@ -28,8 +28,8 @@
 - [x] T19: Implement TopBar layout (`TopBar.tsx` equivalent) featuring "Nodi" logo and user pill in `dashboard.html`.
 - [x] T20: Implement Breadcrumbs (`Breadcrumbs.tsx` equivalent) component structure. 
 - [x] T21: Construct `internal/handlers/files.go` with safe path resolution logic (chroot to `QL_ROOT`).
-- [ ] T22: Implement `GET /browse` to read directories using `os.Stat` and `readdir`. Transform into `.json` or `.html` block.
-- [ ] T23: Render Main Dashboard view (`FileList.tsx` and `FileGrid.tsx` equivalents) with toggle styles.
+- [x] T22: Implement `GET /browse` to read directories using `os.Stat` and `readdir`. Transform into `.json` or `.html` block.
+- [x] T23: Render Main Dashboard view (`FileList.tsx` and `FileGrid.tsx` equivalents) with toggle styles.
 
 ## Phase 4: Core File Actions (Go & Vanilla JS)
 - [ ] T24: Create context menus (Action Dropdown) for files using Vanilla JS dialogs or absolute layouts.
