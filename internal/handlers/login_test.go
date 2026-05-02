@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -22,7 +23,7 @@ func TestLogin_Success(t *testing.T) {
 		Root:          "/data",
 		Port:          "8080",
 		MaxUpload:     2147483648,
-		CookieSecret: "test-secret-key",
+		CookieSecret:  "test-secret-key",
 		Theme:         "system",
 		SessionExpiry: 24 * time.Hour,
 	}
@@ -60,12 +61,42 @@ func TestLogin_Success(t *testing.T) {
 	}
 }
 
+func TestLogin_SetsSecureCookieForHTTPS(t *testing.T) {
+	passHash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	cfg := &config.Config{
+		User:          "admin",
+		PassHash:      string(passHash),
+		CookieSecret:  "test-secret-key",
+		SessionExpiry: 24 * time.Hour,
+	}
+
+	body, _ := json.Marshal(LoginRequest{
+		Username: "admin",
+		Password: "password123",
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.TLS = &tls.ConnectionState{}
+	w := httptest.NewRecorder()
+
+	Login(cfg).ServeHTTP(w, req)
+
+	cookies := w.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatal("Expected session cookie to be set")
+	}
+	if !cookies[0].Secure {
+		t.Fatal("Expected secure session cookie for HTTPS request")
+	}
+}
+
 func TestLogin_InvalidPassword(t *testing.T) {
 	passHash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
 	cfg := &config.Config{
 		User:          "admin",
 		PassHash:      string(passHash),
-		CookieSecret: "test-secret-key",
+		CookieSecret:  "test-secret-key",
 		SessionExpiry: 24 * time.Hour,
 	}
 
@@ -97,7 +128,7 @@ func TestLogin_InvalidUsername(t *testing.T) {
 	cfg := &config.Config{
 		User:          "admin",
 		PassHash:      string(passHash),
-		CookieSecret: "test-secret-key",
+		CookieSecret:  "test-secret-key",
 		SessionExpiry: 24 * time.Hour,
 	}
 
@@ -121,7 +152,7 @@ func TestLogin_MissingFields(t *testing.T) {
 	cfg := &config.Config{
 		User:          "admin",
 		PassHash:      "",
-		CookieSecret: "test-secret-key",
+		CookieSecret:  "test-secret-key",
 		SessionExpiry: 24 * time.Hour,
 	}
 

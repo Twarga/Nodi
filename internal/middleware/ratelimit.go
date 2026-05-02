@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -14,7 +15,7 @@ type RateLimiter struct {
 }
 
 type clientLimit struct {
-	count    int
+	count       int
 	windowStart time.Time
 }
 
@@ -74,10 +75,7 @@ func (rl *RateLimiter) Allow(ip string) bool {
 func RateLimit(rl *RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := r.RemoteAddr
-			if ip == "" {
-				ip = "unknown"
-			}
+			ip := clientIP(r.RemoteAddr)
 
 			if !rl.Allow(ip) {
 				http.Error(w, "Too many requests", http.StatusTooManyRequests)
@@ -86,4 +84,15 @@ func RateLimit(rl *RateLimiter) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func clientIP(remoteAddr string) string {
+	if remoteAddr == "" {
+		return "unknown"
+	}
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err == nil && host != "" {
+		return host
+	}
+	return remoteAddr
 }

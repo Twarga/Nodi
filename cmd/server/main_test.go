@@ -30,3 +30,24 @@ func TestNewHandler_ServesStaticAssetsWithoutAuth(t *testing.T) {
 		t.Fatalf("expected javascript asset content type, got %q", contentType)
 	}
 }
+
+func TestNewHandler_SetsSecurityHeaders(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/login", nil)
+	w := httptest.NewRecorder()
+
+	NewHandler(&config.Config{CookieSecret: "test-secret"}).ServeHTTP(w, req)
+
+	expectedHeaders := map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options":        "DENY",
+		"Referrer-Policy":        "no-referrer",
+	}
+	for name, expected := range expectedHeaders {
+		if got := w.Header().Get(name); got != expected {
+			t.Fatalf("expected %s=%q, got %q", name, expected, got)
+		}
+	}
+	if got := w.Header().Get("Content-Security-Policy"); got == "" {
+		t.Fatal("expected Content-Security-Policy header")
+	}
+}

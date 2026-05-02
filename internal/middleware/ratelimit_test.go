@@ -61,7 +61,7 @@ func TestRateLimiter_ResetsAfterWindow(t *testing.T) {
 
 func TestRateLimitMiddleware(t *testing.T) {
 	rl := NewRateLimiter(3, time.Minute)
-	
+
 	handler := RateLimit(rl)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -71,7 +71,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 		req.RemoteAddr = "127.0.0.1:1234"
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
-		
+
 		if w.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", w.Code)
 		}
@@ -84,5 +84,33 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 	if w.Code != http.StatusTooManyRequests {
 		t.Errorf("Expected status 429, got %d", w.Code)
+	}
+}
+
+func TestRateLimitMiddleware_NormalizesRemotePort(t *testing.T) {
+	rl := NewRateLimiter(2, time.Minute)
+
+	handler := RateLimit(rl)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for _, addr := range []string{"127.0.0.1:1000", "127.0.0.1:2000"} {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = addr
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected status 200 for %s, got %d", addr, w.Code)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.RemoteAddr = "127.0.0.1:3000"
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusTooManyRequests {
+		t.Errorf("Expected status 429 after same host changed ports, got %d", w.Code)
 	}
 }

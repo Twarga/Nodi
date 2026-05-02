@@ -75,6 +75,7 @@ func Logout() http.HandlerFunc {
 			Value:    "",
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   isSecureRequest(r),
 			SameSite: http.SameSiteStrictMode,
 			Expires:  time.Unix(0, 0),
 			MaxAge:   -1,

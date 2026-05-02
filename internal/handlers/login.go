@@ -33,7 +33,7 @@ func Login(cfg *config.Config) http.HandlerFunc {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-			
+
 			if err := tmpl.ExecuteTemplate(w, "layout.html", nil); err != nil {
 				log.Printf("Template execution error: %v", err)
 			}
@@ -89,6 +89,7 @@ func Login(cfg *config.Config) http.HandlerFunc {
 			Value:    sessionToken,
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   isSecureRequest(r),
 			SameSite: http.SameSiteStrictMode,
 			Expires:  time.Now().Add(cfg.SessionExpiry),
 		}
@@ -97,4 +98,8 @@ func Login(cfg *config.Config) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(LoginResponse{Success: true})
 	}
+}
+
+func isSecureRequest(r *http.Request) bool {
+	return r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
 }
