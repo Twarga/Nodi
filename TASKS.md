@@ -22,7 +22,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T63: **Add HTTP server timeouts and graceful shutdown**. (Already implemented in T155)
 - [x] T64: **Add static asset cache headers**. `Cache-Control: public, max-age=86400, immutable` for `/static/`. Immutable headers for fingerprinted assets.
 - [x] T65: **Validate config on startup**. (Already implemented in T156)
-- [ ] T66: **Support X-Forwarded-For in rate limiter**. Extract real IP from `X-Forwarded-For`/`X-Real-Ip` when behind trusted proxy. Add `QL_TRUSTED_PROXY` env var.
+- [x] T66: **Support X-Forwarded-For in rate limiter**. Extract real IP from `X-Forwarded-For`/`X-Real-Ip` when behind trusted proxy. Add `QL_TRUSTED_PROXY` env var.
 - [ ] T67: **Add session revocation**. On logout, rotate cookie secret server-side to invalidate all sessions (acceptable for single-user).
 
 ---

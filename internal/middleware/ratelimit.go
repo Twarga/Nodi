@@ -3,6 +3,7 @@ package middleware
 import (
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -76,6 +77,14 @@ func RateLimit(rl *RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := clientIP(r.RemoteAddr)
+			// When behind a trusted proxy, prefer X-Forwarded-For or X-Real-Ip
+			if isTrustedProxy(ip) {
+				if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+					ip = strings.TrimSpace(strings.Split(fwd, ",")[0])
+				} else if real := r.Header.Get("X-Real-Ip"); real != "" {
+					ip = real
+				}
+			}
 
 			if !rl.Allow(ip) {
 				http.Error(w, "Too many requests", http.StatusTooManyRequests)
@@ -112,4 +121,9 @@ func clientIP(remoteAddr string) string {
 		return host
 	}
 	return remoteAddr
+}
+
+func isTrustedProxy(ip string) bool {
+	// Common loopback and private addresses used by reverse proxies
+	return ip == "127.0.0.1" || ip == "::1" || strings.HasPrefix(ip, "10.") || strings.HasPrefix(ip, "172.") || strings.HasPrefix(ip, "192.168.")
 }
