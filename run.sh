@@ -33,8 +33,13 @@ EOF
     mkdir -p data
 fi
 
-# 4. Source .env for the current shell session (optional, but helps with go run)
-export $(grep -v '^#' .env | xargs)
+# 4. Load .env literally so bcrypt hashes containing '$' are not shell-expanded.
+while IFS='=' read -r key value; do
+    case "$key" in
+        ''|\#*) continue ;;
+    esac
+    export "$key=$value"
+done < .env
 
 # 5. Run the server
 echo "==> Starting Nodi Server..."

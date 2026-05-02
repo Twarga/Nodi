@@ -24,6 +24,7 @@ pnpm-debug.log*
 
 # Environment
 .env
+nodi.env
 .env.local
 .env.*.local
 

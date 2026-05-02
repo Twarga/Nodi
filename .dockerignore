@@ -10,3 +10,7 @@ data/
 uploads/
 /tmp/
 *.log
+nodi.env
+.env
+.github/
+landing-page/

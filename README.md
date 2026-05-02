@@ -38,7 +38,7 @@ Nodi is a minimalist file management solution for users who value density and pe
 
 ## Status
 
-**Ready for deployment.** Initial feature set for Phase 1-6 is complete, including core file actions and advanced upload mechanics.
+**MVP deployment ready.** The core self-hosted file manager flow is covered by Go integration tests: login, dashboard, static assets, browse, create folder, upload, download, rename, delete, and root-escape rejection.
 
 ## Deployment (Fast Install)
 
@@ -47,6 +47,25 @@ Run the one-click installer on any Linux server with Docker installed:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash
 ```
+
+The installer creates `./nodi-app`, writes `nodi.env`, pulls `ghcr.io/twarga/nodi:latest`, and starts Docker Compose. Default local credentials are `admin / admin`; change `QL_USER` and `QL_PASS_HASH` in `nodi.env` before exposing the app outside a trusted network.
+
+Useful installer overrides:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | NODI_PORT=9090 INSTALL_DIR=/opt/nodi bash
+```
+
+## Docker
+
+Run from a clone:
+
+```bash
+cp .env.example nodi.env
+docker compose up -d
+```
+
+The compose file uses a named `nodi-data` volume mounted at `/data`.
 
 ## Development
 
