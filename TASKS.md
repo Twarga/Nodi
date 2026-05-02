@@ -1,0 +1,58 @@
+# Nodi Task Breakdown
+
+## Phase 0: Repository & Environment Setup
+- [x] T1: Initialize Git and initial project files (`plan.md`, `README.md`).
+- [x] T2: Connect GitHub remote (`Twarga/Nodi`), create `main` branch, and push.
+- [ ] T3: Initialize Go module (`go mod init nodi` or `quantum-lite`).
+- [ ] T4: Scaffold project structure (`cmd/server`, `internal/`, `web/`).
+- [ ] T5: Setup Tailwind CSS build pipeline. Create `web/static/input.css` copying design tokens (HSL variables) from React reference.
+- [ ] T6: Create generic `Makefile` or setup instructions for Tailwind build + Go run.
+
+## Phase 1: Core Backend & Auth (Go)
+- [ ] T7: Implement environment configuration loader (`internal/config`). Read `QL_USER`, `QL_PASS_HASH`, `QL_ROOT`, `QL_PORT`, `QL_MAX_UPLOAD`, `QL_COOKIE_SECRET`, `QL_THEME`.
+- [ ] T8: Create `cmd/server/main.go` setting up `http.ServeMux` and loading env configs.
+- [ ] T9: Implement logging middleware and request tracking.
+- [ ] T10: Implement `internal/auth/session.go` for secure cookie generation (HMAC signed) and validation.
+- [ ] T11: Implement `/login` POST endpoint matching bcrypt hashed password.
+- [ ] T12: Implement Rate Limiting middleware for login attempts (5 IP requests / 15m).
+- [ ] T13: Implement generic auth middleware to protect `/browse`, `/upload`, etc. endpoints.
+
+## Phase 2: Frontend Layout & Auth Views (Vanilla/Tailwind)
+- [ ] T14: Create `web/templates/layout.html` with basic layout, `<head>` config, and initial global styling.
+- [ ] T15: Create `web/templates/login.html` mimicking React `Login.tsx` style (card, centered, input styles).
+- [ ] T16: Wire `/login` handler to render `login.html` via `html/template`.
+- [ ] T17: Port SVG sprites from `icons.svg` or inline SVG based on React `FileIcon.tsx` shapes.
+- [ ] T18: Implement theme toggling logic using vanilla JS (Dark/Light/System) matching inspiration `ThemeProvider`. Store in `localStorage`.
+
+## Phase 3: Dashboard Layout & File Reading
+- [ ] T19: Implement TopBar layout (`TopBar.tsx` equivalent) featuring "Nodi" logo and user pill in `dashboard.html`.
+- [ ] T20: Implement Breadcrumbs (`Breadcrumbs.tsx` equivalent) component structure. 
+- [ ] T21: Construct `internal/handlers/files.go` with safe path resolution logic (chroot to `QL_ROOT`).
+- [ ] T22: Implement `GET /browse` to read directories using `os.Stat` and `readdir`. Transform into `.json` or `.html` block.
+- [ ] T23: Render Main Dashboard view (`FileList.tsx` and `FileGrid.tsx` equivalents) with toggle styles.
+
+## Phase 4: Core File Actions (Go & Vanilla JS)
+- [ ] T24: Create context menus (Action Dropdown) for files using Vanilla JS dialogs or absolute layouts.
+- [ ] T25: Implement Create Folder (`/api/folder/create`) passing `os.Mkdir` securely.
+- [ ] T26: Implement Delete File/Folder (`/api/delete`) with `os.RemoveAll`.
+- [ ] T27: Implement Rename (`/api/rename`) with `os.Rename`.
+- [ ] T28: Wire Create Folder Modal in `dashboard.html` (`Modal.tsx` equivalent).
+- [ ] T29: Wire Rename Modal taking prior state/filename.
+- [ ] T30: Wire Delete confirmation Modal.
+- [ ] T31: Add JS `fetch()` logic for actions to asynchronously update without reloading page. Add Toast Notifications (`sonner` aesthetic).
+
+## Phase 5: File Upload System
+- [ ] T32: Implement Drag-and-drop overlay in Vanilla JS (`DropOverlay.tsx` equivalent).
+- [ ] T33: Implement Server `/upload` endpoint handling Multipart FormData and chunked `io.Copy`. Ensure `MaxBytesReader`.
+- [ ] T34: Set up temporal `/tmp/ql-upload-` directory cleanup mechanics and atomic rename to final destination.
+- [ ] T35: Render Upload List (`UploadList.tsx` equivalent) progress UI beneath breadcrumbs updating via JS streams/polling.
+
+## Phase 6: Packaging & Docker
+- [ ] T36: Build Dockerfile via Multi-Stage build (Node/Alpine for Tailwind -> Go Alpine for compilation -> Run Alpine container).
+- [ ] T37: Expose config properly using default `.env` examples.
+- [ ] T38: Create `docker-compose.yml` demonstrating full volume mounts and secure variables.
+
+## Phase 7: GitHub Pages Landing Page
+- [ ] T39: Create `landing-page/` directory.
+- [ ] T40: Scaffold an index.html minimal beautiful landing page advertising Nodi, linking back to GitHub Repo. No dynamic backend, statically deployed.
+- [ ] T41: Set up simple GitHub Action workflow to build/push `landing-page/` to `gh-pages` branch.
