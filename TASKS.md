@@ -3,7 +3,7 @@
 ## Phase 0: Repository & Environment Setup
 - [x] T1: Initialize Git and initial project files (`plan.md`, `README.md`).
 - [x] T2: Connect GitHub remote (`Twarga/Nodi`), create `main` branch, and push.
-- [ ] T3: Initialize Go module (`go mod init nodi` or `quantum-lite`).
+- [x] T3: Initialize Go module (`go mod init nodi` or `quantum-lite`).
 - [ ] T4: Scaffold project structure (`cmd/server`, `internal/`, `web/`).
 - [ ] T5: Setup Tailwind CSS build pipeline. Create `web/static/input.css` copying design tokens (HSL variables) from React reference.
 - [ ] T6: Create generic `Makefile` or setup instructions for Tailwind build + Go run.
