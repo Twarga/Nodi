@@ -134,5 +134,19 @@
   </form>
 {{end}}
 
+{{define "delete-body"}}
+  <div class="space-y-4">
+    <input type="hidden" id="delete-path" name="path">
+    <p class="text-sm text-muted-foreground">
+      Are you sure you want to delete <span id="delete-item-name" class="font-semibold text-foreground"></span>? This action cannot be undone.
+    </p>
+    <div class="flex justify-end gap-3 mt-6">
+      <button type="button" onclick="closeModal('delete')" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-hover transition-colors">Cancel</button>
+      <button type="button" onclick="onDeleteConfirm()" class="bg-destructive text-destructive-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-destructive/90 transition-colors shadow-sm">Delete Forever</button>
+    </div>
+  </div>
+{{end}}
+
 {{template "modal" dict "Id" "create-folder" "Title" "Create New Folder"}}
 {{template "modal" dict "Id" "rename" "Title" "Rename Item"}}
+{{template "modal" dict "Id" "delete" "Title" "Delete Item"}}

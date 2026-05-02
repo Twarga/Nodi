@@ -38,7 +38,7 @@
 - [x] T27: Implement Rename (`/api/rename`) with `os.Rename`.
 - [x] T28: Wire Create Folder Modal in `dashboard.html` (`Modal.tsx` equivalent).
 - [x] T29: Wire Rename Modal taking prior state/filename.
-- [ ] T30: Wire Delete confirmation Modal.
+- [x] T30: Wire Delete confirmation Modal.
 - [ ] T31: Add JS `fetch()` logic for actions to asynchronously update without reloading page. Add Toast Notifications (`sonner` aesthetic).
 
 ## Phase 5: File Upload System

@@ -204,7 +204,37 @@
   }
 
   window.onDelete = (name) => {
-    console.log('Deleting:', name)
+    const path = new URLSearchParams(window.location.search).get('path') || '/'
+    const fullPath = path === '/' ? `/${name}` : `${path.replace(/\/$/, '')}/${name}`
+    
+    document.getElementById('delete-path').value = fullPath
+    document.getElementById('delete-item-name').textContent = name
+    
+    showModal('delete')
+    closeAllMenus()
+  }
+
+  window.onDeleteConfirm = async () => {
+    const path = document.getElementById('delete-path').value
+
+    try {
+      const resp = await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path })
+      })
+
+      if (resp.ok) {
+        closeModal('delete')
+        window.location.reload()
+      } else {
+        const err = await resp.text()
+        alert(err)
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Internal error')
+    }
   }
 
   if (document.readyState === 'loading') {
