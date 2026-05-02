@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;
+    --foreground: 220 18% 14%;
+
+    --surface: 0 0% 100%;
+    --surface-hover: 220 14% 96%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 18% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 18% 14%;
+
+    --primary: 182 64% 28%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 182 64% 23%;
+
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 220 18% 14%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 182 64% 28%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 36%;
+    --warning: 38 92% 50%;
+
+    --border: 220 13% 89%;
+    --border-strong: 220 13% 80%;
+    --input: 220 13% 89%;
+    --ring: 182 64% 28%;
+
+    --icon-folder: 38 92% 50%;
+    --icon-image: 152 60% 46%;
+    --icon-pdf: 0 72% 55%;
+    --icon-video: 270 60% 55%;
+    --icon-generic: 220 9% 46%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 220 18% 9%;
+    --foreground: 220 14% 94%;
+
+    --surface: 220 18% 12%;
+    --surface-hover: 220 16% 16%;
+
+    --card: 220 18% 12%;
+    --card-foreground: 220 14% 94%;
+
+    --popover: 220 18% 12%;
+    --popover-foreground: 220 14% 94%;
+
+    --primary: 182 60% 50%;
+    --primary-foreground: 220 18% 9%;
+    --primary-hover: 182 60% 56%;
+
+    --secondary: 220 16% 18%;
+    --secondary-foreground: 220 14% 94%;
+
+    --muted: 220 16% 16%;
+    --muted-foreground: 220 9% 62%;
+
+    --accent: 182 60% 50%;
+    --accent-foreground: 220 18% 9%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 50% 50%;
+    --warning: 38 92% 55%;
+
+    --border: 220 14% 20%;
+    --border-strong: 220 14% 28%;
+    --input: 220 14% 20%;
+    --ring: 182 60% 50%;
+
+    --icon-folder: 38 92% 60%;
+    --icon-image: 152 50% 55%;
+    --icon-pdf: 0 72% 62%;
+    --icon-video: 270 60% 65%;
+    --icon-generic: 220 9% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar { width: 10px; height: 10px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-strong));
+    border-radius: 999px;
+    border: 2px solid hsl(var(--background));
+  }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes ql-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ql-slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes ql-pop-in {
+  0%   { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes ql-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+@keyframes ql-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+.animate-ql-fade-in        { animation: ql-fade-in 150ms ease-out both; }
+.animate-ql-slide-in-right { animation: ql-slide-in-right 180ms ease-out both; }
+.animate-ql-pop-in         { animation: ql-pop-in 160ms ease-out both; }
+.animate-ql-shake          { animation: ql-shake 420ms cubic-bezier(.36,.07,.19,.97) both; }
+.animate-ql-pulse-soft     { animation: ql-pulse-soft 1.6s ease-in-out infinite; }
