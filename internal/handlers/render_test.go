@@ -37,6 +37,38 @@ func TestLoginTemplateSyntax(t *testing.T) {
 	}
 }
 
+func TestBreadcrumbsTemplateSyntax(t *testing.T) {
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+		"not": func(b bool) bool { return !b },
+	}
+
+	tmpl, err := template.New("breadcrumbs.html").Funcs(funcMap).ParseFiles("../../web/templates/components/breadcrumbs.html")
+	if err != nil {
+		t.Fatalf("Failed to parse breadcrumbs.html: %v", err)
+	}
+
+	type Segment struct {
+		Name string
+		Path string
+	}
+
+	data := []Segment{
+		{Name: "Documents", Path: "Documents"},
+		{Name: "Photos", Path: "Documents/Photos"},
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.ExecuteTemplate(&buf, "breadcrumbs", data)
+	if err != nil {
+		t.Fatalf("Failed to execute breadcrumbs template: %v", err)
+	}
+
+	if !bytes.Contains(buf.Bytes(), []byte("Documents")) {
+		t.Errorf("Expected output to contain 'Documents'")
+	}
+}
+
 func TestDashboardTemplateSyntax(t *testing.T) {
 	type DashboardData struct {
 		Username string

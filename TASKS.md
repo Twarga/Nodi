@@ -22,10 +22,10 @@
 - [x] T15: Create `web/templates/login.html` mimicking React `Login.tsx` style (card, centered, input styles).
 - [x] T16: Wire `/login` handler to render `login.html` via `html/template`.
 - [x] T17: Port SVG sprites from `icons.svg` or inline SVG based on React `FileIcon.tsx` shapes.
-- [ ] T18: Implement theme toggling logic using vanilla JS (Dark/Light/System) matching inspiration `ThemeProvider`. Store in `localStorage`.
+- [x] T18: Implement theme toggling logic using vanilla JS (Dark/Light/System) matching inspiration `ThemeProvider`. Store in `localStorage`.
 
 ## Phase 3: Dashboard Layout & File Reading
-- [ ] T19: Implement TopBar layout (`TopBar.tsx` equivalent) featuring "Nodi" logo and user pill in `dashboard.html`.
+- [x] T19: Implement TopBar layout (`TopBar.tsx` equivalent) featuring "Nodi" logo and user pill in `dashboard.html`.
 - [ ] T20: Implement Breadcrumbs (`Breadcrumbs.tsx` equivalent) component structure. 
 - [ ] T21: Construct `internal/handlers/files.go` with safe path resolution logic (chroot to `QL_ROOT`).
 - [ ] T22: Implement `GET /browse` to read directories using `os.Stat` and `readdir`. Transform into `.json` or `.html` block.
