@@ -52,3 +52,6 @@ coverage.txt
 # Testcoverage
 coverage/
 *.prof
+
+# Reference / inspiration code (not part of runtime)
+front-end inspiration/
