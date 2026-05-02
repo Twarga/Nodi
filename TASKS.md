@@ -56,3 +56,7 @@
 - [ ] T39: Create `landing-page/` directory.
 - [ ] T40: Scaffold an index.html minimal beautiful landing page advertising Nodi, linking back to GitHub Repo. No dynamic backend, statically deployed.
 - [ ] T41: Set up simple GitHub Action workflow to build/push `landing-page/` to `gh-pages` branch.
+ 
+## Phase 8: Deployment Polish
+- [x] T42: Create `install.sh` robust installer (dependency checks, auto-config, directory setup).
+- [x] T43: Overhaul `README.md` with minimalist "Claude-style" documentation.
