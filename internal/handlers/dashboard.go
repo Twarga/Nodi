@@ -70,6 +70,10 @@ func Dashboard(cfg *config.Config) http.HandlerFunc {
 
 func Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		http.SetCookie(w, &http.Cookie{
 			Name:     "ql_session",
 			Value:    "",
