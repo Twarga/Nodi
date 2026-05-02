@@ -111,10 +111,28 @@
   {{if eq .Id "create-folder"}}
     {{template "create-folder-body" .}}
   {{else if eq .Id "rename"}}
-    <!-- Placeholder for rename -->
+    {{template "rename-body" .}}
   {{else if eq .Id "delete"}}
     <!-- Placeholder for delete -->
   {{end}}
 {{end}}
 
+{{define "rename-body"}}
+  <form id="rename-form" onsubmit="event.preventDefault(); onRenameSubmit()">
+    <input type="hidden" id="rename-old-path" name="oldPath">
+    <div class="space-y-4">
+      <div>
+        <label for="rename-new-name" class="block text-sm font-medium mb-1.5 text-muted-foreground">New Name</label>
+        <input type="text" id="rename-new-name" name="newName" required autofocus
+               class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button type="button" onclick="closeModal('rename')" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-hover transition-colors">Cancel</button>
+        <button type="submit" class="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-hover transition-colors shadow-sm">Rename</button>
+      </div>
+    </div>
+  </form>
+{{end}}
+
 {{template "modal" dict "Id" "create-folder" "Title" "Create New Folder"}}
+{{template "modal" dict "Id" "rename" "Title" "Rename Item"}}

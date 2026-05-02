@@ -166,7 +166,41 @@
   }
 
   window.onRename = (name) => {
-    console.log('Renaming:', name)
+    const path = new URLSearchParams(window.location.search).get('path') || '/'
+    const oldPath = path === '/' ? `/${name}` : `${path.replace(/\/$/, '')}/${name}`
+    
+    const form = document.getElementById('rename-form')
+    form.oldPath.value = oldPath
+    form.newName.value = name
+    
+    showModal('rename')
+    closeAllMenus()
+  }
+
+  window.onRenameSubmit = async () => {
+    const form = document.getElementById('rename-form')
+    const oldPath = form.oldPath.value
+    const newName = form.newName.value
+
+    try {
+      const resp = await fetch('/api/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPath, newName })
+      })
+
+      if (resp.ok) {
+        closeModal('rename')
+        form.reset()
+        window.location.reload()
+      } else {
+        const err = await resp.text()
+        alert(err)
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Internal error')
+    }
   }
 
   window.onDelete = (name) => {
