@@ -1,27 +1,53 @@
-<div align="center">
-  <img src="logo.png" alt="Node Logo" width="200" />
-  <h1>Node</h1>
-  <p><b>Lightweight, self-hosted web file manager for homelabs and personal cloud replacement.</b></p>
-</div>
+# Nodi
 
----
+<p align="center">
+  <img src="./logo.png" alt="Nodi logo" width="180" />
+</p>
 
-Node is a **minimalist, self-hosted web file manager** designed to run on low-resource hardware with zero dependencies beyond a single binary and a Docker container.
+<p align="center">
+  Lightweight, self-hosted web file manager for homelabs and personal cloud replacement.
+</p>
 
-## Features
+<p align="center">
+  <img src="https://img.shields.io/badge/Go-Backend-1f1f1f?style=flat-square&logo=go&logoColor=00ADD8" alt="Go" />
+  <img src="https://img.shields.io/badge/Vanilla_JS-Frontend-1f1f1f?style=flat-square&logo=javascript&logoColor=F7DF1E" alt="Vanilla JS" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-UI-1f1f1f?style=flat-square&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Docker-Container-1f1f1f?style=flat-square&logo=docker&logoColor=2496ED" alt="Docker" />
+  <img src="https://img.shields.io/badge/Alpine-Linux-1f1f1f?style=flat-square&logo=alpinelinux&logoColor=0D597F" alt="Alpine Linux" />
+</p>
 
-- **No bloated sync clients**: Pure web UI, accessible anywhere.
-- **Fast and lightweight**: Single Go binary backend, Vanilla JS and Tailwind CSS frontend.
-- **High performance**: Designed to run natively on Alpine Linux with minimal memory footprints.
-- **Privacy focused**: Local filesystem is the single source of truth. No indexing, no database telemetry.
-- **Modern Design**: High contrast typography, flat aesthetics, inspired by the best terminal tools. Dark/Light mode supported natively.
+## What it is
+
+Nodi is a minimalist, self-hosted web file manager designed to run on low-resource hardware with zero dependencies beyond a single binary and a Docker container.
+
+## Core workflow
+
+1. Log in via web interface securely.
+2. Browse directories simply via breadcrumbs.
+3. Upload files seamlessly via drag-and-drop.
+4. Manage your assets (download, rename, delete) through a fast, responsive interface.
+5. All operations run directly on the local filesystem.
+
+## Tech stack
+
+- Go 1.22+
+- Vanilla JavaScript
+- Tailwind CSS
+- Alpine Linux Base (Docker)
+- Minimal HTTP / Templates
+
+## Status
+
+Early development. The architecture leverages zero external UI frameworks (No React, Vue, HTMX) providing absolute native web speeds wrapped in heavily polished styling.
 
 ## Quick Start (Docker)
 
 ```yaml
 services:
-  node:
-    image: node/node:latest
+  nodi:
+    image: twarga/nodi:latest
+    container_name: nodi
+    restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
@@ -30,12 +56,15 @@ services:
       - QL_USER=admin
       - QL_PASS_HASH=$2a$12... # generate with bcrypt
       - QL_ROOT=/data
-      - QL_COOKIE_SECRET=super_secret_session_key 
+      - QL_COOKIE_SECRET=super_secret_session_key
+      - QL_MAX_UPLOAD=2147483648
 ```
 
 ## Setup for Development
 
-Prerequisites: Go 1.22+, Tailwind CSS CLI
+Prerequisites:
+- [Go 1.22+](https://go.dev/)
+- [Node.js](https://nodejs.org/) (for Tailwind CSS CLI)
 
 ```bash
 # Get dependencies
@@ -47,15 +76,3 @@ npx tailwindcss -i ./web/static/input.css -o ./web/static/output.css --watch
 # Start server
 go run ./cmd/server
 ```
-
-## Security & Architecture
-
-Node follows strict sandboxing protocols:
-- **Path Traversal Guards**: Every request path is fully evaluated against the root jail.
-- **Zero Configuration DB**: No SQL injection or complex permission structures.
-- **Direct Syscalls**: Uses OS level controls to handle limits.
-- **Stream Uploads**: Memory capping per connection limits RAM usage regardless of incoming file size.
-
----
-
-*Open Source under MIT License.*
