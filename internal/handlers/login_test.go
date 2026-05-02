@@ -21,7 +21,7 @@ func TestLogin_Success(t *testing.T) {
 		User:          "admin",
 		PassHash:      string(passHash),
 		Root:          "/data",
-		Port:          "8080",
+		Port:          "7319",
 		MaxUpload:     2147483648,
 		CookieSecret:  "test-secret-key",
 		Theme:         "system",

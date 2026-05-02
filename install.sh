@@ -10,7 +10,7 @@ NC='\033[0m'
 APP_NAME="${APP_NAME:-nodi}"
 INSTALL_DIR="${INSTALL_DIR:-nodi-app}"
 IMAGE="${NODI_IMAGE:-ghcr.io/twarga/nodi:latest}"
-PORT="${NODI_PORT:-8080}"
+PORT="${NODI_PORT:-7319}"
 USER_NAME="${NODI_USER:-admin}"
 PASSWORD_HASH="${NODI_PASS_HASH:-\$2b\$10\$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy}"
 MAX_UPLOAD="${NODI_MAX_UPLOAD:-2147483648}"
@@ -62,7 +62,7 @@ cd "$INSTALL_DIR"
 COOKIE_SECRET="${NODI_COOKIE_SECRET:-$(random_secret)}"
 
 cat > nodi.env <<EOF
-QL_PORT=8080
+QL_PORT=7319
 QL_ROOT=/data
 QL_USER=${USER_NAME}
 QL_PASS_HASH=${PASSWORD_HASH}
@@ -78,14 +78,14 @@ services:
     container_name: ${APP_NAME}
     restart: unless-stopped
     ports:
-      - "${PORT}:8080"
+      - "${PORT}:7319"
     env_file:
       - path: nodi.env
         format: raw
     volumes:
       - nodi-data:/data
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/login"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7319/login"]
       interval: 30s
       timeout: 3s
       retries: 3

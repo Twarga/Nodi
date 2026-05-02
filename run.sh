@@ -22,7 +22,7 @@ if [ ! -f ".env" ]; then
     echo "==> .env not found. Creating a default test configuration..."
     # We use some safe defaults for local testing
     cat > .env <<EOF
-QL_PORT=8080
+QL_PORT=7319
 QL_ROOT=./data
 QL_USER=admin
 # Hash for 'admin'

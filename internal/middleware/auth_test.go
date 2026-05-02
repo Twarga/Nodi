@@ -9,12 +9,30 @@ import (
 	"time"
 )
 
-func TestAuthMiddleware_NoCookie(t *testing.T) {
+func TestAuthMiddleware_NoCookieRedirectsBrowserToLogin(t *testing.T) {
 	handler := middleware.AuthRequired("supersecret")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Errorf("Expected 303 redirect, got %d", w.Code)
+	}
+	if location := w.Header().Get("Location"); location != "/login" {
+		t.Errorf("Expected redirect to /login, got %q", location)
+	}
+}
+
+func TestAuthMiddleware_NoCookieReturnsUnauthorizedForAPI(t *testing.T) {
+	handler := middleware.AuthRequired("supersecret")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/files", nil)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
@@ -36,7 +54,7 @@ func TestAuthMiddleware_ValidCookie(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/protected", nil)
 	req.AddCookie(&http.Cookie{Name: "ql_session", Value: token})
 	w := httptest.NewRecorder()
 
@@ -55,7 +73,7 @@ func TestAuthMiddleware_InvalidCookie(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/protected", nil)
 	req.AddCookie(&http.Cookie{Name: "ql_session", Value: token})
 	w := httptest.NewRecorder()
 

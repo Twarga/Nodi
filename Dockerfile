@@ -38,10 +38,10 @@ COPY --from=builder /app/web ./web
 RUN mkdir -p /data && chown -R nodi:nodi /app /data
 
 # Set Environment Variables
-ENV QL_PORT=8080
+ENV QL_PORT=7319
 ENV QL_ROOT=/data
 
-EXPOSE 8080
+EXPOSE 7319
 USER nodi:nodi
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -q --spider http://127.0.0.1:${QL_PORT}/login || exit 1

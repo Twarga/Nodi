@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"nodi/internal/auth"
+	"strings"
 )
 
 // SessionContextKey is the key used for storing the session inside the request context.
@@ -17,8 +18,10 @@ func AuthRequired(secret string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, err := auth.GetSessionFromRequest(r, secret)
 			if err != nil {
-				// We can redirect to /login or return 401 Unauthorized for API routes.
-				// For the scope of a file manager frontend, returning 401 JSON/HTML is standard.
+				if shouldRedirectToLogin(r) {
+					http.Redirect(w, r, "/login", http.StatusSeeOther)
+					return
+				}
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -28,4 +31,14 @@ func AuthRequired(secret string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func shouldRedirectToLogin(r *http.Request) bool {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/browse" {
+		return false
+	}
+	return true
 }

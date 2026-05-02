@@ -23,11 +23,11 @@ func Load() (*Config, error) {
 		User:          getEnv("QL_USER", "admin"),
 		PassHash:      getEnv("QL_PASS_HASH", ""),
 		Root:          getEnv("QL_ROOT", "/data"),
-		Port:          getEnv("QL_PORT", "8080"),
+		Port:          getEnv("QL_PORT", "7319"),
 		MaxUpload:     int64(2147483648), // 2GB default
 		CookieSecret:  getEnv("QL_COOKIE_SECRET", ""),
 		Theme:         getEnv("QL_THEME", "system"),
-		SessionExpiry:  24 * time.Hour,
+		SessionExpiry: 24 * time.Hour,
 	}
 
 	if cfg.PassHash == "" {
