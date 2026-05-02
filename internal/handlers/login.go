@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
 	"time"
@@ -24,6 +25,21 @@ type LoginResponse struct {
 
 func Login(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			tmpl, err := template.ParseFiles("web/templates/layout.html", "web/templates/login.html")
+			if err != nil {
+				log.Printf("Template parsing error: %v", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			
+			if err := tmpl.ExecuteTemplate(w, "layout.html", nil); err != nil {
+				log.Printf("Template execution error: %v", err)
+			}
+			return
+		}
+
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return

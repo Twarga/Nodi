@@ -144,7 +144,7 @@ func TestLogin_MissingFields(t *testing.T) {
 func TestLogin_WrongMethod(t *testing.T) {
 	cfg := &config.Config{}
 
-	req := httptest.NewRequest(http.MethodGet, "/login", nil)
+	req := httptest.NewRequest(http.MethodPut, "/login", nil)
 	w := httptest.NewRecorder()
 
 	Login(cfg).ServeHTTP(w, req)
