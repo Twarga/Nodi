@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/Twarga/Nodi/internal/middleware"
@@ -57,7 +58,6 @@ var GlobalFuncs = template.FuncMap{
 		return t.Format("2006-01-02")
 	},
 	"fileKey": func(name string) string {
-		// Match the JS fileKey() logic: replace non-alphanumeric with underscore
 		b := make([]byte, len(name))
 		for i, c := range []byte(name) {
 			if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
@@ -70,9 +70,64 @@ var GlobalFuncs = template.FuncMap{
 	},
 }
 
-// RenderTemplate parses and executes templates with nonce injection.
+var (
+	tmplCache = make(map[string]*template.Template)
+	tmplMu    sync.RWMutex
+)
+
+// InitTemplates parses all templates once at startup. Safe to call multiple times.
+func InitTemplates() error {
+	tmplMu.Lock()
+	defer tmplMu.Unlock()
+
+	// Skip if already initialized
+	if len(tmplCache) > 0 {
+		return nil
+	}
+
+	patterns := map[string][]string{
+		"login": {
+			"web/templates/layout.html",
+			"web/templates/login.html",
+		},
+		"dashboard": {
+			"web/templates/layout.html",
+			"web/templates/dashboard.html",
+			"web/templates/components/breadcrumbs.html",
+			"web/templates/components/file-row.html",
+			"web/templates/components/file-card.html",
+			"web/templates/components/modal.html",
+		},
+	}
+
+	for key, files := range patterns {
+		tmpl, err := template.New("layout.html").Funcs(GlobalFuncs).ParseFiles(files...)
+		if err != nil {
+			return fmt.Errorf("parse template %s: %w", key, err)
+		}
+		tmplCache[key] = tmpl
+	}
+
+	return nil
+}
+
+// GetCachedTemplate returns a parsed template by cache key.
+func GetCachedTemplate(key string) *template.Template {
+	tmplMu.RLock()
+	tmpl := tmplCache[key]
+	tmplMu.RUnlock()
+	if tmpl == nil {
+		// Try to initialize on demand (for tests)
+		InitTemplates()
+		tmplMu.RLock()
+		tmpl = tmplCache[key]
+		tmplMu.RUnlock()
+	}
+	return tmpl
+}
+
+// RenderTemplate executes a cached template with nonce injection.
 func RenderTemplate(w http.ResponseWriter, r *http.Request, data interface{}, patterns ...string) {
-	// Automatically inject CSP nonce if not already in data
 	nonce := middleware.GetNonce(r)
 	if nonce != "" && data != nil {
 		v := reflect.ValueOf(data)
@@ -87,13 +142,31 @@ func RenderTemplate(w http.ResponseWriter, r *http.Request, data interface{}, pa
 		}
 	}
 
-	tmpl, err := template.New("base").Funcs(GlobalFuncs).ParseFiles(patterns...)
+	// Use cache key derived from first pattern for lookup
+	cacheKey := ""
+	switch {
+	case len(patterns) >= 2 && patterns[1] == "web/templates/dashboard.html":
+		cacheKey = "dashboard"
+	case len(patterns) >= 2 && patterns[1] == "web/templates/login.html":
+		cacheKey = "login"
+	default:
+		cacheKey = "dashboard"
+	}
+
+	tmpl := GetCachedTemplate(cacheKey)
+	if tmpl == nil {
+		http.Error(w, "Template not found", http.StatusInternalServerError)
+		return
+	}
+
+	// Clone the template so concurrent requests get fresh execution state
+	tmplClone, err := tmpl.Clone()
 	if err != nil {
 		http.Error(w, "Template Error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = tmpl.ExecuteTemplate(w, "layout.html", data)
+	err = tmplClone.ExecuteTemplate(w, "layout.html", data)
 	if err != nil {
 		fmt.Printf("Execution Error: %v\n", err)
 	}

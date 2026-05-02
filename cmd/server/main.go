@@ -147,6 +147,10 @@ func main() {
 		log.Fatalf("Config error: %v", err)
 	}
 
+	if err := handlers.InitTemplates(); err != nil {
+		log.Fatalf("Template init error: %v", err)
+	}
+
 	fmt.Printf("Nodi starting on port %s\n", cfg.Port)
 	fmt.Printf("Serving files from: %s\n", cfg.Root)
 

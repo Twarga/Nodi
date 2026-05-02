@@ -18,7 +18,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 ## Phase 12: Production Hardening (server reliability)
 
-- [ ] T62: **Cache templates at startup**. Parse all templates once in `main()`. Pass `*template.Template` to handlers. No more `template.ParseFiles()` per request.
+- [x] T62: **Cache templates at startup**. Parse all templates once in `main()`. Pass `*template.Template` to handlers. No more `template.ParseFiles()` per request.
 - [ ] T63: **Add HTTP server timeouts and graceful shutdown**. Configure `ReadTimeout: 10s`, `WriteTimeout: 30s`, `IdleTimeout: 120s`. Handle SIGINT/SIGTERM with `signal.NotifyContext` for graceful drain.
 - [ ] T64: **Add static asset cache headers**. `Cache-Control: public, max-age=86400` for `/static/`. Immutable headers for fingerprinted assets.
 - [ ] T65: **Validate config on startup**. Verify `QL_ROOT` exists and is a directory. Verify `QL_COOKIE_SECRET` is ≥32 bytes. Verify `QL_PORT` is numeric. Fail fast with clear messages.
