@@ -24,10 +24,10 @@ func TestUpload(t *testing.T) {
 	t.Run("Valid Upload", func(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		
+
 		// Add path field
 		_ = writer.WriteField("path", "/")
-		
+
 		// Add file field
 		part, _ := writer.CreateFormFile("files", "test.txt")
 		part.Write([]byte("hello world"))
@@ -73,6 +73,27 @@ func TestUpload(t *testing.T) {
 		}
 		if !bytes.Contains(rr.Body.Bytes(), []byte("Invalid filename")) {
 			t.Errorf("expected 'Invalid filename' error in response, got %s", rr.Body.String())
+		}
+	})
+
+	t.Run("Upload Limit", func(t *testing.T) {
+		limitedCfg := &config.Config{Root: tempDir, MaxUpload: 10}
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("path", "/")
+		part, _ := writer.CreateFormFile("files", "large.txt")
+		part.Write([]byte("this exceeds the limit"))
+		writer.Close()
+
+		req := httptest.NewRequest("POST", "/api/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		rr := httptest.NewRecorder()
+
+		handler := Upload(limitedCfg)
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400, got %d", rr.Code)
 		}
 	})
 }

@@ -3,17 +3,18 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	stdmime "mime"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
-	"io"
 	"nodi/internal/config"
 	"nodi/internal/storage"
-	"regexp"
 )
 
 var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9._ -]+$`)
@@ -309,6 +310,47 @@ func Rename(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// Download returns a handler that streams a file from the configured root.
+func Download(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		reqPath := r.URL.Query().Get("path")
+		if reqPath == "" || reqPath == "/" {
+			http.Error(w, "File path required", http.StatusBadRequest)
+			return
+		}
+
+		fullPath, err := SafePath(cfg.Root, reqPath)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		info, err := os.Stat(fullPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				http.Error(w, "Not Found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		if info.IsDir() {
+			http.Error(w, "Cannot download directory", http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Disposition", stdmime.FormatMediaType("attachment", map[string]string{
+			"filename": filepath.Base(fullPath),
+		}))
+		http.ServeFile(w, r, fullPath)
+	}
+}
+
 // Upload returns a handler that receives multipart files and saves them.
 func Upload(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -317,8 +359,11 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Limit upload size to 1GB (T33)
-		r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*1024)
+		maxUpload := cfg.MaxUpload
+		if maxUpload <= 0 {
+			maxUpload = 2147483648
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
 
 		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32MB in-memory buffer
 			http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)

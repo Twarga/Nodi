@@ -8,6 +8,7 @@ import (
 	"nodi/internal/handlers"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -46,6 +47,26 @@ func TestBrowse_Success(t *testing.T) {
 	}
 	if resp[1].Name != "file_b.txt" || resp[1].IsDir {
 		t.Errorf("Expected file_b.txt to be second and not marked as IsDir")
+	}
+}
+
+func TestBrowse_EmptyDirectoryReturnsArray(t *testing.T) {
+	tmpRoot, _ := os.MkdirTemp("", "nodi-browse-empty-*")
+	defer os.RemoveAll(tmpRoot)
+
+	cfg := &config.Config{Root: tmpRoot}
+	handler := handlers.Browse(cfg)
+
+	req := httptest.NewRequest(http.MethodGet, "/browse?path=/", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", w.Code)
+	}
+	if body := strings.TrimSpace(w.Body.String()); body != "[]" {
+		t.Fatalf("Expected empty JSON array, got %q", body)
 	}
 }
 
