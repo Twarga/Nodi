@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{block "title" .}}Nodi{{end}}</title>
+    
+    <!-- Meta -->
+    <meta name="description" content="Lightweight, self-hosted web file manager.">
+    
+    <!-- Tailwind CSS (compiled output) -->
+    <link href="/static/output.css" rel="stylesheet">
+    
+    <!-- Embed Nodi Favicon (Reused Logo) -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+
+    <!-- Global App JS -->
+    <script src="/static/app.js" type="module" defer></script>
+</head>
+<body class="bg-background text-foreground antialiased min-h-screen">
+    <!-- Main Application Shell -->
+    <div id="root" class="flex flex-col h-screen overflow-hidden">
+        {{block "content" .}}
+        <!-- Default Fallback Layout -->
+        <main class="flex-1 flex items-center justify-center">
+            <h1 class="text-2xl font-semibold opacity-50">Content goes here</h1>
+        </main>
+        {{end}}
+    </div>
+</body>
+</html>
