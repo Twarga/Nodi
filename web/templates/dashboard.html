@@ -127,6 +127,9 @@
       {{end}}
     </div>
   </div>
+  {{template "modal" dict "Id" "create-folder" "Title" "Create New Folder"}}
+  {{template "modal" dict "Id" "rename" "Title" "Rename Item"}}
+  {{template "modal" dict "Id" "delete" "Title" "Delete Item"}}
 {{end}}
 
 {{define "modal-inner"}}
@@ -135,8 +138,24 @@
   {{else if eq .Id "rename"}}
     {{template "rename-body" .}}
   {{else if eq .Id "delete"}}
-    <!-- Placeholder for delete -->
+    {{template "delete-body" .}}
   {{end}}
+{{end}}
+
+{{define "create-folder-body"}}
+  <form id="create-folder-form" onsubmit="event.preventDefault(); onCreateFolderSubmit()">
+    <div class="space-y-4">
+      <div>
+        <label for="create-folder-name" class="block text-sm font-medium mb-1.5 text-muted-foreground">Folder Name</label>
+        <input type="text" id="create-folder-name" name="name" required autofocus
+               class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button type="button" onclick="closeModal('create-folder')" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-hover transition-colors">Cancel</button>
+        <button type="submit" class="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-hover transition-colors shadow-sm">Create</button>
+      </div>
+    </div>
+  </form>
 {{end}}
 
 {{define "rename-body"}}
@@ -168,7 +187,3 @@
     </div>
   </div>
 {{end}}
-
-{{template "modal" dict "Id" "create-folder" "Title" "Create New Folder"}}
-{{template "modal" dict "Id" "rename" "Title" "Rename Item"}}
-{{template "modal" dict "Id" "delete" "Title" "Delete Item"}}

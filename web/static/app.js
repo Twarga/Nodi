@@ -30,6 +30,32 @@
     return getStoredTheme() || SYSTEM_THEME
   }
 
+  function getCurrentPath() {
+    return new URLSearchParams(window.location.search).get('path') || '/'
+  }
+
+  function joinPath(base, name) {
+    return base === '/' ? `/${name}` : `${base.replace(/\/$/, '')}/${name}`
+  }
+
+  function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[char])
+  }
+
+  function escapeJSString(value) {
+    return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r')
+  }
+
+  function fileKey(name) {
+    return encodeURIComponent(name).replace(/[^a-zA-Z0-9_-]/g, '_')
+  }
+
   function cycleTheme() {
     const current = getCurrentTheme()
     const idx = themes.indexOf(current)
@@ -76,6 +102,9 @@
     if (toggleBtn) {
       toggleBtn.addEventListener('click', cycleTheme)
     }
+
+    initViewToggle()
+    initUploadButton()
 
     // Global menu management
     document.addEventListener('click', (e) => {
@@ -126,6 +155,56 @@
     })
   }
 
+  function initViewToggle() {
+    const listBtn = document.getElementById('view-list-btn')
+    const gridBtn = document.getElementById('view-grid-btn')
+    const list = document.getElementById('file-list')
+    const grid = document.getElementById('file-grid')
+    if (!listBtn || !gridBtn || !list || !grid) return
+
+    const setView = (view) => {
+      const isGrid = view === 'grid'
+      list.classList.toggle('hidden', isGrid)
+      grid.classList.toggle('hidden', !isGrid)
+      listBtn.classList.toggle('bg-surface-hover', !isGrid)
+      listBtn.classList.toggle('text-foreground', !isGrid)
+      listBtn.classList.toggle('text-muted-foreground', isGrid)
+      gridBtn.classList.toggle('bg-surface-hover', isGrid)
+      gridBtn.classList.toggle('text-foreground', isGrid)
+      gridBtn.classList.toggle('text-muted-foreground', !isGrid)
+      try {
+        localStorage.setItem('ql-view', view)
+      } catch { /* ignore */ }
+    }
+
+    listBtn.addEventListener('click', () => setView('list'))
+    gridBtn.addEventListener('click', () => setView('grid'))
+
+    try {
+      setView(localStorage.getItem('ql-view') === 'grid' ? 'grid' : 'list')
+    } catch {
+      setView('list')
+    }
+  }
+
+  function initUploadButton() {
+    const uploadBtn = document.getElementById('upload-btn')
+    if (!uploadBtn) return
+
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.multiple = true
+    input.hidden = true
+    input.addEventListener('change', () => {
+      if (input.files && input.files.length > 0) {
+        onUpload(input.files)
+      }
+      input.value = ''
+    })
+    document.body.appendChild(input)
+    uploadBtn.addEventListener('click', () => input.click())
+  }
+
   window.onUpload = (files) => {
     const panel = document.getElementById('upload-panel')
     const list = document.getElementById('upload-list')
@@ -140,7 +219,7 @@
       item.id = id
       item.innerHTML = `
         <div class="flex items-center justify-between gap-3 overflow-hidden">
-          <span class="truncate text-sm font-medium">${file.name}</span>
+          <span class="truncate text-sm font-medium">${escapeHTML(file.name)}</span>
           <span class="upload-status text-[10px] tabular uppercase text-muted-foreground">Pending</span>
         </div>
         <div class="progress-container">
@@ -150,7 +229,7 @@
       list.prepend(item)
 
       const formData = new FormData()
-      formData.append('path', currentPath)
+      formData.append('path', getCurrentPath())
       formData.append('files', file)
 
       const xhr = new XMLHttpRequest()
@@ -175,7 +254,7 @@
           }
           // Refresh item list if this was the last upload or after each success?
           // To keep it SPA-like, we refresh the view.
-          refreshItems(currentPath)
+          refreshItems()
         } else {
           if (status) {
             status.textContent = 'Error'
@@ -217,7 +296,11 @@
 
   // --- Context Menu Logic ---
   window.toggleMenu = (name) => {
-    const menu = document.getElementById(`menu-${name}`) || document.getElementById(`menu-grid-${name}`)
+    const key = fileKey(name)
+    const menu = document.getElementById(`menu-${key}`) ||
+      document.getElementById(`menu-grid-${key}`) ||
+      document.getElementById(`menu-${name}`) ||
+      document.getElementById(`menu-grid-${name}`)
     const isOpen = menu && !menu.classList.contains('hidden')
     closeAllMenus()
     if (menu && !isOpen) {
@@ -258,8 +341,7 @@
 
   window.onOpen = (name, isDir) => {
     if (isDir) {
-      const currentPath = new URLSearchParams(window.location.search).get('path') || '/'
-      const newPath = currentPath === '/' ? `/${name}` : `${currentPath.replace(/\/$/, '')}/${name}`
+      const newPath = joinPath(getCurrentPath(), name)
       
       const url = new URL(window.location)
       url.searchParams.set('path', newPath)
@@ -268,7 +350,7 @@
       refreshItems()
       updateBreadcrumbs(newPath)
     } else {
-      window.location.href = `/api/download?path=${encodeURIComponent(name)}` // Adjust later
+      onDownload(name)
     }
   }
 
@@ -293,9 +375,9 @@
       currentPath += '/' + seg
       html += `
         <svg class="h-3.5 w-3.5 text-muted-foreground/40 shrink-0"><use href="/static/icons.svg#icon-chevron-right"></use></svg>
-        <a href="?path=${encodeURIComponent(currentPath)}" onclick="event.preventDefault(); navigate('${currentPath}')" 
+        <a href="?path=${encodeURIComponent(currentPath)}" onclick="event.preventDefault(); navigate('${escapeHTML(escapeJSString(currentPath))}')" 
            class="truncate max-w-[120px] transition-colors ${i === segments.length - 1 ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}">
-          ${seg}
+          ${escapeHTML(seg)}
         </a>
       `
     })
@@ -318,18 +400,28 @@
   })
 
   window.onDownload = (name) => {
-    console.log('Downloading:', name)
+    const path = joinPath(getCurrentPath(), name)
+    window.location.href = `/api/download?path=${encodeURIComponent(path)}`
   }
 
   window.onRename = (name) => {
-    const path = new URLSearchParams(window.location.search).get('path') || '/'
-    const oldPath = path === '/' ? `/${name}` : `${path.replace(/\/$/, '')}/${name}`
+    const oldPath = joinPath(getCurrentPath(), name)
     
     const form = document.getElementById('rename-form')
     form.oldPath.value = oldPath
     form.newName.value = name
     
     showModal('rename')
+    closeAllMenus()
+  }
+
+  window.onDelete = (name) => {
+    const path = joinPath(getCurrentPath(), name)
+    const pathInput = document.getElementById('delete-path')
+    const nameEl = document.getElementById('delete-item-name')
+    if (pathInput) pathInput.value = path
+    if (nameEl) nameEl.textContent = name
+    showModal('delete')
     closeAllMenus()
   }
 
@@ -347,7 +439,7 @@
 
     toast.innerHTML = `
       <svg class="toast-icon"><use href="/static/icons.svg#icon-${icon}"></use></svg>
-      <div class="toast-message">${message}</div>
+      <div class="toast-message">${escapeHTML(message)}</div>
       <button class="toast-close" onclick="this.parentElement.remove()">
         <svg class="h-4 w-4"><use href="/static/icons.svg#icon-x"></use></svg>
       </button>
@@ -399,29 +491,32 @@
     const icon = getIconForFile(f)
     const size = f.is_dir ? '--' : formatBytes(f.size)
     const date = new Date(f.mod_time).toLocaleDateString() // Simple for now
+    const name = escapeHTML(f.name)
+    const actionName = escapeHTML(escapeJSString(f.name))
+    const key = fileKey(f.name)
     
     return `
       <li class="group grid grid-cols-1 sm:grid-cols-[1fr_110px_160px_56px] items-center gap-4 px-4 py-2.5 hover:bg-surface-hover transition-all border-b border-border/50 last:border-0"
-          onclick="onOpen('${f.name}', ${f.is_dir})">
+          onclick="onOpen('${actionName}', ${f.is_dir})">
         <div class="flex items-center gap-3 min-w-0">
           <svg class="h-5 w-5 shrink-0 ${icon.colorClass}"><use href="/static/icons.svg#${icon.id}"></use></svg>
-          <span class="truncate text-sm font-medium">${f.name}</span>
+          <span class="truncate text-sm font-medium">${name}</span>
         </div>
         <div class="hidden sm:block text-right text-xs text-muted-foreground tabular">${size}</div>
         <div class="hidden sm:block text-xs text-muted-foreground tabular">${date}</div>
         <div class="flex justify-end pr-1 relative" onclick="event.stopPropagation()">
-            <button onclick="toggleMenu('${f.name}')" class="p-1.5 rounded-md hover:bg-surface-hover hover:text-foreground text-muted-foreground transition-colors">
+            <button onclick="toggleMenu('${actionName}')" class="p-1.5 rounded-md hover:bg-surface-hover hover:text-foreground text-muted-foreground transition-colors">
                 <svg class="h-4 w-4"><use href="/static/icons.svg#icon-more-vertical"></use></svg>
             </button>
-            <div id="menu-${f.name}" class="hidden absolute right-0 top-9 w-44 rounded-md border border-border bg-popover py-1 shadow-lg z-40 animate-ql-pop-in">
-                <button onclick="onDownload('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+            <div id="menu-${key}" class="hidden absolute right-0 top-9 w-44 rounded-md border border-border bg-popover py-1 shadow-lg z-40 animate-ql-pop-in">
+                <button onclick="onDownload('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
                     <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-download"></use></svg> Download
                 </button>
-                <button onclick="onRename('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+                <button onclick="onRename('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
                     <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-edit"></use></svg> Rename
                 </button>
                 <div class="my-1 border-t border-border"></div>
-                <button onclick="onDelete('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
+                <button onclick="onDelete('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
                     <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-trash"></use></svg> Delete
                 </button>
             </div>
@@ -432,31 +527,34 @@
 
   function renderFileCard(f) {
     const icon = getIconForFile(f)
+    const name = escapeHTML(f.name)
+    const actionName = escapeHTML(escapeJSString(f.name))
+    const key = fileKey(f.name)
     return `
       <div class="group relative flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-4 text-center hover:bg-surface-hover transition-all hover:shadow-md cursor-pointer"
-           onclick="onOpen('${f.name}', ${f.is_dir})">
+           onclick="onOpen('${actionName}', ${f.is_dir})">
         <div class="flex h-16 w-full items-center justify-center rounded-lg bg-background/40">
            <svg class="h-10 w-10 ${icon.colorClass}"><use href="/static/icons.svg#${icon.id}"></use></svg>
         </div>
         <div class="w-full flex-1 min-w-0">
-          <p class="truncate text-[13px] font-medium px-1">${f.name}</p>
+          <p class="truncate text-[13px] font-medium px-1">${name}</p>
           <p class="text-[11px] text-muted-foreground mt-0.5 tabular">${f.is_dir ? 'Folder' : formatBytes(f.size)}</p>
         </div>
         
-        <button onclick="event.stopPropagation(); toggleMenu('${f.name}')" 
+        <button onclick="event.stopPropagation(); toggleMenu('${actionName}')" 
                 class="absolute top-2 right-2 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-surface transition-all text-muted-foreground">
            <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-more-vertical"></use></svg>
         </button>
         
-        <div id="menu-grid-${f.name}" class="hidden absolute right-2 top-8 w-40 rounded-md border border-border bg-popover py-1 shadow-lg z-40 animate-ql-pop-in text-left">
-            <button onclick="onDownload('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+        <div id="menu-grid-${key}" class="hidden absolute right-2 top-8 w-40 rounded-md border border-border bg-popover py-1 shadow-lg z-40 animate-ql-pop-in text-left">
+            <button onclick="onDownload('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
                 <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-download"></use></svg> Download
             </button>
-            <button onclick="onRename('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+            <button onclick="onRename('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
                 <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-edit"></use></svg> Rename
             </button>
             <div class="my-1 border-t border-border"></div>
-            <button onclick="onDelete('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
+            <button onclick="onDelete('${actionName}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
                 <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-trash"></use></svg> Delete
             </button>
         </div>
