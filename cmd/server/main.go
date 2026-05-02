@@ -80,6 +80,13 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+func cacheStaticHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400, immutable")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
@@ -101,7 +108,7 @@ func NewHandler(cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 
 	staticFiles := http.FileServer(http.Dir("web/static"))
-	mux.Handle("/static/", http.StripPrefix("/static/", staticFiles))
+	mux.Handle("/static/", cacheStaticHeaders(http.StripPrefix("/static/", staticFiles)))
 
 	// Health, version, and metrics endpoints (no auth required)
 	mux.HandleFunc("/api/health", healthHandler)
