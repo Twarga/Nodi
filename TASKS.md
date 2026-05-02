@@ -4,18 +4,18 @@
 - [x] T1: Initialize Git and initial project files (`plan.md`, `README.md`).
 - [x] T2: Connect GitHub remote (`Twarga/Nodi`), create `main` branch, and push.
 - [x] T3: Initialize Go module (`go mod init nodi` or `quantum-lite`).
-- [ ] T4: Scaffold project structure (`cmd/server`, `internal/`, `web/`).
-- [ ] T5: Setup Tailwind CSS build pipeline. Create `web/static/input.css` copying design tokens (HSL variables) from React reference.
-- [ ] T6: Create generic `Makefile` or setup instructions for Tailwind build + Go run.
+- [x] T4: Scaffold project structure (`cmd/server`, `internal/`, `web/`).
+- [x] T5: Setup Tailwind CSS build pipeline. Create `web/static/input.css` copying design tokens (HSL variables) from React reference.
+- [x] T6: Create generic `Makefile` or setup instructions for Tailwind build + Go run.
 
 ## Phase 1: Core Backend & Auth (Go)
-- [ ] T7: Implement environment configuration loader (`internal/config`). Read `QL_USER`, `QL_PASS_HASH`, `QL_ROOT`, `QL_PORT`, `QL_MAX_UPLOAD`, `QL_COOKIE_SECRET`, `QL_THEME`.
-- [ ] T8: Create `cmd/server/main.go` setting up `http.ServeMux` and loading env configs.
-- [ ] T9: Implement logging middleware and request tracking.
-- [ ] T10: Implement `internal/auth/session.go` for secure cookie generation (HMAC signed) and validation.
+- [x] T7: Implement environment configuration loader (`internal/config`). Read `QL_USER`, `QL_PASS_HASH`, `QL_ROOT`, `QL_PORT`, `QL_MAX_UPLOAD`, `QL_COOKIE_SECRET`, `QL_THEME`.
+- [x] T8: Create `cmd/server/main.go` setting up `http.ServeMux` and loading env configs.
+- [x] T9: Implement logging middleware and request tracking.
+- [x] T10: Implement `internal/auth/session.go` for secure cookie generation (HMAC signed) and validation.
 - [x] T11: Implement `/login` POST endpoint matching bcrypt hashed password.
 - [x] T12: Implement Rate Limiting middleware for login attempts (5 IP requests / 15m).
-- [ ] T13: Implement generic auth middleware to protect `/browse`, `/upload`, etc. endpoints.
+- [x] T13: Implement generic auth middleware to protect `/browse`, `/upload`, etc. endpoints.
 
 ## Phase 2: Frontend Layout & Auth Views (Vanilla/Tailwind)
 - [ ] T14: Create `web/templates/layout.html` with basic layout, `<head>` config, and initial global styling.
