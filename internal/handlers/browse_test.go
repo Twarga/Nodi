@@ -32,20 +32,25 @@ func TestBrowse_Success(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	var resp []handlers.FileInfo
+	var resp struct {
+		Files []handlers.FileInfo `json:"files"`
+		Total int                 `json:"total"`
+	}
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if len(resp) != 2 {
-		t.Errorf("Expected 2 items, got %d", len(resp))
+	if resp.Total != 2 {
+		t.Errorf("Expected total 2, got %d", resp.Total)
+	}
+	if len(resp.Files) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(resp.Files))
 	}
 
-	// Verify sorting: Folder should be first
-	if resp[0].Name != "folder_a" || !resp[0].IsDir {
+	if resp.Files[0].Name != "folder_a" || !resp.Files[0].IsDir {
 		t.Errorf("Expected folder_a to be first and marked as IsDir")
 	}
-	if resp[1].Name != "file_b.txt" || resp[1].IsDir {
+	if resp.Files[1].Name != "file_b.txt" || resp.Files[1].IsDir {
 		t.Errorf("Expected file_b.txt to be second and not marked as IsDir")
 	}
 }
@@ -65,8 +70,8 @@ func TestBrowse_EmptyDirectoryReturnsArray(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("Expected status 200, got %d", w.Code)
 	}
-	if body := strings.TrimSpace(w.Body.String()); body != "[]" {
-		t.Fatalf("Expected empty JSON array, got %q", body)
+	if body := strings.TrimSpace(w.Body.String()); body != `{"files":[],"total":0,"hasMore":false}` && body != `{"files":[],"hasMore":false,"total":0}` {
+		t.Fatalf("Expected empty JSON response, got %q", body)
 	}
 }
 

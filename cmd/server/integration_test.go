@@ -129,8 +129,8 @@ func TestFileManagerEndToEnd(t *testing.T) {
 	browseResp := getWithCookie("/browse")
 	browseBody, _ := io.ReadAll(browseResp.Body)
 	browseResp.Body.Close()
-	if browseResp.StatusCode != http.StatusOK || strings.TrimSpace(string(browseBody)) != "[]" {
-		t.Fatalf("expected empty browse array, got status %d body %q", browseResp.StatusCode, string(browseBody))
+	if browseResp.StatusCode != http.StatusOK || !strings.Contains(string(browseBody), `"files":[]`) {
+		t.Fatalf("expected empty browse, got status %d body %q", browseResp.StatusCode, string(browseBody))
 	}
 
 	createResp := postJSON("/api/folder/create", map[string]string{"path": "/", "name": "docs"})

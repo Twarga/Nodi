@@ -165,8 +165,45 @@ func Browse(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Pagination
+		limit := 200
+		page := 1
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if parsed, err := fmt.Sscanf(l, "%d", &limit); err == nil && parsed == 1 && limit > 0 && limit <= 1000 {
+			} else {
+				limit = 200
+			}
+		}
+		if p := r.URL.Query().Get("page"); p != "" {
+			if parsed, err := fmt.Sscanf(p, "%d", &page); err == nil && parsed == 1 && page > 0 {
+			} else {
+				page = 1
+			}
+		}
+
+		total := len(files)
+		start := (page - 1) * limit
+		if start > total {
+			start = total
+		}
+		end := start + limit
+		if end > total {
+			end = total
+		}
+		hasMore := end < total
+
+		result := struct {
+			Files   []FileInfo `json:"files"`
+			Total   int        `json:"total"`
+			HasMore bool       `json:"hasMore"`
+		}{
+			Files:   files[start:end],
+			Total:   total,
+			HasMore: hasMore,
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(files)
+		json.NewEncoder(w).Encode(result)
 	}
 }
 
