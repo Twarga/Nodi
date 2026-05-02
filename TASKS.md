@@ -21,7 +21,7 @@
 - [x] T14: Create `web/templates/layout.html` with basic layout, `<head>` config, and initial global styling.
 - [x] T15: Create `web/templates/login.html` mimicking React `Login.tsx` style (card, centered, input styles).
 - [x] T16: Wire `/login` handler to render `login.html` via `html/template`.
-- [ ] T17: Port SVG sprites from `icons.svg` or inline SVG based on React `FileIcon.tsx` shapes.
+- [x] T17: Port SVG sprites from `icons.svg` or inline SVG based on React `FileIcon.tsx` shapes.
 - [ ] T18: Implement theme toggling logic using vanilla JS (Dark/Light/System) matching inspiration `ThemeProvider`. Store in `localStorage`.
 
 ## Phase 3: Dashboard Layout & File Reading
