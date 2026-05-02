@@ -316,23 +316,34 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 			}
 
 			dstPath := filepath.Join(basePath, fileHeader.Filename)
-			
-			// Create destination file
-			dst, err := os.Create(dstPath)
+
+			// T34: Use temporal staging
+			tempFile, err := os.CreateTemp("", "nodi-upload-*")
 			if err != nil {
-				res.Error = "Could not create destination"
+				res.Error = "Staging failed"
 				results = append(results, res)
 				continue
 			}
+			tempPath := tempFile.Name()
 			
-			// Stream to disk
-			if _, err := io.Copy(dst, src); err != nil {
-				dst.Close()
+			// Stream to temp file
+			if _, err := io.Copy(tempFile, src); err != nil {
+				tempFile.Close()
+				os.Remove(tempPath)
 				res.Error = "Failed to write data"
 				results = append(results, res)
 				continue
 			}
-			dst.Close()
+			tempFile.Close()
+
+			// Atomic rename to final destination
+			if err := os.Rename(tempPath, dstPath); err != nil {
+				os.Remove(tempPath)
+				res.Error = "Finalization failed"
+				results = append(results, res)
+				continue
+			}
+
 			results = append(results, res)
 		}
 

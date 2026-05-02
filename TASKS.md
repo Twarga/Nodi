@@ -43,7 +43,7 @@
 
 ## Phase 5: File Upload System
 - [x] T32: Implement Drag-and-drop overlay in Vanilla JS (`DropOverlay.tsx` equivalent).
-- [ ] T33: Implement File Upload Backend (`/api/upload`) using `io.Copy` and `multipart/form-data`. and chunked `io.Copy`. Ensure `MaxBytesReader`.
+- [x] T33: Implement File Upload Backend (`/api/upload`) using `io.Copy` and `multipart/form-data`.
 - [ ] T34: Set up temporal `/tmp/ql-upload-` directory cleanup mechanics and atomic rename to final destination.
 - [ ] T35: Render Upload List (`UploadList.tsx` equivalent) progress UI beneath breadcrumbs updating via JS streams/polling.
 
