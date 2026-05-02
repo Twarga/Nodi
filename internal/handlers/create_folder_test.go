@@ -45,7 +45,7 @@ func TestCreateFolder_InvalidName(t *testing.T) {
 	cfg := &config.Config{Root: tmpRoot}
 	handler := handlers.CreateFolder(cfg)
 
-	invalidNames := []string{"", "  ", "folder/slash", "../outside", ".", "..", "bad<name", `bad"name`}
+	invalidNames := []string{"", "  ", "folder/slash", "folder\\backslash", "../outside", ".", ".."}
 
 	for _, name := range invalidNames {
 		body, _ := json.Marshal(map[string]string{

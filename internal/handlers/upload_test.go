@@ -82,7 +82,7 @@ func TestUpload(t *testing.T) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		_ = writer.WriteField("path", "/")
-		part, _ := writer.CreateFormFile("files", "bad'name.txt")
+		part, _ := writer.CreateFormFile("files", "bad\\name.txt")
 		part.Write([]byte("evil"))
 		writer.Close()
 

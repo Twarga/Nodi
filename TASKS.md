@@ -31,7 +31,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 - [x] T68: **Fix missing SVG icons**. Added `icon-more-vertical`, `icon-check-circle`, `icon-alert-circle`, `icon-upload-cloud`, `icon-x`, `icon-video`.
 - [x] T69: **Add file overwrite protection**. Return 409 Conflict when uploading a file that exists. Show toast "File already exists — overwrite?" with confirm button.
-- [ ] T70: **Relax `validName()`**. Allow `'`, `&`, `"` in filenames. Only reject `/`, `\`, null bytes, control chars.
+- [x] T70: **Relax `validName()`**. Allow `'`, `&`, `"` in filenames. Only reject `/`, `\`, null bytes, control chars.
 - [ ] T71: **Add pagination to `/browse`**. `?page=N&limit=M` query params. Include `total` and `hasMore` in JSON. Frontend shows "Load more" button. Default limit: 200.
 - [ ] T72: **Add sorting controls**. `?sort=name|size|modified&order=asc|desc` on `/browse`. Default: folders-first, then alpha. Sort UI buttons in workspace bar. Persist choice in localStorage.
 - [ ] T73: **Add filename search/filter**. Search input in workspace bar. Client-side filter for small dirs. `?search=q` server param for large dirs. Highlight matches.

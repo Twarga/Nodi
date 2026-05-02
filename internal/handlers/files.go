@@ -138,7 +138,7 @@ func validName(name string) bool {
 		return false
 	}
 	for _, r := range name {
-		if r == '/' || r == '\\' || r == 0 || r < 32 || strings.ContainsRune(`'"<>&`, r) {
+		if r == '/' || r == '\\' || r == 0 || r < 32 {
 			return false
 		}
 	}
