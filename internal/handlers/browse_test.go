@@ -65,3 +65,27 @@ func TestBrowse_Forbidden(t *testing.T) {
 		t.Errorf("Expected status 403, got %d", w.Code)
 	}
 }
+
+func TestBrowse_SymlinkEscapeForbidden(t *testing.T) {
+	tmpRoot, _ := os.MkdirTemp("", "nodi-browse-root-*")
+	defer os.RemoveAll(tmpRoot)
+
+	outside, _ := os.MkdirTemp("", "nodi-browse-outside-*")
+	defer os.RemoveAll(outside)
+
+	if err := os.Symlink(outside, filepath.Join(tmpRoot, "outside-link")); err != nil {
+		t.Fatalf("create symlink: %v", err)
+	}
+
+	cfg := &config.Config{Root: tmpRoot}
+	handler := handlers.Browse(cfg)
+
+	req := httptest.NewRequest(http.MethodGet, "/browse?path=/outside-link", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("Expected status 403, got %d", w.Code)
+	}
+}

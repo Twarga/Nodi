@@ -45,3 +45,43 @@ func TestSafePath(t *testing.T) {
 		})
 	}
 }
+
+func TestSafePath_RejectsSiblingPrefixEscape(t *testing.T) {
+	tmpRoot, err := os.MkdirTemp("", "nodi-root-*")
+	if err != nil {
+		t.Fatalf("temp root: %v", err)
+	}
+	defer os.RemoveAll(tmpRoot)
+
+	sibling := tmpRoot + "-evil"
+	if err := os.MkdirAll(sibling, 0755); err != nil {
+		t.Fatalf("create sibling: %v", err)
+	}
+	defer os.RemoveAll(sibling)
+
+	if _, err := SafePath(tmpRoot, "../"+filepath.Base(sibling)); err == nil {
+		t.Fatal("expected sibling prefix escape to be rejected")
+	}
+}
+
+func TestSafePath_RejectsSymlinkEscape(t *testing.T) {
+	tmpRoot, err := os.MkdirTemp("", "nodi-root-*")
+	if err != nil {
+		t.Fatalf("temp root: %v", err)
+	}
+	defer os.RemoveAll(tmpRoot)
+
+	outside, err := os.MkdirTemp("", "nodi-outside-*")
+	if err != nil {
+		t.Fatalf("temp outside: %v", err)
+	}
+	defer os.RemoveAll(outside)
+
+	if err := os.Symlink(outside, filepath.Join(tmpRoot, "outside-link")); err != nil {
+		t.Fatalf("create symlink: %v", err)
+	}
+
+	if _, err := SafePath(tmpRoot, "outside-link"); err == nil {
+		t.Fatal("expected symlink escape to be rejected")
+	}
+}

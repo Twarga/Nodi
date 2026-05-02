@@ -91,23 +91,43 @@ func SafePath(root, subPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid root path: %v", err)
 	}
-
-	// Join the absolute root with the subpath
-	// filepath.Join will clean the resulting path
-	fullPath := filepath.Join(absRoot, filepath.FromSlash(subPath))
-
-	// Evaluate the absolute path of the result
-	absFull, err := filepath.Abs(fullPath)
+	realRoot, err := filepath.EvalSymlinks(absRoot)
 	if err != nil {
+		return "", fmt.Errorf("invalid root path: %v", err)
+	}
+
+	candidate := filepath.Join(realRoot, filepath.FromSlash(subPath))
+
+	realCandidate, err := filepath.EvalSymlinks(candidate)
+	if err == nil {
+		if !isWithinRoot(realRoot, realCandidate) {
+			return "", fmt.Errorf("path escapes root: %s", subPath)
+		}
+		return realCandidate, nil
+	}
+	if !os.IsNotExist(err) {
 		return "", fmt.Errorf("invalid path: %v", err)
 	}
 
-	// Ensure the resulting absolute path is still within the absolute root
-	if !strings.HasPrefix(absFull, absRoot) {
-		return "", fmt.Errorf("path traversal attempt detected: %s", subPath)
+	parent := filepath.Dir(candidate)
+	realParent, err := filepath.EvalSymlinks(parent)
+	if err != nil {
+		return "", fmt.Errorf("invalid parent path: %v", err)
 	}
 
-	return absFull, nil
+	if !isWithinRoot(realRoot, realParent) {
+		return "", fmt.Errorf("path escapes root: %s", subPath)
+	}
+
+	return filepath.Join(realParent, filepath.Base(candidate)), nil
+}
+
+func isWithinRoot(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
 // Browse returns a handler that lists directory contents as JSON.
