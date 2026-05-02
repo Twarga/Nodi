@@ -28,6 +28,9 @@ nodi.env
 .env.local
 .env.*.local
 
+# Local managed files
+data/
+
 # IDE
 .vscode/
 !.vscode/extensions.json
