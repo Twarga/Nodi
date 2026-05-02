@@ -18,8 +18,8 @@
 - [x] T13: Implement generic auth middleware to protect `/browse`, `/upload`, etc. endpoints.
 
 ## Phase 2: Frontend Layout & Auth Views (Vanilla/Tailwind)
-- [ ] T14: Create `web/templates/layout.html` with basic layout, `<head>` config, and initial global styling.
-- [ ] T15: Create `web/templates/login.html` mimicking React `Login.tsx` style (card, centered, input styles).
+- [x] T14: Create `web/templates/layout.html` with basic layout, `<head>` config, and initial global styling.
+- [x] T15: Create `web/templates/login.html` mimicking React `Login.tsx` style (card, centered, input styles).
 - [ ] T16: Wire `/login` handler to render `login.html` via `html/template`.
 - [ ] T17: Port SVG sprites from `icons.svg` or inline SVG based on React `FileIcon.tsx` shapes.
 - [ ] T18: Implement theme toggling logic using vanilla JS (Dark/Light/System) matching inspiration `ThemeProvider`. Store in `localStorage`.

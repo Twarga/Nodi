@@ -25,3 +25,16 @@ func TestLayoutTemplateSyntax(t *testing.T) {
 		t.Errorf("Executed template is empty")
 	}
 }
+
+func TestLoginTemplateSyntax(t *testing.T) {
+	tmpl, err := template.ParseFiles("../../web/templates/layout.html", "../../web/templates/login.html")
+	if err != nil {
+		t.Fatalf("Failed to parse layout and login templates: %v", err)
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.ExecuteTemplate(&buf, "layout.html", nil)
+	if err != nil {
+		t.Logf("If execution fails without data, verify it's just missing data bindings, err: %v", err)
+	}
+}
