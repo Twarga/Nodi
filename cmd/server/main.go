@@ -59,6 +59,9 @@ func main() {
 	// T25: Create Folder API
 	mux.Handle("/api/folder/create", middleware.AuthRequired(cfg.CookieSecret)(handlers.CreateFolder(cfg)))
 
+	// T26: Delete API
+	mux.Handle("/api/delete", middleware.AuthRequired(cfg.CookieSecret)(handlers.Delete(cfg)))
+
 	// Logout endpoint
 	mux.Handle("/logout", http.HandlerFunc(handlers.Logout()))
 

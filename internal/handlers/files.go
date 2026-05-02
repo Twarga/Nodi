@@ -154,3 +154,41 @@ func CreateFolder(cfg *config.Config) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]string{"message": "Folder created"})
 	}
 }
+
+// Delete returns a handler that removes a file or directory.
+func Delete(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Path string `json:"path"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		if req.Path == "" || req.Path == "/" {
+			http.Error(w, "Cannot delete root", http.StatusForbidden)
+			return
+		}
+
+		fullPath, err := SafePath(cfg.Root, req.Path)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		if err := os.RemoveAll(fullPath); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Item deleted"})
+	}
+}
