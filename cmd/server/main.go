@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"nodi/internal/config"
+	"nodi/internal/handlers"
+	"nodi/internal/middleware"
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -44,6 +46,12 @@ func main() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Nodi is running! Root: %s", cfg.Root)
 	})
+
+	// T12: Rate Limiter (5 requests per 15 minutes)
+	loginRateLimiter := middleware.NewRateLimiter(5, 15*time.Minute)
+	
+	// T11 & T12: Login endpoint protected by rate limiter
+	mux.Handle("/login", middleware.RateLimit(loginRateLimiter)(handlers.Login(cfg)))
 
 	handler := loggingMiddleware(mux)
 
