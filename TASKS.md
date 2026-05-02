@@ -29,7 +29,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 ## Phase 13: File Manager Core Features (make it usable)
 
-- [ ] T68: **Fix missing SVG icons**. Add `icon-more-vertical`, `icon-check-circle`, `icon-alert-circle`, `icon-upload-cloud` to `icons.svg`. Verify all references resolve.
+- [x] T68: **Fix missing SVG icons**. Added `icon-more-vertical`, `icon-check-circle`, `icon-alert-circle`, `icon-upload-cloud`, `icon-x`, `icon-video`.
 - [ ] T69: **Add file overwrite protection**. Return 409 Conflict when uploading a file that exists. Show toast "File already exists — overwrite?" with confirm button.
 - [ ] T70: **Relax `validName()`**. Allow `'`, `&`, `"` in filenames. Only reject `/`, `\`, null bytes, control chars.
 - [ ] T71: **Add pagination to `/browse`**. `?page=N&limit=M` query params. Include `total` and `hasMore` in JSON. Frontend shows "Load more" button. Default limit: 200.
