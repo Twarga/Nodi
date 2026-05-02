@@ -153,13 +153,64 @@
 
   window.onOpen = (name, isDir) => {
     if (isDir) {
-      console.log('Opening directory:', name)
-      // TODO: Implement navigation
+      const currentPath = new URLSearchParams(window.location.search).get('path') || '/'
+      const newPath = currentPath === '/' ? `/${name}` : `${currentPath.replace(/\/$/, '')}/${name}`
+      
+      const url = new URL(window.location)
+      url.searchParams.set('path', newPath)
+      window.history.pushState({}, '', url)
+      
+      refreshItems()
+      updateBreadcrumbs(newPath)
     } else {
-      console.log('Opening file:', name)
-      // TODO: Implement preview/download
+      window.location.href = `/api/download?path=${encodeURIComponent(name)}` // Adjust later
     }
   }
+
+  function updateBreadcrumbs(path) {
+    // This is tricky because breadcrumbs are SSR'd. 
+    // For now, I'll just reload the page if path changes deeply, 
+    // OR implement a simple breadcrumb generator in JS.
+    // Let's implement a simple one.
+    const container = document.getElementById('breadcrumbs-container')
+    if (!container) return
+    
+    const segments = path.split('/').filter(Boolean)
+    let html = `
+      <nav class="flex items-center gap-1.5 text-sm font-medium overflow-x-auto no-scrollbar py-1">
+        <a href="?path=/" onclick="event.preventDefault(); navigate('/')" class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0">
+          <svg class="h-4 w-4"><use href="/static/icons.svg#icon-home"></use></svg>
+        </a>
+    `
+    
+    let currentPath = ''
+    segments.forEach((seg, i) => {
+      currentPath += '/' + seg
+      html += `
+        <svg class="h-3.5 w-3.5 text-muted-foreground/40 shrink-0"><use href="/static/icons.svg#icon-chevron-right"></use></svg>
+        <a href="?path=${encodeURIComponent(currentPath)}" onclick="event.preventDefault(); navigate('${currentPath}')" 
+           class="truncate max-w-[120px] transition-colors ${i === segments.length - 1 ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}">
+          ${seg}
+        </a>
+      `
+    })
+    html += `</nav>`
+    container.innerHTML = html
+  }
+
+  window.navigate = (path) => {
+    const url = new URL(window.location)
+    url.searchParams.set('path', path)
+    window.history.pushState({}, '', url)
+    refreshItems()
+    updateBreadcrumbs(path)
+  }
+
+  window.addEventListener('popstate', () => {
+    refreshItems()
+    const path = new URLSearchParams(window.location.search).get('path') || '/'
+    updateBreadcrumbs(path)
+  })
 
   window.onDownload = (name) => {
     console.log('Downloading:', name)
@@ -177,6 +228,184 @@
     closeAllMenus()
   }
 
+  window.toast = (message, type = 'info') => {
+    const container = document.getElementById('toast-container')
+    if (!container) return
+
+    const toast = document.createElement('div')
+    toast.className = `toast toast-${type}`
+    
+    // Simple icon selection
+    let icon = 'info'
+    if (type === 'success') icon = 'check-circle'
+    if (type === 'error') icon = 'alert-circle'
+
+    toast.innerHTML = `
+      <svg class="toast-icon"><use href="/static/icons.svg#icon-${icon}"></use></svg>
+      <div class="toast-message">${message}</div>
+      <button class="toast-close" onclick="this.parentElement.remove()">
+        <svg class="h-4 w-4"><use href="/static/icons.svg#icon-x"></use></svg>
+      </button>
+    `
+    container.appendChild(toast)
+    setTimeout(() => {
+      toast.style.opacity = '0'
+      toast.style.transform = 'translateX(10px)'
+      setTimeout(() => toast.remove(), 200)
+    }, 4000)
+  }
+
+  window.refreshItems = async () => {
+    const path = new URLSearchParams(window.location.search).get('path') || '/'
+    try {
+      const resp = await fetch(`/browse?path=${encodeURIComponent(path)}`)
+      if (!resp.ok) throw new Error('Failed to fetch')
+      const files = await resp.json()
+      renderItems(files)
+    } catch (e) {
+      console.error(e)
+      toast('Failed to refresh file list', 'error')
+    }
+  }
+
+  function renderItems(files) {
+    const listContainer = document.getElementById('file-list-items')
+    const gridContainer = document.getElementById('file-grid')
+    
+    if (!listContainer || !gridContainer) return
+
+    if (files.length === 0) {
+      const emptyState = `
+        <li class="flex flex-col items-center justify-center py-20 opacity-40">
+          <svg class="w-16 h-16 mb-4"><use href="/static/icons.svg#icon-folder"></use></svg>
+          <p class="text-lg font-medium">This folder is empty</p>
+        </li>
+      `
+      listContainer.innerHTML = emptyState
+      gridContainer.innerHTML = ''
+      return
+    }
+
+    listContainer.innerHTML = files.map(f => renderFileRow(f)).join('')
+    gridContainer.innerHTML = files.map(f => renderFileCard(f)).join('')
+  }
+
+  function renderFileRow(f) {
+    const icon = getIconForFile(f)
+    const size = f.is_dir ? '--' : formatBytes(f.size)
+    const date = new Date(f.mod_time).toLocaleDateString() // Simple for now
+    
+    return `
+      <li class="group grid grid-cols-1 sm:grid-cols-[1fr_110px_160px_56px] items-center gap-4 px-4 py-2.5 hover:bg-surface-hover transition-all border-b border-border/50 last:border-0"
+          onclick="onOpen('${f.name}', ${f.is_dir})">
+        <div class="flex items-center gap-3 min-w-0">
+          <svg class="h-5 w-5 shrink-0 ${icon.colorClass}"><use href="/static/icons.svg#${icon.id}"></use></svg>
+          <span class="truncate text-sm font-medium">${f.name}</span>
+        </div>
+        <div class="hidden sm:block text-right text-xs text-muted-foreground tabular">${size}</div>
+        <div class="hidden sm:block text-xs text-muted-foreground tabular">${date}</div>
+        <div class="flex justify-end pr-1 relative" onclick="event.stopPropagation()">
+            <button onclick="toggleMenu('${f.name}')" class="p-1.5 rounded-md hover:bg-surface-hover hover:text-foreground text-muted-foreground transition-colors">
+                <svg class="h-4 w-4"><use href="/static/icons.svg#icon-more-vertical"></use></svg>
+            </button>
+            <div id="menu-${f.name}" class="hidden absolute right-0 top-9 w-44 rounded-md border border-border bg-popover py-1 shadow-lg z-40 animate-ql-pop-in">
+                <button onclick="onDownload('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+                    <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-download"></use></svg> Download
+                </button>
+                <button onclick="onRename('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+                    <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-edit"></use></svg> Rename
+                </button>
+                <div class="my-1 border-t border-border"></div>
+                <button onclick="onDelete('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
+                    <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-trash"></use></svg> Delete
+                </button>
+            </div>
+        </div>
+      </li>
+    `
+  }
+
+  function renderFileCard(f) {
+    const icon = getIconForFile(f)
+    return `
+      <div class="group relative flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-4 text-center hover:bg-surface-hover transition-all hover:shadow-md cursor-pointer"
+           onclick="onOpen('${f.name}', ${f.is_dir})">
+        <div class="flex h-16 w-full items-center justify-center rounded-lg bg-background/40">
+           <svg class="h-10 w-10 ${icon.colorClass}"><use href="/static/icons.svg#${icon.id}"></use></svg>
+        </div>
+        <div class="w-full flex-1 min-w-0">
+          <p class="truncate text-[13px] font-medium px-1">${f.name}</p>
+          <p class="text-[11px] text-muted-foreground mt-0.5 tabular">${f.is_dir ? 'Folder' : formatBytes(f.size)}</p>
+        </div>
+        
+        <button onclick="event.stopPropagation(); toggleMenu('${f.name}')" 
+                class="absolute top-2 right-2 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-surface transition-all text-muted-foreground">
+           <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-more-vertical"></use></svg>
+        </button>
+        
+        <div id="menu-grid-${f.name}" class="hidden absolute right-2 top-8 w-40 rounded-md border border-border bg-popover py-1 shadow-lg z-40 animate-ql-pop-in text-left">
+            <button onclick="onDownload('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+                <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-download"></use></svg> Download
+            </button>
+            <button onclick="onRename('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover">
+                <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-edit"></use></svg> Rename
+            </button>
+            <div class="my-1 border-t border-border"></div>
+            <button onclick="onDelete('${f.name}')" class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-destructive hover:bg-surface-hover">
+                <svg class="h-3.5 w-3.5"><use href="/static/icons.svg#icon-trash"></use></svg> Delete
+            </button>
+        </div>
+      </div>
+    `
+  }
+
+  function getIconForFile(f) {
+    if (f.is_dir) return { id: 'icon-folder', colorClass: 'text-icon-folder' }
+    const mime = f.mime || ''
+    if (mime.startsWith('image/')) return { id: 'icon-image', colorClass: 'text-icon-image' }
+    if (mime === 'application/pdf') return { id: 'icon-file-text', colorClass: 'text-icon-pdf' }
+    if (mime.startsWith('video/')) return { id: 'icon-video', colorClass: 'text-icon-video' }
+    return { id: 'icon-file', colorClass: 'text-icon-generic' }
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+  }
+
+  // Update existing submit handlers to use refreshItems and toast
+  const originalOnCreateFolderSubmit = window.onCreateFolderSubmit
+  window.onCreateFolderSubmit = async () => {
+    const form = document.getElementById('create-folder-form')
+    const name = form.name.value
+    const path = new URLSearchParams(window.location.search).get('path') || '/'
+
+    try {
+      const resp = await fetch('/api/folder/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, name })
+      })
+
+      if (resp.ok) {
+        closeModal('create-folder')
+        form.reset()
+        toast(`Folder "${name}" created`, 'success')
+        refreshItems()
+      } else {
+        const err = await resp.text()
+        toast(err, 'error')
+      }
+    } catch (e) {
+      console.error(e)
+      toast('Failed to create folder', 'error')
+    }
+  }
+
+  const originalOnRenameSubmit = window.onRenameSubmit
   window.onRenameSubmit = async () => {
     const form = document.getElementById('rename-form')
     const oldPath = form.oldPath.value
@@ -192,30 +421,22 @@
       if (resp.ok) {
         closeModal('rename')
         form.reset()
-        window.location.reload()
+        toast(`Renamed to "${newName}"`, 'success')
+        refreshItems()
       } else {
         const err = await resp.text()
-        alert(err)
+        toast(err, 'error')
       }
     } catch (e) {
       console.error(e)
-      alert('Internal error')
+      toast('Failed to rename', 'error')
     }
   }
 
-  window.onDelete = (name) => {
-    const path = new URLSearchParams(window.location.search).get('path') || '/'
-    const fullPath = path === '/' ? `/${name}` : `${path.replace(/\/$/, '')}/${name}`
-    
-    document.getElementById('delete-path').value = fullPath
-    document.getElementById('delete-item-name').textContent = name
-    
-    showModal('delete')
-    closeAllMenus()
-  }
-
+  const originalOnDeleteConfirm = window.onDeleteConfirm
   window.onDeleteConfirm = async () => {
     const path = document.getElementById('delete-path').value
+    const name = document.getElementById('delete-item-name').textContent
 
     try {
       const resp = await fetch('/api/delete', {
@@ -226,14 +447,15 @@
 
       if (resp.ok) {
         closeModal('delete')
-        window.location.reload()
+        toast(`"${name}" deleted`, 'success')
+        refreshItems()
       } else {
         const err = await resp.text()
-        alert(err)
+        toast(err, 'error')
       }
     } catch (e) {
       console.error(e)
-      alert('Internal error')
+      toast('Failed to delete', 'error')
     }
   }
 

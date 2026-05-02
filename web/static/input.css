@@ -150,3 +150,20 @@
 .animate-ql-pop-in         { animation: ql-pop-in 160ms ease-out both; }
 .animate-ql-shake          { animation: ql-shake 420ms cubic-bezier(.36,.07,.19,.97) both; }
 .animate-ql-pulse-soft     { animation: ql-pulse-soft 1.6s ease-in-out infinite; }
+
+/* Toast Notifications (Sonner-style) */
+.toast-container {
+  @apply fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none;
+}
+
+.toast {
+  @apply pointer-events-auto flex w-full min-w-[280px] max-w-sm items-center gap-3 rounded-lg border border-border bg-card p-4 text-sm shadow-lg animate-ql-slide-in-right;
+}
+
+.toast-success { @apply border-success/30 text-success ring-1 ring-success/10; }
+.toast-error   { @apply border-destructive/30 text-destructive ring-1 ring-destructive/10; }
+.toast-info    { @apply border-primary/30 text-primary ring-1 ring-primary/10; }
+
+.toast-icon { @apply h-4 w-4 shrink-0; }
+.toast-message { @apply flex-1 font-medium; }
+.toast-close { @apply text-muted-foreground hover:text-foreground; }

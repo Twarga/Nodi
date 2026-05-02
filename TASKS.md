@@ -39,7 +39,7 @@
 - [x] T28: Wire Create Folder Modal in `dashboard.html` (`Modal.tsx` equivalent).
 - [x] T29: Wire Rename Modal taking prior state/filename.
 - [x] T30: Wire Delete confirmation Modal.
-- [ ] T31: Add JS `fetch()` logic for actions to asynchronously update without reloading page. Add Toast Notifications (`sonner` aesthetic).
+- [x] T31: Add JS `fetch()` logic for actions to asynchronously update without reloading page. Add Toast Notifications (`sonner` aesthetic).
 
 ## Phase 5: File Upload System
 - [ ] T32: Implement Drag-and-drop overlay in Vanilla JS (`DropOverlay.tsx` equivalent).
