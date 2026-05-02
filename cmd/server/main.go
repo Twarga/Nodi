@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"nodi/internal/auth"
 	"nodi/internal/config"
 	"nodi/internal/handlers"
 	"nodi/internal/middleware"
@@ -45,16 +44,17 @@ func main() {
 
 	mux := http.NewServeMux()
 	
-	// Protected root endpoint
-	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Nodi is running! Authenticated User: %s, Root: %s", r.Context().Value(middleware.SessionKey).(*auth.Session).User, cfg.Root)
-	})))
+	// Protected root endpoint — renders dashboard
+	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret)(handlers.Dashboard(cfg)))
 
 	// T12: Rate Limiter (5 requests per 15 minutes)
 	loginRateLimiter := middleware.NewRateLimiter(5, 15*time.Minute)
 	
 	// T11 & T12: Login endpoint protected by rate limiter
 	mux.Handle("/login", middleware.RateLimit(loginRateLimiter)(handlers.Login(cfg)))
+
+	// Logout endpoint
+	mux.Handle("/logout", http.HandlerFunc(handlers.Logout()))
 
 	handler := loggingMiddleware(mux)
 
