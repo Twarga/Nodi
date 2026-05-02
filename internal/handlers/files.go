@@ -427,6 +427,13 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 
 			dstPath := filepath.Join(basePath, fileHeader.Filename)
 
+			// Check for existing file
+			if _, err := os.Stat(dstPath); err == nil {
+				res.Error = "file exists"
+				results = append(results, res)
+				continue
+			}
+
 			// Stage in the destination directory so final rename stays atomic across Docker volumes.
 			tempFile, err := os.CreateTemp(basePath, ".nodi-upload-*")
 			if err != nil {
