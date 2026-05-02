@@ -76,6 +76,50 @@
     if (toggleBtn) {
       toggleBtn.addEventListener('click', cycleTheme)
     }
+
+    // Global menu management
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('[id^="menu-"]') && !e.target.closest('button[onclick*="toggleMenu"]')) {
+        closeAllMenus()
+      }
+    })
+  }
+
+  // --- Context Menu Logic ---
+  window.toggleMenu = (name) => {
+    const menu = document.getElementById(`menu-${name}`) || document.getElementById(`menu-grid-${name}`)
+    const isOpen = menu && !menu.classList.contains('hidden')
+    closeAllMenus()
+    if (menu && !isOpen) {
+      menu.classList.remove('hidden')
+    }
+  }
+
+  window.closeAllMenus = () => {
+    document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'))
+  }
+
+  // --- Action Placeholders ---
+  window.onOpen = (name, isDir) => {
+    if (isDir) {
+      console.log('Opening directory:', name)
+      // TODO: Implement navigation
+    } else {
+      console.log('Opening file:', name)
+      // TODO: Implement preview/download
+    }
+  }
+
+  window.onDownload = (name) => {
+    console.log('Downloading:', name)
+  }
+
+  window.onRename = (name) => {
+    console.log('Renaming:', name)
+  }
+
+  window.onDelete = (name) => {
+    console.log('Deleting:', name)
   }
 
   if (document.readyState === 'loading') {

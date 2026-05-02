@@ -32,7 +32,7 @@
 - [x] T23: Render Main Dashboard view (`FileList.tsx` and `FileGrid.tsx` equivalents) with toggle styles.
 
 ## Phase 4: Core File Actions (Go & Vanilla JS)
-- [ ] T24: Create context menus (Action Dropdown) for files using Vanilla JS dialogs or absolute layouts.
+- [x] T24: Create context menus (Action Dropdown) for files using Vanilla JS dialogs or absolute layouts.
 - [ ] T25: Implement Create Folder (`/api/folder/create`) passing `os.Mkdir` securely.
 - [ ] T26: Implement Delete File/Folder (`/api/delete`) with `os.RemoveAll`.
 - [ ] T27: Implement Rename (`/api/rename`) with `os.Rename`.
