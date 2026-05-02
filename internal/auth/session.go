@@ -8,12 +8,22 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
 type Session struct {
-	User string `json:"user"`
-	Exp  int64  `json:"exp"`
+	User    string `json:"user"`
+	Exp     int64  `json:"exp"`
+	Version int64  `json:"v"`
+}
+
+var sessionVersion int64
+
+// RevokeAllSessions invalidates all existing sessions by incrementing the version.
+// Call this on logout. New sessions will have the new version.
+func RevokeAllSessions() {
+	atomic.AddInt64(&sessionVersion, 1)
 }
 
 func (s *Session) Expired() bool {
@@ -21,14 +31,15 @@ func (s *Session) Expired() bool {
 }
 
 func (s *Session) IsValid(username string) bool {
-	return !s.Expired() && s.User == username
+	return !s.Expired() && s.User == username && s.Version == atomic.LoadInt64(&sessionVersion)
 }
 
 func Create(username string, secret string, expiry time.Duration) (string, error) {
 	exp := time.Now().Add(expiry).Unix()
 	session := Session{
-		User: username,
-		Exp:  exp,
+		User:    username,
+		Exp:     exp,
+		Version: atomic.LoadInt64(&sessionVersion),
 	}
 	data, err := json.Marshal(session)
 	if err != nil {

@@ -76,6 +76,7 @@ func Logout() http.HandlerFunc {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
+		auth.RevokeAllSessions()
 		http.SetCookie(w, &http.Cookie{
 			Name:     "ql_session",
 			Value:    "",
