@@ -105,6 +105,7 @@
 
     initViewToggle()
     initUploadButton()
+    initLoginForm()
 
     // Global menu management
     document.addEventListener('click', (e) => {
@@ -203,6 +204,79 @@
     })
     document.body.appendChild(input)
     uploadBtn.addEventListener('click', () => input.click())
+  }
+
+  function initLoginForm() {
+    const form = document.getElementById('login-form')
+    if (!form) return
+
+    const username = document.getElementById('username')
+    const password = document.getElementById('password')
+    const error = document.getElementById('login-error')
+    const submit = document.getElementById('login-submit')
+    const spinner = document.getElementById('login-spinner')
+    const label = document.getElementById('login-btn-text')
+
+    const setError = (message) => {
+      if (!error) return
+      error.textContent = message
+      error.classList.remove('hidden')
+    }
+
+    const clearError = () => {
+      if (!error) return
+      error.textContent = ''
+      error.classList.add('hidden')
+    }
+
+    const setLoading = (loading) => {
+      if (submit) submit.disabled = loading
+      if (spinner) spinner.classList.toggle('hidden', !loading)
+      if (label) label.textContent = loading ? 'Signing in...' : 'Login'
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      clearError()
+
+      const usernameValue = username ? username.value.trim() : ''
+      const passwordValue = password ? password.value : ''
+
+      if (!usernameValue || !passwordValue) {
+        setError('Enter both username and password.')
+        return
+      }
+
+      setLoading(true)
+      try {
+        const resp = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: usernameValue, password: passwordValue })
+        })
+
+        if (resp.ok) {
+          window.location.assign('/')
+          return
+        }
+
+        if (resp.status === 429) {
+          setError('Too many login attempts. Wait a few minutes before trying again.')
+          return
+        }
+
+        let message = 'Invalid username or password.'
+        try {
+          const data = await resp.json()
+          if (data && data.message) message = data.message
+        } catch { /* keep default */ }
+        setError(message)
+      } catch {
+        setError('Could not reach the server. Check that Nodi is running.')
+      } finally {
+        setLoading(false)
+      }
+    })
   }
 
   window.onUpload = (files) => {

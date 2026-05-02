@@ -86,6 +86,23 @@ func RateLimit(rl *RateLimiter) func(http.Handler) http.Handler {
 	}
 }
 
+func RateLimitMethods(rl *RateLimiter, methods ...string) func(http.Handler) http.Handler {
+	allowedMethods := make(map[string]struct{}, len(methods))
+	for _, method := range methods {
+		allowedMethods[method] = struct{}{}
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if _, ok := allowedMethods[r.Method]; !ok {
+				next.ServeHTTP(w, r)
+				return
+			}
+			RateLimit(rl)(next).ServeHTTP(w, r)
+		})
+	}
+}
+
 func clientIP(remoteAddr string) string {
 	if remoteAddr == "" {
 		return "unknown"

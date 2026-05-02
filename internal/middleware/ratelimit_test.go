@@ -114,3 +114,33 @@ func TestRateLimitMiddleware_NormalizesRemotePort(t *testing.T) {
 		t.Errorf("Expected status 429 after same host changed ports, got %d", w.Code)
 	}
 }
+
+func TestRateLimitMethods_OnlyLimitsConfiguredMethods(t *testing.T) {
+	rl := NewRateLimiter(1, time.Minute)
+
+	handler := RateLimitMethods(rl, http.MethodPost)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for i := 0; i < 3; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/login", nil)
+		req.RemoteAddr = "127.0.0.1:1234"
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected GET status 200, got %d", w.Code)
+		}
+	}
+
+	for i, expected := range []int{http.StatusOK, http.StatusTooManyRequests} {
+		req := httptest.NewRequest(http.MethodPost, "/login", nil)
+		req.RemoteAddr = "127.0.0.1:1234"
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != expected {
+			t.Fatalf("POST %d expected status %d, got %d", i+1, expected, w.Code)
+		}
+	}
+}

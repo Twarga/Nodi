@@ -55,8 +55,8 @@ func NewHandler(cfg *config.Config) http.Handler {
 	// T12: Rate Limiter (5 requests per 15 minutes)
 	loginRateLimiter := middleware.NewRateLimiter(5, 15*time.Minute)
 
-	// T11 & T12: Login endpoint protected by rate limiter
-	mux.Handle("/login", middleware.RateLimit(loginRateLimiter)(handlers.Login(cfg)))
+	// T11 & T12: Only POST login attempts are rate-limited; page refreshes stay usable.
+	mux.Handle("/login", middleware.RateLimitMethods(loginRateLimiter, http.MethodPost)(handlers.Login(cfg)))
 
 	// T22: Browse endpoint
 	mux.Handle("/browse", middleware.AuthRequired(cfg.CookieSecret)(handlers.Browse(cfg)))
