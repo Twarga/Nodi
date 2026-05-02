@@ -3,329 +3,686 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nodi - Self-hosted file manager for private servers</title>
-  <meta name="description" content="Nodi is a fast self-hosted file manager with secure login, uploads, folders, downloads, Docker install, and a focused web UI.">
+  <title>Nodi - Neon self-hosted file manager</title>
+  <meta name="description" content="Nodi is a fast self-hosted file manager for private servers, Docker volumes, uploads, folders, downloads, and secure browser-based file workflows.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://twarga.github.io/Nodi/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Nodi - Self-hosted file manager">
-  <meta property="og:description" content="Run a private web file manager on your own server with Docker, Go, and a focused browser UI.">
+  <meta property="og:title" content="Nodi - Neon self-hosted file manager">
+  <meta property="og:description" content="A dark synthwave file manager for private servers, Docker storage, fast uploads, and precise web-based file workflows.">
   <meta property="og:url" content="https://twarga.github.io/Nodi/">
   <meta property="og:image" content="https://twarga.github.io/Nodi/og.svg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#0d0e11">
   <style>
     :root {
-      --ink: #111827;
-      --muted: #5b6472;
-      --line: #d9e0e7;
-      --paper: #f8faf9;
-      --panel: #ffffff;
-      --teal: #0f766e;
-      --teal-dark: #134e4a;
-      --amber: #d97706;
-      --blue: #2563eb;
-      --green: #15803d;
-      --shadow: 0 24px 80px rgba(17, 24, 39, .14);
-      --radius: 8px;
-      color-scheme: light;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --color-midnight-core: #0d0e11;
+      --color-obsidian-base: #14151a;
+      --color-charcoal-canvas: #282a36;
+      --color-slate-border: #3a3a3f;
+      --color-graphite-accent: #3b3f4b;
+      --color-ash-text: #6b7280;
+      --color-silver-text: #e5e7eb;
+      --color-polar-white: #ffffff;
+      --color-cyber-pink: #f472b6;
+      --color-neon-violet: #a855f7;
+      --color-faded-rose: #fbcfe8;
+      --color-magenta-glow: #ec4899;
+      --color-electric-cyan: #22d3ee;
+      --color-virtual-violet: #c084fc;
+      --color-system-green: #34d399;
+      --color-warning-yellow: #fcd34d;
+      --color-danger-red: #f87171;
+      --gradient-pink-pulse: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(236, 72, 153, .5), rgba(0, 0, 0, 0));
+      --gradient-pink-fade: linear-gradient(rgba(244, 114, 182, .03), rgba(20, 21, 26, .5));
+      --gradient-cosmos: radial-gradient(134.26% 244.64% at 42.92% -80.36%, rgb(179, 1, 179) 25.45%, rgb(56, 29, 189) 100%);
+      --font-system-ui: system-ui, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-jetbrains-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --text-caption: 12px;
+      --text-body: 14px;
+      --text-heading: 20px;
+      --text-heading-lg: 24px;
+      --text-display: 60px;
+      --radius-md: 4px;
+      --radius-lg: 8px;
+      --radius-xl: 12px;
+      --radius-3xl: 30px;
+      --radius-full: 9999px;
+      --shadow-xl: rgba(0, 0, 0, .25) 0 25px 50px -12px;
+      --shadow-md: rgba(131, 24, 67, .1) 0 10px 15px -3px, rgba(131, 24, 67, .1) 0 4px 6px -4px;
+      color-scheme: dark;
+      font-family: var(--font-system-ui);
     }
 
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; background: var(--color-midnight-core); }
     body {
       margin: 0;
+      min-height: 100vh;
       background:
-        linear-gradient(90deg, rgba(15, 118, 110, .05) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(15, 118, 110, .05) 1px, transparent 1px),
-        var(--paper);
-      background-size: 44px 44px;
-      color: var(--ink);
+        radial-gradient(circle at 50% -18%, rgba(236, 72, 153, .22), transparent 34rem),
+        radial-gradient(circle at 86% 18%, rgba(168, 85, 247, .18), transparent 26rem),
+        linear-gradient(180deg, #0d0e11 0%, #111217 42%, #0d0e11 100%);
+      color: var(--color-silver-text);
       overflow-x: hidden;
+      font-feature-settings: "kern";
     }
     body::before {
       content: "";
       position: fixed;
       inset: 0;
       pointer-events: none;
-      background-image: radial-gradient(rgba(17, 24, 39, .08) .7px, transparent .7px);
-      background-size: 18px 18px;
-      opacity: .32;
-      mix-blend-mode: multiply;
+      background:
+        linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,.8), rgba(0,0,0,.25), transparent);
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .16;
+      background-image: radial-gradient(rgba(255, 255, 255, .45) .5px, transparent .5px);
+      background-size: 17px 17px;
+      mix-blend-mode: screen;
     }
     a { color: inherit; text-decoration: none; }
-    button, input { font: inherit; }
+    button { font: inherit; }
     .skip {
       position: absolute;
       left: 16px;
-      top: -40px;
-      z-index: 20;
-      background: var(--ink);
-      color: white;
+      top: -44px;
+      z-index: 30;
+      border-radius: var(--radius-lg);
+      background: var(--color-magenta-glow);
+      color: var(--color-polar-white);
       padding: 10px 14px;
-      border-radius: 6px;
+      font-weight: 800;
     }
     .skip:focus { top: 16px; }
-    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    .shell {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
     .topbar {
       position: sticky;
       top: 0;
-      z-index: 10;
-      border-bottom: 1px solid rgba(217, 224, 231, .82);
-      background: rgba(248, 250, 249, .88);
-      backdrop-filter: blur(16px);
+      z-index: 20;
+      border-bottom: 1px solid rgba(58, 58, 63, .78);
+      background: rgba(13, 14, 17, .82);
+      backdrop-filter: blur(18px);
     }
     .nav {
       min-height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 20px;
+      gap: 24px;
     }
-    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: 0; }
-    .mark {
-      width: 34px;
-      height: 34px;
-      border: 2px solid var(--teal);
-      border-radius: 7px;
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--color-polar-white);
+      font-weight: 800;
+    }
+    .brand-mark {
+      width: 38px;
+      height: 38px;
       display: grid;
       place-items: center;
-      background: white;
-      box-shadow: 5px 5px 0 rgba(15, 118, 110, .16);
+      border: 1px solid rgba(244, 114, 182, .45);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, rgba(244, 114, 182, .16), rgba(168, 85, 247, .08));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 0 28px rgba(236, 72, 153, .18);
     }
-    .mark svg { width: 22px; height: 22px; }
-    .navlinks { display: flex; align-items: center; gap: 18px; color: var(--muted); font-size: 14px; font-weight: 650; }
-    .navlinks a:hover { color: var(--ink); }
-    .button {
-      min-height: 42px;
+    .brand-mark svg { width: 24px; height: 24px; color: var(--color-cyber-pink); }
+    .navlinks {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--color-silver-text);
+      font-size: 14px;
+      font-weight: 650;
+    }
+    .navlinks a:not(.primary-cta) {
+      border: 1px solid transparent;
+      border-radius: 7px 7px 0 0;
+      padding: 12px 14px;
+      color: #d1d5db;
+    }
+    .navlinks a:not(.primary-cta):hover {
+      border-color: var(--color-charcoal-canvas);
+      background: rgba(40, 42, 54, .48);
+      color: var(--color-polar-white);
+    }
+    .primary-cta, .button.primary {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 10px 14px;
-      background: white;
-      color: var(--ink);
-      font-weight: 750;
-      box-shadow: 0 1px 0 rgba(17, 24, 39, .06);
-      transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+      min-height: 48px;
+      border: 1px solid rgba(244, 114, 182, .35);
+      border-radius: var(--radius-lg);
+      background: var(--color-magenta-glow);
+      color: var(--color-polar-white);
+      padding: 16px 36px;
+      font-weight: 800;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset, 0 16px 38px rgba(236, 72, 153, .22);
+      transition: transform .16s ease, box-shadow .16s ease;
     }
-    .button:hover { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(17, 24, 39, .1); border-color: #b8c3cf; }
-    .button.primary { background: var(--teal); color: white; border-color: var(--teal); }
-    .button.dark { background: var(--ink); color: white; border-color: var(--ink); }
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(430px, 540px);
-      gap: 54px;
-      align-items: center;
-      min-height: calc(100vh - 72px);
-      padding: 70px 0 48px;
+    .primary-cta:hover, .button.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset, 0 20px 46px rgba(236, 72, 153, .3);
     }
-    .hero > * { min-width: 0; }
-    .eyebrow {
+    .button.ghost {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      border: 1px solid rgba(15, 118, 110, .25);
-      background: rgba(255, 255, 255, .72);
-      color: var(--teal-dark);
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 800;
-      margin-bottom: 22px;
+      justify-content: center;
+      min-height: 48px;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 6px;
+      color: var(--color-polar-white);
+      padding: 14px 20px;
+      font-weight: 750;
+      background: rgba(0, 0, 0, 0);
     }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 5px rgba(21, 128, 61, .12); }
-    h1 {
-      margin: 0;
-      font-size: clamp(44px, 7vw, 86px);
-      line-height: .95;
-      max-width: 820px;
-      letter-spacing: 0;
-    }
-    .hero p {
-      margin: 22px 0 0;
-      max-width: 640px;
-      color: var(--muted);
-      font-size: clamp(17px, 2vw, 21px);
-      line-height: 1.65;
-    }
-    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
-    .install {
-      margin-top: 22px;
-      width: 100%;
-      max-width: 680px;
-      border: 1px solid #1f2937;
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: #0b1220;
-      color: #e5e7eb;
-      box-shadow: var(--shadow);
-    }
-    .install-head {
-      display: flex;
-      justify-content: space-between;
+    .button.ghost:hover { background: rgba(40, 42, 54, .72); border-color: var(--color-graphite-accent); }
+    .hero {
+      min-height: calc(100vh - 72px);
+      display: grid;
       align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.09);
-      color: #9ca3af;
-      font-size: 12px;
+      padding: 72px 0 96px;
+      text-align: center;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 132px;
+      width: min(760px, 90vw);
+      height: 1px;
+      transform: translateX(-50%);
+      background: var(--gradient-pink-pulse);
+      box-shadow: 0 0 54px rgba(236, 72, 153, .5);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      margin: 0 auto 24px;
+      border: 1px solid rgba(244, 114, 182, .28);
+      border-radius: var(--radius-full);
+      background: rgba(244, 114, 182, .09);
+      color: var(--color-faded-rose);
+      padding: 5px 10px;
+      font-size: var(--text-caption);
+      line-height: 1.5;
+      font-weight: 800;
+      box-shadow: var(--shadow-md);
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: var(--color-system-green);
+      box-shadow: 0 0 18px rgba(52, 211, 153, .8);
+    }
+    h1 {
+      max-width: 960px;
+      margin: 0 auto;
+      color: var(--color-polar-white);
+      font-size: clamp(44px, 7.2vw, var(--text-display));
+      line-height: 1;
+      letter-spacing: normal;
+      font-weight: 800;
+    }
+    .accent { color: var(--color-cyber-pink); text-shadow: 0 0 34px rgba(244, 114, 182, .28); }
+    .violet { color: var(--color-virtual-violet); }
+    .hero-copy {
+      max-width: 740px;
+      margin: 24px auto 0;
+      color: var(--color-silver-text);
+      font-size: 18px;
+      line-height: 1.63;
+    }
+    .hero-actions {
+      margin-top: 36px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .terminal {
+      width: min(840px, 100%);
+      margin: 40px auto 0;
+      border: 1px solid var(--color-slate-border);
+      border-radius: var(--radius-lg);
+      background: var(--color-charcoal-canvas);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      text-align: left;
+    }
+    .terminal-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--color-slate-border);
+      padding: 12px 16px;
+      color: var(--color-ash-text);
+      font-size: var(--text-caption);
       font-weight: 800;
       text-transform: uppercase;
     }
+    .traffic { display: inline-flex; gap: 7px; }
+    .traffic span { width: 10px; height: 10px; border-radius: var(--radius-full); background: var(--color-ash-text); }
+    .traffic span:nth-child(1) { background: var(--color-danger-red); }
+    .traffic span:nth-child(2) { background: var(--color-warning-yellow); }
+    .traffic span:nth-child(3) { background: var(--color-system-green); }
     .copy {
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.08);
-      color: white;
+      border: 1px solid rgba(255,255,255,.16);
       border-radius: 6px;
-      padding: 6px 9px;
+      background: transparent;
+      color: var(--color-polar-white);
+      padding: 4px 8px;
       cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    code, pre {
+      font-family: var(--font-jetbrains-mono);
+      font-feature-settings: "kern";
     }
     code {
       display: block;
       padding: 16px;
       overflow-x: auto;
+      color: var(--color-polar-white);
+      font-size: 16px;
+      line-height: 1.6;
       white-space: nowrap;
-      color: #d1fae5;
-      font: 700 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
-    .preview {
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      border: 1px solid rgba(17, 24, 39, .14);
-      border-radius: 12px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      transform: rotate(1deg);
+    .prompt { color: var(--color-electric-cyan); }
+    .pink { color: var(--color-cyber-pink); }
+    .green { color: var(--color-system-green); }
+    section { padding: 96px 0; }
+    .section-head {
+      max-width: 760px;
+      margin: 0 auto 40px;
+      text-align: center;
     }
-    .preview-top {
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--line);
-      padding: 0 14px;
+    .kicker {
+      color: var(--color-cyber-pink);
+      font-size: var(--text-caption);
+      font-weight: 900;
+      line-height: 1.5;
+      text-transform: uppercase;
     }
-    .traffic { display: flex; gap: 7px; }
-    .traffic span { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
-    .traffic span:nth-child(1) { background: #f97316; }
-    .traffic span:nth-child(2) { background: #eab308; }
-    .traffic span:nth-child(3) { background: #22c55e; }
-    .preview-body { display: grid; grid-template-columns: 78px 1fr; min-height: 430px; }
-    .rail {
-      border-right: 1px solid var(--line);
-      background: #f1f5f9;
-      padding: 18px 14px;
+    h2 {
+      margin: 10px 0 0;
+      color: var(--color-polar-white);
+      font-size: clamp(30px, 4vw, 53px);
+      line-height: 1.06;
+      letter-spacing: normal;
+    }
+    .section-head p {
+      margin: 16px 0 0;
+      color: var(--color-silver-text);
+      font-size: 16px;
+      line-height: 1.63;
+    }
+    .lab-grid {
       display: grid;
-      align-content: start;
+      grid-template-columns: repeat(3, 1fr);
       gap: 16px;
     }
-    .rail .slot { width: 34px; height: 34px; border-radius: 7px; background: white; border: 1px solid var(--line); }
-    .rail .slot.active { background: var(--teal); border-color: var(--teal); }
-    .workspace { padding: 22px; min-width: 0; }
-    .crumb { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; font-weight: 800; }
-    .crumb strong { color: var(--ink); }
-    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 26px 0 18px; }
-    .viewtabs { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: white; }
-    .viewtabs span { width: 34px; height: 32px; display: grid; place-items: center; border-right: 1px solid var(--line); color: var(--muted); }
-    .viewtabs span:last-child { border-right: 0; color: var(--teal); background: #ecfdf5; }
-    .mini-actions { display: flex; gap: 8px; }
-    .mini-actions span { height: 34px; border-radius: 7px; border: 1px solid var(--line); padding: 8px 11px; font-size: 12px; font-weight: 850; }
-    .mini-actions span:last-child { background: var(--teal); color: white; border-color: var(--teal); }
-    .filetable { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: white; }
-    .row { display: grid; grid-template-columns: 1fr 84px 106px; gap: 12px; align-items: center; padding: 13px 14px; border-bottom: 1px solid var(--line); font-size: 13px; }
-    .row.head { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; background: #f8fafc; }
-    .row:last-child { border-bottom: 0; }
-    .name { display: flex; align-items: center; gap: 10px; min-width: 0; font-weight: 750; }
-    .icon { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; background: #eff6ff; color: var(--blue); flex: none; }
-    .icon.folder { background: #fffbeb; color: var(--amber); }
-    .muted { color: var(--muted); }
-    .upload-card {
-      margin: -26px 24px 24px auto;
-      width: min(310px, calc(100% - 48px));
-      border: 1px solid var(--line);
-      border-radius: 9px;
-      background: white;
-      box-shadow: 0 18px 45px rgba(17, 24, 39, .16);
-      padding: 14px;
+    .feature-card {
       position: relative;
+      min-height: 230px;
+      border: 1px solid var(--color-graphite-accent);
+      border-radius: 5px;
+      background: linear-gradient(180deg, rgba(244, 114, 182, .035), rgba(20, 21, 26, .92));
+      padding: 32px;
+      overflow: hidden;
     }
-    .bar { height: 6px; border-radius: 999px; background: #dbeafe; overflow: hidden; margin-top: 12px; }
-    .bar span { display: block; height: 100%; width: 100%; background: var(--teal); }
-    section { padding: 76px 0; }
-    .section-head { max-width: 680px; margin-bottom: 28px; }
-    .section-head h2 { margin: 0; font-size: clamp(30px, 4vw, 48px); line-height: 1.05; letter-spacing: 0; }
-    .section-head p { margin: 14px 0 0; color: var(--muted); font-size: 17px; line-height: 1.7; }
-    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-    .card {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: rgba(255,255,255,.82);
-      padding: 22px;
-      box-shadow: 0 1px 0 rgba(17, 24, 39, .05);
+    .feature-card::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 1px;
+      background: var(--gradient-pink-pulse);
+      opacity: .48;
     }
-    .card b { display: block; font-size: 17px; margin-bottom: 9px; }
-    .card p { margin: 0; color: var(--muted); line-height: 1.65; }
-    .pill { display: inline-flex; align-items: center; min-height: 30px; padding: 6px 10px; border-radius: 999px; background: #ecfdf5; color: var(--teal-dark); font-size: 12px; font-weight: 900; margin-bottom: 14px; }
-    .split { display: grid; grid-template-columns: .9fr 1.1fr; gap: 20px; align-items: stretch; }
-    .steps { display: grid; gap: 12px; }
-    .step { display: grid; grid-template-columns: 42px 1fr; gap: 14px; align-items: start; }
-    .num { width: 42px; height: 42px; display: grid; place-items: center; background: var(--ink); color: white; border-radius: 7px; font-weight: 900; }
-    .faq { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    details { border: 1px solid var(--line); background: white; border-radius: var(--radius); padding: 18px; }
-    summary { cursor: pointer; font-weight: 850; }
-    details p { color: var(--muted); line-height: 1.65; margin-bottom: 0; }
-    .cta {
-      border: 1px solid #0f172a;
-      border-radius: 12px;
-      background: #0b1220;
-      color: white;
-      padding: clamp(28px, 5vw, 54px);
+    .feature-card svg {
+      width: 28px;
+      height: 28px;
+      color: var(--color-cyber-pink);
+      margin-bottom: 22px;
+    }
+    .feature-card h3 {
+      margin: 0;
+      color: var(--color-polar-white);
+      font-size: var(--text-heading);
+      line-height: 1.4;
+    }
+    .feature-card p {
+      margin: 12px 0 0;
+      color: var(--color-silver-text);
+      font-size: var(--text-body);
+      line-height: 1.56;
+    }
+    .split {
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 24px;
-      align-items: center;
-      box-shadow: var(--shadow);
+      grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+      gap: 28px;
+      align-items: stretch;
     }
-    .cta h2 { margin: 0; font-size: clamp(30px, 5vw, 54px); line-height: 1; }
-    .cta p { color: #cbd5e1; max-width: 620px; line-height: 1.7; }
-    footer { padding: 36px 0 46px; color: var(--muted); border-top: 1px solid var(--line); background: rgba(255,255,255,.55); }
-    .foot { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; font-size: 14px; }
+    .panel {
+      border: 1px solid var(--color-slate-border);
+      border-radius: var(--radius-xl);
+      background: var(--color-obsidian-base);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+    }
+    .panel-pad { padding: 32px; }
+    .panel h3 {
+      margin: 0;
+      color: var(--color-polar-white);
+      font-size: var(--text-heading-lg);
+      line-height: 1.33;
+    }
+    .panel p {
+      color: var(--color-silver-text);
+      line-height: 1.63;
+    }
+    .check-list {
+      display: grid;
+      gap: 14px;
+      margin: 24px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .check-list li {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 10px;
+      align-items: start;
+      color: var(--color-silver-text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .check {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius-full);
+      background: rgba(52, 211, 153, .11);
+      color: var(--color-system-green);
+      font-weight: 900;
+    }
+    .performance {
+      padding: 22px;
+    }
+    .bars {
+      display: grid;
+      gap: 18px;
+      margin-top: 22px;
+    }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 108px 1fr 70px;
+      gap: 12px;
+      align-items: center;
+      color: var(--color-silver-text);
+      font-size: 13px;
+      font-family: var(--font-jetbrains-mono);
+    }
+    .bar-track {
+      height: 13px;
+      border-radius: var(--radius-md);
+      background: var(--color-midnight-core);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.04);
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: var(--radius-md);
+      background: var(--color-cyber-pink);
+      box-shadow: 0 0 20px rgba(244, 114, 182, .42);
+    }
+    .code-block {
+      background: var(--color-charcoal-canvas);
+      border-top: 1px solid var(--color-slate-border);
+      padding: 16px;
+      color: var(--color-polar-white);
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 22px;
+    }
+    .tag {
+      border-radius: var(--radius-full);
+      background: rgba(244, 114, 182, .15);
+      color: var(--color-faded-rose);
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .tag.violet {
+      background: rgba(168, 85, 247, .17);
+      color: var(--color-virtual-violet);
+    }
+    .product-shell {
+      border: 1px solid var(--color-slate-border);
+      border-radius: var(--radius-xl);
+      background: #101116;
+      overflow: hidden;
+      box-shadow: var(--shadow-xl);
+    }
+    .product-top {
+      height: 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--color-slate-border);
+      color: var(--color-silver-text);
+      font-family: var(--font-jetbrains-mono);
+      font-size: 13px;
+    }
+    .product-body {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      min-height: 430px;
+    }
+    .rail {
+      border-right: 1px solid var(--color-slate-border);
+      background: #0f1014;
+      padding: 16px;
+      display: grid;
+      align-content: start;
+      gap: 14px;
+    }
+    .rail span {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-slate-border);
+      background: var(--color-obsidian-base);
+    }
+    .rail span:first-child {
+      border-color: rgba(244, 114, 182, .5);
+      background: rgba(244, 114, 182, .16);
+      box-shadow: 0 0 24px rgba(244, 114, 182, .16);
+    }
+    .file-stage { padding: 24px; min-width: 0; }
+    .crumbs {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      color: var(--color-ash-text);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .crumbs strong { color: var(--color-polar-white); }
+    .file-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 28px 0 18px;
+    }
+    .segmented, .mini-buttons { display: flex; gap: 8px; }
+    .chip {
+      min-height: 36px;
+      border: 1px solid var(--color-slate-border);
+      border-radius: 7px;
+      background: var(--color-charcoal-canvas);
+      color: var(--color-polar-white);
+      padding: 8px 11px;
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .chip.primary { background: var(--color-magenta-glow); border-color: var(--color-magenta-glow); }
+    .file-table {
+      border: 1px solid var(--color-slate-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--color-obsidian-base);
+    }
+    .file-row {
+      display: grid;
+      grid-template-columns: 1fr 82px 118px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--color-slate-border);
+      font-size: 13px;
+    }
+    .file-row:last-child { border-bottom: 0; }
+    .file-row.head {
+      color: var(--color-ash-text);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      background: rgba(40, 42, 54, .48);
+    }
+    .file-name {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 10px;
+      color: var(--color-polar-white);
+      font-weight: 750;
+    }
+    .file-icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius-md);
+      background: rgba(244, 114, 182, .12);
+      color: var(--color-cyber-pink);
+      flex: none;
+      font-family: var(--font-jetbrains-mono);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .cyan { color: var(--color-electric-cyan); }
+    .muted { color: var(--color-ash-text); }
+    .cta {
+      border: 1px solid rgba(244, 114, 182, .28);
+      border-radius: var(--radius-xl);
+      background:
+        radial-gradient(circle at 24% 0%, rgba(236, 72, 153, .18), transparent 30rem),
+        var(--color-obsidian-base);
+      padding: 48px;
+      text-align: center;
+      box-shadow: var(--shadow-xl);
+    }
+    .cta h2 { margin-top: 0; }
+    .cta p {
+      max-width: 680px;
+      margin: 16px auto 0;
+      color: var(--color-silver-text);
+      line-height: 1.63;
+    }
+    .cta .hero-actions { margin-top: 28px; }
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    details {
+      border: 1px solid var(--color-slate-border);
+      border-radius: var(--radius-lg);
+      background: var(--color-obsidian-base);
+      padding: 18px;
+    }
+    summary {
+      cursor: pointer;
+      color: var(--color-polar-white);
+      font-weight: 850;
+    }
+    details p {
+      color: var(--color-silver-text);
+      line-height: 1.63;
+      margin-bottom: 0;
+    }
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--color-slate-border);
+      padding: 36px 0 46px;
+      color: var(--color-ash-text);
+      font-size: 14px;
+    }
+    .foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
     .foot nav { display: flex; gap: 18px; flex-wrap: wrap; }
+    .foot a:hover { color: var(--color-cyber-pink); }
 
     @media (max-width: 940px) {
-      .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 48px; }
-      .preview { transform: none; }
-      .feature-grid, .split, .faq, .cta { grid-template-columns: 1fr; }
-      .cta .button { width: 100%; }
+      .navlinks a:not(.primary-cta) { display: none; }
+      .hero { min-height: auto; padding-top: 64px; }
+      .split, .lab-grid, .faq-grid { grid-template-columns: 1fr; }
+      .product-body { grid-template-columns: 1fr; }
+      .rail { display: none; }
     }
     @media (max-width: 640px) {
-      .nav { min-height: 64px; }
-      .navlinks a:not(.button) { display: none; }
-      .shell { width: min(100% - 24px, 1180px); }
-      .hero { padding: 38px 0 30px; }
-      h1 { font-size: clamp(40px, 12vw, 50px); }
-      .hero-actions .button { width: 100%; }
-      code { white-space: normal; overflow-wrap: anywhere; }
-      .preview-body { grid-template-columns: 1fr; }
-      .rail { display: none; }
-      .workspace { padding: 16px; }
-      .toolbar { align-items: flex-start; flex-direction: column; }
-      .mini-actions { flex-wrap: wrap; }
-      .row { grid-template-columns: 1fr 68px; }
-      .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .upload-card { margin: 16px; width: calc(100% - 32px); }
-      .row > :nth-child(3) { display: none; }
-      section { padding: 52px 0; }
+      .shell { width: min(100% - 24px, 1280px); }
+      .brand span:last-child { display: none; }
+      h1 { font-size: clamp(42px, 13vw, 60px); }
+      .hero-copy { font-size: 16px; }
+      .primary-cta, .button.primary, .button.ghost { width: 100%; }
+      code { white-space: normal; overflow-wrap: anywhere; font-size: 14px; }
+      section { padding: 70px 0; }
+      .feature-card, .panel-pad, .cta { padding: 24px; }
+      .file-actions { flex-direction: column; }
+      .file-row { grid-template-columns: 1fr 70px; }
+      .file-row > :nth-child(3) { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: .01ms !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
-      .button:hover { transform: none; }
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+      }
     }
   </style>
   <script type="application/ld+json">
@@ -335,7 +692,7 @@
       "name": "Nodi",
       "applicationCategory": "UtilitiesApplication",
       "operatingSystem": "Linux, Docker",
-      "description": "A lightweight self-hosted web file manager with secure login, folder management, uploads, downloads, rename, delete, and Docker deployment.",
+      "description": "A dark self-hosted web file manager with secure login, folder management, uploads, downloads, rename, delete, and Docker deployment.",
       "url": "https://twarga.github.io/Nodi/",
       "codeRepository": "https://github.com/Twarga/Nodi",
       "license": "https://opensource.org/license/mit"
@@ -346,9 +703,9 @@
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "mainEntity": [
-        {"@type": "Question", "name": "What is Nodi?", "acceptedAnswer": {"@type": "Answer", "text": "Nodi is a self-hosted web file manager for private servers and home labs."}},
+        {"@type": "Question", "name": "What is Nodi?", "acceptedAnswer": {"@type": "Answer", "text": "Nodi is a self-hosted web file manager for private servers, home labs, and Docker-based storage."}},
         {"@type": "Question", "name": "How do I install Nodi?", "acceptedAnswer": {"@type": "Answer", "text": "Run the install script or use Docker Compose with the published container image."}},
-        {"@type": "Question", "name": "Does Nodi store files in a normal folder?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Nodi serves files from a configured root directory or Docker volume."}}
+        {"@type": "Question", "name": "Does GitHub Pages host the app?", "acceptedAnswer": {"@type": "Answer", "text": "GitHub Pages hosts the landing page only. The Nodi app runs on your own server."}}
       ]
     }
   </script>
@@ -358,19 +715,20 @@
   <header class="topbar">
     <nav class="shell nav" aria-label="Primary navigation">
       <a class="brand" href="#top" aria-label="Nodi home">
-        <span class="mark" aria-hidden="true">
+        <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
-            <path d="M16 3 27 9.5v13L16 29 5 22.5v-13L16 3Z" stroke="#0f766e" stroke-width="2.5"/>
-            <path d="M16 3v10.5m0 15.5V18.5m11-9-11 6.5L5 9.5" stroke="#0f766e" stroke-width="2.5"/>
+            <path d="M16 3 27 9.5v13L16 29 5 22.5v-13L16 3Z" stroke="currentColor" stroke-width="2.4"/>
+            <path d="M16 3v10.5m0 15.5V18.5m11-9-11 6.5L5 9.5" stroke="currentColor" stroke-width="2.4"/>
           </svg>
         </span>
         <span>Nodi</span>
       </a>
       <div class="navlinks">
         <a href="#features">Features</a>
+        <a href="#bench">Bench</a>
         <a href="#install">Install</a>
         <a href="#faq">FAQ</a>
-        <a class="button primary" href="https://github.com/Twarga/Nodi">GitHub</a>
+        <a class="primary-cta" href="https://github.com/Twarga/Nodi">GitHub</a>
       </div>
     </nav>
   </header>
@@ -378,107 +736,141 @@
   <main id="main">
     <section class="shell hero" id="top">
       <div>
-        <span class="eyebrow"><span class="dot"></span>Self-hosted file manager for private infrastructure</span>
-        <h1>Nodi makes server files feel immediate.</h1>
-        <p>Run a focused browser file manager on your own machine. Upload, browse, rename, download, and organize files without handing storage to a third-party cloud.</p>
+        <div class="badge"><span class="badge-dot"></span>Private files. Neon-fast web controls.</div>
+        <h1>Nodi is a <span class="accent">self-hosted</span> file manager for servers that should feel <span class="accent">instant</span>.</h1>
+        <p class="hero-copy">A compact Go backend, secure browser sessions, Docker-ready storage, durable uploads, and a dark lab interface built for people who manage real files every day.</p>
         <div class="hero-actions">
           <a class="button primary" href="#install">Install Nodi</a>
-          <a class="button" href="https://github.com/Twarga/Nodi#readme">Read docs</a>
+          <a class="button ghost" href="https://github.com/Twarga/Nodi#readme">Read the docs</a>
         </div>
-        <div class="install" id="install">
-          <div class="install-head">
-            <span>Linux server quick start</span>
+
+        <div class="terminal" id="install">
+          <div class="terminal-top">
+            <span class="traffic" aria-hidden="true"><span></span><span></span><span></span></span>
+            <span>command line input</span>
             <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash">Copy</button>
           </div>
-          <code>curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash</code>
-        </div>
-      </div>
-
-      <div class="preview" aria-label="Nodi file manager product preview">
-        <div class="preview-top">
-          <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
-          <strong>localhost:7319</strong>
-        </div>
-        <div class="preview-body">
-          <aside class="rail" aria-hidden="true">
-            <span class="slot active"></span>
-            <span class="slot"></span>
-            <span class="slot"></span>
-          </aside>
-          <div class="workspace">
-            <div class="crumb"><span>Home</span><span>/</span><strong>Documents</strong></div>
-            <div class="toolbar">
-              <div class="viewtabs" aria-hidden="true"><span>...</span><span>#</span></div>
-              <div class="mini-actions"><span>New Folder</span><span>Upload</span></div>
-            </div>
-            <div class="filetable">
-              <div class="row head"><span>Name</span><span>Size</span><span>Modified</span></div>
-              <div class="row"><span class="name"><span class="icon folder">F</span>Projects</span><span class="muted">-</span><span class="muted">Today</span></div>
-              <div class="row"><span class="name"><span class="icon">Z</span>release-archive.zip</span><span class="muted">82 MB</span><span class="muted">14:36</span></div>
-              <div class="row"><span class="name"><span class="icon">I</span>preview-gallery.png</span><span class="muted">4 MB</span><span class="muted">13:10</span></div>
-              <div class="row"><span class="name"><span class="icon">D</span>deployment-notes.md</span><span class="muted">12 KB</span><span class="muted">Yesterday</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="upload-card">
-          <strong>Upload complete</strong>
-          <p class="muted">release-archive.zip is now available after refresh.</p>
-          <div class="bar" aria-hidden="true"><span></span></div>
+          <code><span class="prompt">$</span> curl -fsSL <span class="pink">https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh</span> | bash</code>
         </div>
       </div>
     </section>
 
     <section class="shell" id="features">
       <div class="section-head">
-        <span class="pill">Built for the MVP that has to work</span>
-        <h2>Everything a practical file manager needs, without a heavy platform.</h2>
-        <p>Nodi keeps the surface area small and the core workflows sharp: authenticated access, durable uploads, folder operations, and a UI that stays out of the way.</p>
+        <div class="kicker">Synthwave Dark Lab</div>
+        <h2>Minimal surface area. Maximum file control.</h2>
+        <p>Nodi stays focused on the workflows a file manager cannot afford to fake: upload, refresh, browse, rename, delete, download, and keep every path inside your configured root.</p>
       </div>
-      <div class="feature-grid">
-        <article class="card"><b>Private by default</b><p>Serve files from your configured root directory and keep storage on your server, NAS, VPS, or Docker volume.</p></article>
-        <article class="card"><b>Real file workflows</b><p>Create folders, upload batches, rename items, download assets, delete files, and switch views from the browser.</p></article>
-        <article class="card"><b>Fast Go backend</b><p>The server uses Go's standard HTTP stack with focused handlers and tests around the core file operations.</p></article>
-        <article class="card"><b>Docker native</b><p>Run with Docker Compose, map persistent storage, and update the app without moving your file library.</p></article>
-        <article class="card"><b>Safer paths</b><p>Root confinement, safer filename validation, session cookies, security headers, and upload-size limits are built in.</p></article>
-        <article class="card"><b>Quiet interface</b><p>Dense file tables, upload progress, theme controls, and direct actions are designed for repeated daily use.</p></article>
+      <div class="lab-grid">
+        <article class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 14v5h16v-5M12 4v11m0-11 4 4m-4-4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Durable uploads</h3>
+          <p>Staged inside the target storage directory, then finalized atomically so Docker volume boundaries do not eat completed files.</p>
+        </article>
+        <article class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z" stroke="currentColor" stroke-width="2"/><path d="m9 12 2 2 4-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Root confinement</h3>
+          <p>Storage paths are resolved and checked against the configured root before file operations run.</p>
+        </article>
+        <article class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16M4 12h16M4 19h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m18 16 2 2-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Focused UI</h3>
+          <p>List/grid views, command buttons, upload progress, modals, toasts, and dark mode without a heavy frontend framework.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell" id="bench">
+      <div class="split">
+        <div class="panel">
+          <div class="panel-pad">
+            <div class="kicker">Operational profile</div>
+            <h3>Runs close to the metal.</h3>
+            <p>Nodi uses Go and vanilla JavaScript so the application stays small enough to understand and fast enough to run on modest machines.</p>
+            <ul class="check-list">
+              <li><span class="check">✓</span><span>BCrypt-backed login with session cookies and security headers.</span></li>
+              <li><span class="check">✓</span><span>Docker Compose installation with a persistent storage volume.</span></li>
+              <li><span class="check">✓</span><span>Test coverage for login, browse, upload, download, rename, delete, and escape rejection.</span></li>
+            </ul>
+            <div class="tag-row">
+              <span class="tag">REPLACES CLOUD DRIVE SPRAWL</span>
+              <span class="tag violet">DOCKER READY</span>
+              <span class="tag">GO BACKEND</span>
+            </div>
+          </div>
+          <pre class="code-block"><span class="pink">server</span> := <span class="cyan">nodi</span>.Serve(root)
+server.Uploads.StageInside(root)
+server.Paths.Confine(root)
+server.Listen(<span class="green">":7319"</span>)</pre>
+        </div>
+
+        <div class="panel performance">
+          <div class="kicker">Workflow signal</div>
+          <h3>File actions stay direct.</h3>
+          <div class="bars">
+            <div class="bar-row"><span>browse</span><span class="bar-track"><span class="bar-fill" style="width: 94%"></span></span><strong>94%</strong></div>
+            <div class="bar-row"><span>upload</span><span class="bar-track"><span class="bar-fill" style="width: 88%"></span></span><strong>88%</strong></div>
+            <div class="bar-row"><span>rename</span><span class="bar-track"><span class="bar-fill" style="width: 82%"></span></span><strong>82%</strong></div>
+            <div class="bar-row"><span>download</span><span class="bar-track"><span class="bar-fill" style="width: 90%"></span></span><strong>90%</strong></div>
+          </div>
+          <p class="muted">A visual profile of the core MVP flows verified by the project test suite and runtime checks.</p>
+        </div>
       </div>
     </section>
 
     <section class="shell">
-      <div class="split">
-        <div class="section-head">
-          <span class="pill">Install paths</span>
-          <h2>Start with one command. Keep control when you scale.</h2>
-          <p>Use the installer for a quick server setup, or clone the repo and run Docker Compose directly when you want to own every setting.</p>
+      <div class="section-head">
+        <div class="kicker">Product surface</div>
+        <h2>Browser file management with a lab-grade command feel.</h2>
+        <p>The landing page is dark, but the product promise is practical: open a folder, upload files, refresh, and the files are actually there.</p>
+      </div>
+      <div class="product-shell" aria-label="Nodi app interface illustration">
+        <div class="product-top">
+          <span class="traffic" aria-hidden="true"><span></span><span></span><span></span></span>
+          <strong>localhost:7319</strong>
         </div>
-        <div class="steps">
-          <article class="card step"><span class="num">1</span><div><b>Run the installer</b><p>It creates the app directory, writes environment settings, pulls the image, and starts the service.</p></div></article>
-          <article class="card step"><span class="num">2</span><div><b>Change credentials</b><p>Update the admin user and password hash before exposing the app outside a trusted network.</p></div></article>
-          <article class="card step"><span class="num">3</span><div><b>Mount your data</b><p>Point Nodi at the folder or Docker volume you want to manage, then browse it from the web UI.</p></div></article>
+        <div class="product-body">
+          <aside class="rail" aria-hidden="true"><span></span><span></span><span></span></aside>
+          <div class="file-stage">
+            <div class="crumbs"><span>Home</span><span>/</span><strong>Documents</strong><span class="cyan">synced</span></div>
+            <div class="file-actions">
+              <div class="segmented"><span class="chip">list</span><span class="chip">grid</span></div>
+              <div class="mini-buttons"><span class="chip">New Folder</span><span class="chip primary">Upload</span></div>
+            </div>
+            <div class="file-table">
+              <div class="file-row head"><span>Name</span><span>Size</span><span>Modified</span></div>
+              <div class="file-row"><span class="file-name"><span class="file-icon">F</span>Projects</span><span class="muted">-</span><span class="muted">Today</span></div>
+              <div class="file-row"><span class="file-name"><span class="file-icon">Z</span>release-archive.zip</span><span class="muted">82 MB</span><span class="muted">14:36</span></div>
+              <div class="file-row"><span class="file-name"><span class="file-icon">I</span>preview-gallery.png</span><span class="muted">4 MB</span><span class="muted">13:10</span></div>
+              <div class="file-row"><span class="file-name"><span class="file-icon">D</span>deployment-notes.md</span><span class="muted">12 KB</span><span class="muted">Yesterday</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="shell" id="faq">
       <div class="section-head">
-        <h2>Questions before you install.</h2>
-        <p>Short answers for the operational details that matter before putting a file manager on a server.</p>
+        <div class="kicker">FAQ</div>
+        <h2>Before you expose a file manager to your network.</h2>
       </div>
-      <div class="faq">
-        <details open><summary>What is Nodi for?</summary><p>Nodi is for small private servers, home labs, and simple team environments where you want a browser UI over files you already control.</p></details>
-        <details><summary>Does GitHub Pages host the app?</summary><p>No. GitHub Pages hosts this marketing page. The Nodi app runs on your own server with Docker or the Go binary.</p></details>
-        <details><summary>Can I change the port?</summary><p>Yes. Set the port in the environment before running the server or installer. The current non-default local port is documented in the repo.</p></details>
-        <details><summary>Is it production hardened?</summary><p>The MVP has security headers, session cookies, path confinement, safer uploads, and test coverage, but you should still put it behind trusted network controls for public exposure.</p></details>
+      <div class="faq-grid">
+        <details open><summary>What does GitHub Pages deploy?</summary><p>Only this static landing page. The actual Nodi file manager runs on your own server or Docker host.</p></details>
+        <details><summary>Can I install with Docker?</summary><p>Yes. The installer pulls the container image, writes environment settings, and starts Docker Compose.</p></details>
+        <details><summary>Does Nodi support normal filenames?</summary><p>Yes. It supports common release and archive filenames while rejecting unsafe path and HTML-sensitive characters.</p></details>
+        <details><summary>Is it secure enough for the public internet?</summary><p>Use trusted network controls, HTTPS, and changed credentials before public exposure. Nodi includes session cookies, security headers, and path confinement, but deployment context still matters.</p></details>
       </div>
     </section>
 
     <section class="shell">
       <div class="cta">
-        <div>
-          <h2>Run your own file manager today.</h2>
-          <p>Install Nodi, point it at a storage folder, and manage files from a clean web UI that is built for ownership instead of lock-in.</p>
+        <div class="kicker">Build your private file lab</div>
+        <h2>Install Nodi and keep your files where they belong.</h2>
+        <p>Start with the one-line installer, map your storage, change the credentials, and manage files from a fast dark interface.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://github.com/Twarga/Nodi#deployment-fast-install">Install guide</a>
+          <a class="button ghost" href="https://github.com/Twarga/Nodi">View source</a>
         </div>
-        <a class="button dark" href="https://github.com/Twarga/Nodi">Open GitHub</a>
       </div>
     </section>
   </main>
@@ -489,7 +881,7 @@
       <nav aria-label="Footer navigation">
         <a href="https://github.com/Twarga/Nodi#readme">Docs</a>
         <a href="https://github.com/Twarga/Nodi/issues">Issues</a>
-        <a href="https://github.com/Twarga/Nodi">Source</a>
+        <a href="https://github.com/Twarga/Nodi">GitHub</a>
       </nav>
     </div>
   </footer>
@@ -504,7 +896,7 @@
           copyButton.textContent = 'Copied';
           setTimeout(() => { copyButton.textContent = 'Copy'; }, 1800);
         } catch {
-          copyButton.textContent = 'Select command';
+          copyButton.textContent = 'Select';
         }
       });
     }

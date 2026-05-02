@@ -1,23 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Nodi self-hosted file manager</title>
-  <desc id="desc">A branded Open Graph image for Nodi.</desc>
-  <rect width="1200" height="630" fill="#f8faf9"/>
-  <path d="M0 0h1200v630H0z" fill="url(#grid)"/>
-  <rect x="86" y="84" width="1028" height="462" rx="18" fill="#fff" stroke="#d9e0e7" stroke-width="2"/>
-  <rect x="86" y="84" width="1028" height="76" rx="18" fill="#0b1220"/>
-  <circle cx="128" cy="122" r="10" fill="#f97316"/>
-  <circle cx="160" cy="122" r="10" fill="#eab308"/>
-  <circle cx="192" cy="122" r="10" fill="#22c55e"/>
-  <g transform="translate(250 202)">
-    <path d="M80 0l70 40v82l-70 40-70-40V40L80 0z" fill="#fff" stroke="#0f766e" stroke-width="12"/>
-    <path d="M80 0v68m0 94V94m70-54-70 41-70-41" stroke="#0f766e" stroke-width="12" fill="none"/>
+  <title id="title">Nodi neon self-hosted file manager</title>
+  <desc id="desc">A dark synthwave Open Graph image for Nodi.</desc>
+  <rect width="1200" height="630" fill="#0d0e11"/>
+  <rect width="1200" height="630" fill="url(#grid)" opacity=".34"/>
+  <circle cx="600" cy="-50" r="380" fill="#ec4899" opacity=".18"/>
+  <circle cx="950" cy="140" r="260" fill="#a855f7" opacity=".16"/>
+  <rect x="86" y="84" width="1028" height="462" rx="18" fill="#14151a" stroke="#3a3a3f" stroke-width="2"/>
+  <rect x="86" y="84" width="1028" height="76" rx="18" fill="#282a36"/>
+  <circle cx="128" cy="122" r="10" fill="#f87171"/>
+  <circle cx="160" cy="122" r="10" fill="#fcd34d"/>
+  <circle cx="192" cy="122" r="10" fill="#34d399"/>
+  <path d="M86 160h1028" stroke="#3a3a3f" stroke-width="2"/>
+  <g transform="translate(238 208)">
+    <path d="M84 0l74 43v86l-74 43-74-43V43L84 0z" fill="#14151a" stroke="#f472b6" stroke-width="12"/>
+    <path d="M84 0v72m0 100V100m74-57-74 43-74-43" stroke="#f472b6" stroke-width="12" fill="none"/>
   </g>
-  <text x="438" y="285" font-family="Inter, Arial, sans-serif" font-size="92" font-weight="800" fill="#111827">Nodi</text>
-  <text x="438" y="352" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="700" fill="#0f766e">Self-hosted file manager</text>
-  <text x="438" y="412" font-family="Inter, Arial, sans-serif" font-size="28" fill="#5b6472">Fast uploads, folders, downloads, Docker install, private storage.</text>
+  <text x="442" y="284" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="92" font-weight="800" fill="#ffffff">Nodi</text>
+  <text x="442" y="352" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="40" font-weight="800" fill="#f472b6">Neon self-hosted file manager</text>
+  <text x="442" y="414" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="28" fill="#22d3ee">$ curl -fsSL .../install.sh | bash</text>
   <defs>
     <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
-      <path d="M44 0H0v44" fill="none" stroke="#0f766e" stroke-opacity=".08"/>
+      <path d="M44 0H0v44" fill="none" stroke="#ffffff" stroke-opacity=".12"/>
     </pattern>
   </defs>
 </svg>
