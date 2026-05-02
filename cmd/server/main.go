@@ -139,7 +139,7 @@ func NewHandler(cfg *config.Config) http.Handler {
 	// Logout endpoint
 	mux.Handle("/logout", http.HandlerFunc(handlers.Logout()))
 
-	return loggingMiddleware(securityHeaders(mux))
+	return loggingMiddleware(securityHeaders(middleware.CSRFProtect(mux)))
 }
 
 func main() {

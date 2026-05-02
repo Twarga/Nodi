@@ -7,7 +7,9 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,7 +51,11 @@ func TestFileManagerEndToEnd(t *testing.T) {
 	server := httptest.NewServer(NewHandler(cfg))
 	defer server.Close()
 
-	client := server.Client()
+	serverURL, _ := url.Parse(server.URL)
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		Jar: jar,
+	}
 
 	staticResp, err := client.Get(server.URL + "/static/app.js")
 	if err != nil {
@@ -60,7 +66,17 @@ func TestFileManagerEndToEnd(t *testing.T) {
 		t.Fatalf("expected static status 200, got %d", staticResp.StatusCode)
 	}
 
-	cookie := loginForTest(t, client, server.URL)
+	loginForTest(t, client, server.URL)
+	var cookie *http.Cookie
+	for _, c := range client.Jar.Cookies(serverURL) {
+		if c.Name == "ql_session" {
+			cookie = c
+			break
+		}
+	}
+	if cookie == nil {
+		t.Fatal("no ql_session cookie after login")
+	}
 
 	getWithCookie := func(path string) *http.Response {
 		req, err := http.NewRequest(http.MethodGet, server.URL+path, nil)
@@ -74,6 +90,16 @@ func TestFileManagerEndToEnd(t *testing.T) {
 		}
 		return resp
 	}
+	getCSRFToken := func() string {
+		for _, c := range client.Jar.Cookies(serverURL) {
+			if c.Name == "ql_csrf" {
+				return c.Value
+			}
+		}
+		t.Fatal("no ql_csrf cookie in jar")
+		return ""
+	}
+
 	postJSON := func(path string, body any) *http.Response {
 		payload, err := json.Marshal(body)
 		if err != nil {
@@ -84,6 +110,7 @@ func TestFileManagerEndToEnd(t *testing.T) {
 			t.Fatalf("new post request: %v", err)
 		}
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-CSRF-Token", getCSRFToken())
 		req.AddCookie(cookie)
 		resp, err := client.Do(req)
 		if err != nil {
@@ -140,11 +167,38 @@ func TestFileManagerEndToEnd(t *testing.T) {
 	assertTraversalAndSymlinkRejected(t, root, getWithCookie)
 }
 
-func loginForTest(t *testing.T, client *http.Client, baseURL string) *http.Cookie {
+func loginForTest(t *testing.T, client *http.Client, baseURL string) {
 	t.Helper()
 
+	// First GET /login to receive CSRF cookie
+	getResp, err := client.Get(baseURL + "/login")
+	if err != nil {
+		t.Fatalf("get login page: %v", err)
+	}
+	getResp.Body.Close()
+
+	var csrfCookie *http.Cookie
+	for _, c := range getResp.Cookies() {
+		if c.Name == "ql_csrf" {
+			csrfCookie = c
+			break
+		}
+	}
+	if csrfCookie == nil {
+		t.Fatal("login page did not set ql_csrf cookie")
+	}
+
+	// POST login with CSRF token
 	payload := strings.NewReader(`{"username":"admin","password":"admin"}`)
-	resp, err := client.Post(baseURL+"/login", "application/json", payload)
+	req, err := http.NewRequest(http.MethodPost, baseURL+"/login", payload)
+	if err != nil {
+		t.Fatalf("login request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-CSRF-Token", csrfCookie.Value)
+	req.AddCookie(csrfCookie)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("login: %v", err)
 	}
@@ -153,13 +207,6 @@ func loginForTest(t *testing.T, client *http.Client, baseURL string) *http.Cooki
 		body, _ := io.ReadAll(resp.Body)
 		t.Fatalf("expected login status 200, got %d body %q", resp.StatusCode, string(body))
 	}
-	for _, cookie := range resp.Cookies() {
-		if cookie.Name == "ql_session" {
-			return cookie
-		}
-	}
-	t.Fatal("login did not return ql_session cookie")
-	return nil
 }
 
 func uploadForTest(t *testing.T, client *http.Client, baseURL string, cookie *http.Cookie, path, name, contents string) *http.Response {
@@ -185,7 +232,22 @@ func uploadForTest(t *testing.T, client *http.Client, baseURL string, cookie *ht
 	if err != nil {
 		t.Fatalf("new upload request: %v", err)
 	}
+
+	// Read latest CSRF token from cookie jar
+	jarURL, _ := url.Parse(baseURL)
+	var csrfToken string
+	for _, c := range client.Jar.Cookies(jarURL) {
+		if c.Name == "ql_csrf" {
+			csrfToken = c.Value
+			break
+		}
+	}
+	if csrfToken == "" {
+		t.Fatal("no ql_csrf cookie in jar for upload")
+	}
+
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-CSRF-Token", csrfToken)
 	req.AddCookie(cookie)
 
 	resp, err := client.Do(req)

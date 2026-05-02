@@ -4,6 +4,11 @@
   const themes = [SYSTEM_THEME, 'light', 'dark']
   const selectedNames = new Set()
 
+  function getCSRFToken() {
+    const match = document.cookie.match(/ql_csrf=([^;]+)/)
+    return match ? match[1] : ''
+  }
+
   function getSystemTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   }
@@ -246,7 +251,10 @@
       try {
         const resp = await fetch('/login', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+          },
           body: JSON.stringify({ username: usernameValue, password: passwordValue })
         })
 
@@ -487,7 +495,10 @@
       try {
         const resp = await fetch('/api/delete', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+          },
           body: JSON.stringify({ path })
         })
         if (!resp.ok) {
@@ -520,7 +531,10 @@
     try {
       const resp = await fetch('/api/folder/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCSRFToken()
+        },
         body: JSON.stringify({ path, name })
       })
 
@@ -801,7 +815,10 @@
     try {
       const resp = await fetch('/api/folder/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCSRFToken()
+        },
         body: JSON.stringify({ path, name })
       })
 
@@ -829,7 +846,10 @@
     try {
       const resp = await fetch('/api/rename', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCSRFToken()
+        },
         body: JSON.stringify({ oldPath, newName })
       })
 
@@ -856,7 +876,10 @@
     try {
       const resp = await fetch('/api/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCSRFToken()
+        },
         body: JSON.stringify({ path })
       })
 

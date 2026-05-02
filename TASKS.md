@@ -7,7 +7,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 ## Phase 11: Critical Security Fixes (must ship before anything else)
 
-- [ ] T56: **CSRF protection**. Add a per-session CSRF token to all state-changing endpoints (`/api/folder/create`, `/api/delete`, `/api/rename`, `/api/upload`, `/login`). Use double-submit cookie pattern. Inject token into templates. All JS fetch calls must send `X-CSRF-Token` header.
+- [x] T56: **CSRF protection**. Add a per-session CSRF token to all state-changing endpoints (`/api/folder/create`, `/api/delete`, `/api/rename`, `/api/upload`, `/login`). Use double-submit cookie pattern. Inject token into templates. All JS fetch calls must send `X-CSRF-Token` header.
 - [ ] T57: **Fix XSS in server-rendered filenames**. Remove all inline `onclick`/`on*` attributes from templates that embed `{{.Name}}`. Replace with event delegation in app.js using `data-*` attributes only. Go templates escape HTML attributes safely but not JS string contexts.
 - [ ] T58: **Fix username enumeration in login**. Return identical error message ("Invalid credentials") regardless of whether username exists or password is wrong.
 - [ ] T59: **Enforce POST-only on `/logout`**. Reject GET with 405. Prevents `<img src="/logout">` forced-logout attacks.
