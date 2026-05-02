@@ -311,6 +311,7 @@
 
       const xhr = new XMLHttpRequest()
       xhr.open('POST', '/api/upload', true)
+      xhr.setRequestHeader('X-CSRF-Token', getCSRFToken())
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
