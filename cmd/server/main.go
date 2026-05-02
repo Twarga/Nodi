@@ -65,6 +65,9 @@ func main() {
 	// T27: Rename API
 	mux.Handle("/api/rename", middleware.AuthRequired(cfg.CookieSecret)(handlers.Rename(cfg)))
 
+	// T33: Upload API
+	mux.Handle("/api/upload", middleware.AuthRequired(cfg.CookieSecret)(handlers.Upload(cfg)))
+
 	// Logout endpoint
 	mux.Handle("/logout", http.HandlerFunc(handlers.Logout()))
 

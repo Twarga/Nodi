@@ -13,6 +13,7 @@ import (
 	"nodi/internal/config"
 	"nodi/internal/storage"
 	"regexp"
+	"io"
 )
 
 var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9._ -]+$`)
@@ -255,3 +256,88 @@ func Rename(cfg *config.Config) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]string{"message": "Item renamed"})
 	}
 }
+
+// Upload returns a handler that receives multipart files and saves them.
+func Upload(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Limit upload size to 1GB (T33)
+		r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*1024)
+
+		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32MB in-memory buffer
+			http.Error(w, "Failed to parse form: " + err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		path := r.FormValue("path")
+		if path == "" {
+			path = "/"
+		}
+
+		basePath, err := SafePath(cfg.Root, path)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		files := r.MultipartForm.File["files"]
+		if len(files) == 0 {
+			http.Error(w, "No files uploaded", http.StatusBadRequest)
+			return
+		}
+
+		type Result struct {
+			Name  string `json:"name"`
+			Error string `json:"error,omitempty"`
+		}
+		var results []Result
+
+		for _, fileHeader := range files {
+			res := Result{Name: fileHeader.Filename}
+			
+			// Open the uploaded file
+			src, err := fileHeader.Open()
+			if err != nil {
+				res.Error = "Could not open source"
+				results = append(results, res)
+				continue
+			}
+			defer src.Close()
+
+			// Securely resolve destination
+			if !nameRegex.MatchString(fileHeader.Filename) {
+				res.Error = "Invalid filename"
+				results = append(results, res)
+				continue
+			}
+
+			dstPath := filepath.Join(basePath, fileHeader.Filename)
+			
+			// Create destination file
+			dst, err := os.Create(dstPath)
+			if err != nil {
+				res.Error = "Could not create destination"
+				results = append(results, res)
+				continue
+			}
+			
+			// Stream to disk
+			if _, err := io.Copy(dst, src); err != nil {
+				dst.Close()
+				res.Error = "Failed to write data"
+				results = append(results, res)
+				continue
+			}
+			dst.Close()
+			results = append(results, res)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(results)
+	}
+}
+
