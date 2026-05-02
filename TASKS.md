@@ -175,7 +175,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T147: **Improve install.sh**. Don't print the default password in cleartext. Add `--dry-run` option. Add `--uninstall` option. Verify Docker is running before starting. Add `--update` option to pull the latest image and restart. Add health check timeout.
 - [x] T148: **Improve docker-compose.yml**. Add resource limits (`mem_limit`, `cpus`). Add logging configuration (`max-size`, `max-file`). Add `depends_on` with health condition if future services are added. Document all environment variables in comments.
 - [x] T149: **Update .env.example**. Document `QL_SESSION_EXPIRY` (currently hardcoded to 24h). Document `QL_TRUSTED_PROXY` (planned in T66). Generate a proper random cookie secret by default instead of `local-development-secret-keep-it-safe-123`. Add comments explaining each variable's format and valid ranges.
-- [ ] T150: **Add dev container / Docker Compose override**. Create `docker-compose.override.yml` for development with volume mounts for hot-reload, Tailwind watch mode, and Air for Go hot-reload. Separate from production compose.
+- [x] T150: **Add dev container / Docker Compose override**. Create `docker-compose.override.yml` for development with volume mounts for hot-reload, Tailwind watch mode, and Air for Go hot-reload. Separate from production compose.
 
 ---
 

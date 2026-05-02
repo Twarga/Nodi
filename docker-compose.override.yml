@@ -1,0 +1,40 @@
+# Nodi - Development Override
+# ===========================
+# Place this file next to docker-compose.yml.
+# It automatically applies in development when running `docker compose up`.
+# For production, use only docker-compose.yml.
+
+services:
+  nodi:
+    build:
+      context: .
+      target: builder  # Use Go builder stage for dev
+    volumes:
+      # Mount source code for hot-reload
+      - ./cmd:/app/cmd:ro
+      - ./internal:/app/internal:ro
+      - ./web/templates:/app/web/templates:ro
+      - ./web/static:/app/web/static
+      - ./go.mod:/app/go.mod:ro
+      - ./go.sum:/app/go.sum:ro
+      # Data directory
+      - ./data:/data
+    environment:
+      # Development defaults
+      QL_PORT: 7319
+      QL_ROOT: /data
+      QL_USER: admin
+      QL_PASS_HASH: "$2b$10$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy"
+      QL_COOKIE_SECRET: dev-secret-not-for-production-123456789012
+      QL_THEME: system
+    # Override command to use `go run` for hot-reload
+    command: ["go", "run", "./cmd/server"]
+    # Remove resource limits in dev
+    deploy:
+      resources:
+        limits: {}
+        reservations: {}
+    # Disable read-only in dev for Go build cache
+    read_only: false
+    cap_drop: []
+    security_opt: []
