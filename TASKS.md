@@ -13,8 +13,8 @@
 - [ ] T8: Create `cmd/server/main.go` setting up `http.ServeMux` and loading env configs.
 - [ ] T9: Implement logging middleware and request tracking.
 - [ ] T10: Implement `internal/auth/session.go` for secure cookie generation (HMAC signed) and validation.
-- [ ] T11: Implement `/login` POST endpoint matching bcrypt hashed password.
-- [ ] T12: Implement Rate Limiting middleware for login attempts (5 IP requests / 15m).
+- [x] T11: Implement `/login` POST endpoint matching bcrypt hashed password.
+- [x] T12: Implement Rate Limiting middleware for login attempts (5 IP requests / 15m).
 - [ ] T13: Implement generic auth middleware to protect `/browse`, `/upload`, etc. endpoints.
 
 ## Phase 2: Frontend Layout & Auth Views (Vanilla/Tailwind)
