@@ -60,3 +60,13 @@
 ## Phase 8: Deployment Polish
 - [x] T42: Create `install.sh` robust installer (dependency checks, auto-config, directory setup).
 - [x] T43: Overhaul `README.md` with minimalist "Claude-style" documentation.
+- [x] T44: Create `run.sh` convenience script for local development and testing.
+
+## Phase 9: MVP Repair & Release Hardening
+- [ ] T45: Fix runtime routing and dashboard rendering. Serve `/static/` assets, load all dashboard component templates, and make authenticated `/` return the app shell instead of `500`.
+- [ ] T46: Harden file path confinement. Replace prefix-based path checks, reject root escapes, protect against symlink traversal, and add regression tests.
+- [ ] T47: Complete file API behavior. Implement secure downloads, return stable JSON arrays from `/browse`, enforce `QL_MAX_UPLOAD`, and add endpoint tests.
+- [ ] T48: Harden auth and HTTP security controls. Fix login rate-limit identity, add production-safe cookie/security headers, and test the behavior.
+- [ ] T49: Repair frontend file-manager workflows. Remove unsafe file-name HTML injection, wire upload/delete/download/view toggles, and keep SPA navigation stable.
+- [ ] T50: Fix installation and packaging. Align Go/Docker versions, replace invalid default hashes, remove committed binary drift, and verify local/Docker startup docs.
+- [ ] T51: Add end-to-end quality gates. Cover login, dashboard, static assets, browse, create, rename, delete, upload, download, traversal rejection, and symlink rejection.
