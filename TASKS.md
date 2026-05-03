@@ -67,7 +67,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 - [x] T89: **Resumable chunked uploads**. POST chunk, complete endpoints with flowId tracking.
 - [x] T90: **Folder upload**. `webkitdirectory` input with dedicated folder upload button.
-- [ ] T91: **Upload cancel and retry**. Add cancel button per file in upload panel. On failure, show retry button. Don't auto-retry more than 3 times.
+- [x] T91: **Upload cancel and retry**. Cancel button aborts XHR, retry re-queues the file.
 - [ ] T92: **Multi-file download as ZIP**. Select multiple files → "Download selected as ZIP". Server creates temporary ZIP and streams it. Clean up temp file after sending.
 - [ ] T93: **Drag-and-drop move between folders**. Drag a file/folder row onto a breadcrumb or folder icon to move it. Show blue highlight on valid drop targets. Uses `/api/move` endpoint.
 

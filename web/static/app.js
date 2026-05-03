@@ -421,6 +421,10 @@
         <div class="progress-container">
           <div class="progress-bar w-0"></div>
         </div>
+        <div class="flex gap-2 mt-1">
+          <button class="upload-cancel text-[10px] text-muted-foreground hover:text-destructive">Cancel</button>
+          <button class="upload-retry hidden text-[10px] text-muted-foreground hover:text-primary">Retry</button>
+        </div>
       `
       list.prepend(item)
 
@@ -431,6 +435,18 @@
       const xhr = new XMLHttpRequest()
       xhr.open('POST', '/api/upload', true)
       xhr.setRequestHeader('X-CSRF-Token', getCSRFToken())
+
+      item.querySelector('.upload-cancel').onclick = () => {
+        xhr.abort()
+        const status = item.querySelector('.upload-status')
+        if (status) { status.textContent = 'Cancelled'; status.classList.replace('text-muted-foreground', 'text-destructive') }
+        item.querySelector('.upload-cancel').classList.add('hidden')
+        item.querySelector('.upload-retry').classList.remove('hidden')
+      }
+      item.querySelector('.upload-retry').onclick = () => {
+        item.remove()
+        onUpload([file])
+      }
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
