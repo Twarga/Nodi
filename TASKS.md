@@ -42,7 +42,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 ## Phase 14: File Operations (real file manager essentials)
 
-- [ ] T76: **Compress to archive (ZIP)**. `POST /api/compress` endpoint. Select files/folders → "Download as ZIP". Server streams ZIP back using `archive/zip`. Show progress toast.
+- [x] T76: **Compress to archive (ZIP)**. `POST /api/compress {paths: [...]}` streams selected files/folders as ZIP.
 - [ ] T77: **Extract archive (ZIP/TAR/GZ)**. `POST /api/extract` endpoint. Right-click a `.zip`/`.tar`/`.tar.gz` → "Extract here" or "Extract to…". Use `archive/zip` and `archive/tar`. Show error for nested zips exceeding depth limit.
 - [ ] T78: **Create empty file**. Add "New File" button next to "New Folder" in workspace bar. `POST /api/file/create {path, name}`. Creates empty file via `os.Create`.
 - [ ] T79: **Inline text editor**. `GET /api/edit?path=` returns raw file content. Frontend shows code editor (textarea with monospace font + line numbers) for text files ≤1MB. `PUT /api/edit?path=` saves content. Detect encoding. Reject binary files.

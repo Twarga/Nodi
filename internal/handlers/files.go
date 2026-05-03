@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -671,4 +672,67 @@ func copyFile(src, dst string) error {
 	defer d.Close()
 	_, err = io.Copy(d, s)
 	return err
+}
+
+// Compress streams selected files/folders as a ZIP download.
+func Compress(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Paths []string `json:"paths"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Paths) == 0 {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", `attachment; filename="download.zip"`)
+
+		zw := zip.NewWriter(w)
+		defer zw.Close()
+
+		for _, p := range req.Paths {
+			fullPath, err := SafePath(cfg.Root, p)
+			if err != nil {
+				continue
+			}
+			addToZip(zw, fullPath, "")
+		}
+	}
+}
+
+func addToZip(zw *zip.Writer, fullPath, prefix string) {
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		return
+	}
+	name := filepath.Join(prefix, filepath.Base(fullPath))
+	if info.IsDir() {
+		entries, _ := os.ReadDir(fullPath)
+		for _, e := range entries {
+			addToZip(zw, filepath.Join(fullPath, e.Name()), name)
+		}
+		return
+	}
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return
+	}
+	header.Name = name
+	header.Method = zip.Deflate
+	w, err := zw.CreateHeader(header)
+	if err != nil {
+		return
+	}
+	src, err := os.Open(fullPath)
+	if err != nil {
+		return
+	}
+	defer src.Close()
+	io.Copy(w, src)
 }
