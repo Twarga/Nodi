@@ -106,6 +106,7 @@
 
     initViewToggle()
     initUploadButton()
+    initShowHidden()
     initLoginForm()
     updateSelectionUI()
 
@@ -323,6 +324,22 @@
     if (folderBtn) {
       folderBtn.addEventListener('click', () => folderInput.click())
     }
+  }
+
+  function initShowHidden() {
+    const btn = document.getElementById('show-hidden-btn')
+    if (!btn) return
+    const update = () => {
+      const show = localStorage.getItem('ql-show-hidden') === 'true'
+      btn.classList.toggle('is-active', show)
+    }
+    update()
+    btn.addEventListener('click', () => {
+      const show = localStorage.getItem('ql-show-hidden') === 'true'
+      localStorage.setItem('ql-show-hidden', String(!show))
+      update()
+      refreshItems()
+    })
   }
 
   function initLoginForm() {
@@ -821,8 +838,9 @@
 
   window.refreshItems = async () => {
     const path = new URLSearchParams(window.location.search).get('path') || '/'
+    const showHidden = localStorage.getItem('ql-show-hidden') === 'true'
     try {
-      const resp = await fetch(`/browse?path=${encodeURIComponent(path)}`)
+      const resp = await fetch(`/browse?path=${encodeURIComponent(path)}&showHidden=${showHidden}`)
       if (!resp.ok) throw new Error('Failed to fetch')
       const files = await resp.json()
       renderItems(files)

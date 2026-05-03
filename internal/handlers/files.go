@@ -268,6 +268,17 @@ func Browse(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Filter hidden files unless showHidden=true
+		if r.URL.Query().Get("showHidden") != "true" {
+			filtered := files[:0]
+			for _, f := range files {
+				if !strings.HasPrefix(f.Name, ".") {
+					filtered = append(filtered, f)
+				}
+			}
+			files = filtered
+		}
+
 		// Search/filter
 		if search := r.URL.Query().Get("search"); search != "" {
 			s := strings.ToLower(strings.TrimSpace(search))
