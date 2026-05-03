@@ -658,15 +658,19 @@
     if (isDir) {
       clearSelection()
       const newPath = joinPath(getCurrentPath(), name)
-      
       const url = new URL(window.location)
       url.searchParams.set('path', newPath)
       window.history.pushState({}, '', url)
-      
       refreshItems()
       updateBreadcrumbs(newPath)
     } else {
-      onDownload(name)
+      const ext = (name || '').split('.').pop().toLowerCase()
+      const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico']
+      if (imageExts.includes(ext)) {
+        showLightbox(name)
+      } else {
+        onDownload(name)
+      }
     }
   }
 
@@ -997,6 +1001,61 @@
       console.error(e)
       toast('Failed to delete', 'error')
     }
+  }
+
+  // --- Lightbox Image Preview ---
+  function showLightbox(name) {
+    const path = joinPath(getCurrentPath(), name)
+    const downloadURL = `/api/download?path=${encodeURIComponent(path)}`
+
+    // Create lightbox elements if not present
+    let lb = document.getElementById('lightbox')
+    if (!lb) {
+      lb = document.createElement('div')
+      lb.id = 'lightbox'
+      lb.className = 'fixed inset-0 z-50 bg-black/90 flex items-center justify-center'
+      lb.innerHTML = `
+        <button id="lightbox-close" class="absolute top-4 right-4 z-50 text-white/80 hover:text-white text-3xl leading-none p-2">&times;</button>
+        <button id="lightbox-prev" class="absolute left-4 top-1/2 -translate-y-1/2 z-50 text-white/80 hover:text-white text-3xl p-2">&lsaquo;</button>
+        <img id="lightbox-img" class="max-w-[90vw] max-h-[90vh] object-contain select-none" src="" alt="">
+        <button id="lightbox-next" class="absolute right-4 top-1/2 -translate-y-1/2 z-50 text-white/80 hover:text-white text-3xl p-2">&rsaquo;</button>
+      `
+      document.body.appendChild(lb)
+      lb.addEventListener('click', (e) => { if (e.target === lb) closeLightbox() })
+      document.getElementById('lightbox-close').addEventListener('click', closeLightbox)
+      document.getElementById('lightbox-prev').addEventListener('click', () => navigateImage(-1))
+      document.getElementById('lightbox-next').addEventListener('click', () => navigateImage(1))
+    }
+
+    document.getElementById('lightbox-img').src = downloadURL
+    lb.style.display = 'flex'
+
+    document.addEventListener('keydown', onLightboxKey)
+  }
+
+  function closeLightbox() {
+    const lb = document.getElementById('lightbox')
+    if (lb) lb.style.display = 'none'
+    document.removeEventListener('keydown', onLightboxKey)
+  }
+
+  function navigateImage(direction) {
+    const items = Array.from(document.querySelectorAll('.selectable-item[data-name][data-is-dir="false"]'))
+    const current = items.find(it => it.dataset.name === document.getElementById('lightbox-img').src.split('/').pop().split('?')[0] || false)
+    if (!current) return
+    const idx = items.indexOf(current)
+    const next = items[idx + direction]
+    if (next) {
+      const name = next.dataset.name
+      const path = joinPath(getCurrentPath(), name)
+      document.getElementById('lightbox-img').src = `/api/download?path=${encodeURIComponent(path)}`
+    }
+  }
+
+  function onLightboxKey(e) {
+    if (e.key === 'Escape') closeLightbox()
+    if (e.key === 'ArrowLeft') navigateImage(-1)
+    if (e.key === 'ArrowRight') navigateImage(1)
   }
 
   if (document.readyState === 'loading') {
