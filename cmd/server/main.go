@@ -140,6 +140,8 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	// T33: Upload API
 	mux.Handle("/api/upload", middleware.AuthRequired(cfg.CookieSecret)(handlers.Upload(cfg)))
+	mux.Handle("/api/upload/chunk", middleware.AuthRequired(cfg.CookieSecret)(handlers.ChunkUpload(cfg)))
+	mux.Handle("/api/upload/complete", middleware.AuthRequired(cfg.CookieSecret)(handlers.ChunkComplete(cfg)))
 
 	// Download API
 	mux.Handle("/api/download", middleware.AuthRequired(cfg.CookieSecret)(handlers.Download(cfg)))

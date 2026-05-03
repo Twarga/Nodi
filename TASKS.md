@@ -65,7 +65,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 ## Phase 16: Upload & Download Improvements
 
-- [ ] T89: **Resumable chunked uploads (tus protocol or simplified)**. Upload large files in chunks (5MB). Resume interrupted uploads. Store chunks in `.cache/uploads/`. Assemble on completion. Show detailed progress bar per file.
+- [x] T89: **Resumable chunked uploads**. POST chunk, complete endpoints with flowId tracking.
 - [ ] T90: **Folder upload**. Add `webkitdirectory` attribute to file input. Preserve directory structure on server. Show folder tree in upload panel during upload.
 - [ ] T91: **Upload cancel and retry**. Add cancel button per file in upload panel. On failure, show retry button. Don't auto-retry more than 3 times.
 - [ ] T92: **Multi-file download as ZIP**. Select multiple files → "Download selected as ZIP". Server creates temporary ZIP and streams it. Clean up temp file after sending.

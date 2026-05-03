@@ -1164,3 +1164,103 @@ func Stream(cfg *config.Config) http.HandlerFunc {
 		http.ServeFile(w, r, fullPath)
 	}
 }
+
+// ChunkUpload receives a single chunk of a resumable upload.
+func ChunkUpload(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		chunkDir := filepath.Join(cfg.Root, ".cache", "uploads")
+		os.MkdirAll(chunkDir, 0700)
+
+		flowID := r.FormValue("flowId")
+		chunkIdx := r.FormValue("chunkIndex")
+		fileName := r.FormValue("fileName")
+		if flowID == "" || chunkIdx == "" || fileName == "" {
+			http.Error(w, "Missing parameters", http.StatusBadRequest)
+			return
+		}
+		if !validName(fileName) {
+			http.Error(w, "Invalid filename", http.StatusBadRequest)
+			return
+		}
+
+		file, _, err := r.FormFile("chunk")
+		if err != nil {
+			http.Error(w, "Chunk missing", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		chunkPath := filepath.Join(chunkDir, flowID+"_"+chunkIdx)
+		out, err := os.Create(chunkPath)
+		if err != nil {
+			http.Error(w, "Chunk write failed", http.StatusInternalServerError)
+			return
+		}
+		defer out.Close()
+		io.Copy(out, file)
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "received"})
+	}
+}
+
+// ChunkComplete assembles all chunks into the final file and moves it to the destination.
+func ChunkComplete(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			FlowID      string `json:"flowId"`
+			FileName    string `json:"fileName"`
+			Path        string `json:"path"`
+			TotalChunks int    `json:"totalChunks"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		chunkDir := filepath.Join(cfg.Root, ".cache", "uploads")
+		basePath, err := SafePath(cfg.Root, req.Path)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		dstPath := filepath.Join(basePath, req.FileName)
+		if _, err := os.Stat(dstPath); err == nil {
+			http.Error(w, "file exists", http.StatusConflict)
+			return
+		}
+
+		out, err := os.Create(dstPath)
+		if err != nil {
+			http.Error(w, "Create failed", http.StatusInternalServerError)
+			return
+		}
+		defer out.Close()
+
+		for i := 0; i < req.TotalChunks; i++ {
+			chunkPath := filepath.Join(chunkDir, fmt.Sprintf("%s_%d", req.FlowID, i))
+			chunk, err := os.Open(chunkPath)
+			if err != nil {
+				out.Close()
+				os.Remove(dstPath)
+				http.Error(w, "Missing chunk "+fmt.Sprint(i), http.StatusBadRequest)
+				return
+			}
+			io.Copy(out, chunk)
+			chunk.Close()
+			os.Remove(chunkPath)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}
+}
