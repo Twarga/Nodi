@@ -101,7 +101,11 @@ function SortDescIcon({ class: cls }: { class?: string }) {
   );
 }
 
-export function WorkspaceBar() {
+interface WorkspaceBarProps {
+  onUpload?: () => void;
+}
+
+export function WorkspaceBar({ onUpload }: WorkspaceBarProps) {
   const state = appState.value;
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -198,7 +202,7 @@ export function WorkspaceBar() {
         </button>
 
         {/* Upload */}
-        <button class="command-button primary h-9 px-3 text-sm" title="Upload files">
+        <button onClick={onUpload} class="command-button primary h-9 px-3 text-sm" title="Upload files">
           <UploadIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Upload</span>
         </button>

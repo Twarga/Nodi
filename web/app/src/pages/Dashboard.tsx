@@ -12,6 +12,9 @@ import { ContextMenu } from '../components/ContextMenu';
 import { Modal } from '../components/Modal';
 import { FolderPicker } from '../components/FolderPicker';
 import { Preview } from '../components/Preview';
+import { UploadPanel } from '../components/UploadPanel';
+import { DropOverlay } from '../components/DropOverlay';
+import { uploadFiles } from '../hooks/useUpload';
 import type { FileInfo } from '../lib/api';
 
 function FolderOpenIcon({ class: cls }: { class?: string }) {
@@ -46,6 +49,14 @@ export function DashboardPage() {
   const [pickerMode, setPickerMode] = useState<'move'|'copy'>('move');
   const [processing, setProcessing] = useState(false);
   const [previewFile, setPreviewFile] = useState<FileInfo | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = (files: FileList) => {
+    const fileArray = Array.from(files);
+    uploadFiles(fileArray, state.currentPath, () => loadFiles(state.currentPath));
+  };
+
+  const triggerFileInput = () => fileInputRef.current?.click();
 
   useEffect(() => { loadFiles(state.currentPath); },
     [state.currentPath, state.sortBy, state.sortOrder, state.showHidden]);
@@ -158,7 +169,7 @@ export function DashboardPage() {
         <Sidebar />
         <main class="flex-1 overflow-auto app-main">
           <Breadcrumbs />
-          <div class="mt-4"><WorkspaceBar /></div>
+          <div class="mt-4"><WorkspaceBar onUpload={triggerFileInput} /></div>
           <div class="mt-4"><SelectionBar /></div>
 
           <div class="mt-4">
@@ -176,7 +187,7 @@ export function DashboardPage() {
                 </div>
                 <h3 class="mb-1 text-lg font-semibold text-foreground">This folder is empty</h3>
                 <p class="mb-4 max-w-xs text-sm">Drop files here or create a new folder to get started.</p>
-                <button class="command-button primary gap-2">
+                <button onClick={triggerFileInput} class="command-button primary gap-2">
                   <UploadCloudIcon class="h-4 w-4" />
                   Upload files
                 </button>
@@ -252,6 +263,25 @@ export function DashboardPage() {
           onClose={() => setPreviewFile(null)}
         />
       )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        class="hidden"
+        onChange={(e) => {
+          const files = (e.target as HTMLInputElement).files;
+          if (files) handleUpload(files);
+          (e.target as HTMLInputElement).value = '';
+        }}
+      />
+
+      {/* Drag and drop */}
+      <DropOverlay onDrop={handleUpload} />
+
+      {/* Upload panel */}
+      <UploadPanel />
     </div>
   );
 }
