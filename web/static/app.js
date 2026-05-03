@@ -826,6 +826,7 @@
       if (!resp.ok) throw new Error('Failed to fetch')
       const files = await resp.json()
       renderItems(files)
+      refreshSidebar()
     } catch (e) {
       console.error(e)
       toast('Failed to refresh file list', 'error')
@@ -1295,6 +1296,25 @@
     const item = e.target.closest('.selectable-item')
     if (item) item.setAttribute('draggable', 'true')
   }, true)
+
+  // --- Sidebar Tree ---
+  async function refreshSidebar() {
+    const list = document.getElementById('sidebar-tree-list')
+    if (!list) return
+    try {
+      const resp = await fetch(`/browse?path=${encodeURIComponent(getCurrentPath())}`)
+      if (!resp.ok) return
+      const data = await resp.json()
+      const folders = (data.files || []).filter(f => f.is_dir)
+      list.innerHTML = `
+        <li><a href="/" class="block rounded px-2 py-1 hover:bg-surface-hover transition-colors ${getCurrentPath() === '/' ? 'bg-surface-hover font-semibold' : ''}">Home</a></li>
+        ${folders.map(f => {
+          const folderPath = joinPath(getCurrentPath(), f.name)
+          return `<li><a href="/?path=${encodeURIComponent(folderPath)}" onclick="event.preventDefault(); navigate('${escapeHTML(folderPath)}')" class="block rounded px-2 py-1 hover:bg-surface-hover transition-colors truncate">${escapeHTML(f.name)}</a></li>`
+        }).join('')}
+      `
+    } catch { /* ignore */ }
+  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init)
