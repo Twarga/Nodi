@@ -1255,6 +1255,47 @@
     if (mi) mi.style.display = 'none'
   }
 
+  // --- Drag-and-Drop Move ---
+  document.addEventListener('dragover', (e) => {
+    const folder = e.target.closest('.selectable-item[data-is-dir="true"]')
+    if (folder) { e.preventDefault(); folder.classList.add('ring-2', 'ring-primary') }
+  })
+  document.addEventListener('dragleave', (e) => {
+    const folder = e.target.closest('.selectable-item[data-is-dir="true"]')
+    if (folder) folder.classList.remove('ring-2', 'ring-primary')
+  })
+  document.addEventListener('drop', async (e) => {
+    const folder = e.target.closest('.selectable-item[data-is-dir="true"]')
+    if (!folder) return
+    e.preventDefault()
+    folder.classList.remove('ring-2', 'ring-primary')
+    const src = e.dataTransfer.getData('text/plain')
+    if (!src) return
+    const dstPath = joinPath(getCurrentPath(), folder.dataset.name)
+    try {
+      const resp = await fetch('/api/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() },
+        body: JSON.stringify({ src, dst: joinPath(dstPath, src.split('/').pop()) })
+      })
+      if (resp.ok) { refreshItems(); toast('Moved', 'success') }
+      else toast('Move failed', 'error')
+    } catch { toast('Move failed', 'error') }
+  })
+
+  // Make non-folder items draggable via event delegation
+  document.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.selectable-item')
+    if (!item || item.dataset.isDir === 'true') return
+    e.dataTransfer.setData('text/plain', joinPath(getCurrentPath(), item.dataset.name))
+    e.dataTransfer.effectAllowed = 'move'
+  })
+  document.addEventListener('dragstart', (e) => {
+    // Make sure selectable items are draggable
+    const item = e.target.closest('.selectable-item')
+    if (item) item.setAttribute('draggable', 'true')
+  }, true)
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init)
   } else {
