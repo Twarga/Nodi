@@ -666,8 +666,12 @@
     } else {
       const ext = (name || '').split('.').pop().toLowerCase()
       const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico']
+      const videoExts = ['mp4', 'webm', 'mkv', 'mov']
+      const audioExts = ['mp3', 'ogg', 'flac', 'wav', 'aac']
       if (imageExts.includes(ext)) {
         showLightbox(name)
+      } else if (videoExts.includes(ext) || audioExts.includes(ext)) {
+        showMediaPlayer(name, videoExts.includes(ext))
       } else {
         onDownload(name)
       }
@@ -1056,6 +1060,41 @@
     if (e.key === 'Escape') closeLightbox()
     if (e.key === 'ArrowLeft') navigateImage(-1)
     if (e.key === 'ArrowRight') navigateImage(1)
+  }
+
+  // --- Media Player Preview ---
+  function showMediaPlayer(name, isVideo) {
+    const path = joinPath(getCurrentPath(), name)
+    const url = `/api/stream?path=${encodeURIComponent(path)}`
+
+    let mp = document.getElementById('media-player')
+    if (!mp) {
+      mp = document.createElement('div')
+      mp.id = 'media-player'
+      mp.className = 'fixed inset-0 z-50 bg-black/90 flex items-center justify-center'
+      mp.innerHTML = `
+        <button id="media-close" class="absolute top-4 right-4 z-50 text-white/80 hover:text-white text-3xl p-2">&times;</button>
+        <div id="media-content" class="max-w-[90vw] max-h-[90vh]"></div>
+      `
+      document.body.appendChild(mp)
+      mp.addEventListener('click', (e) => { if (e.target === mp) closeMediaPlayer() })
+      document.getElementById('media-close').addEventListener('click', closeMediaPlayer)
+    }
+
+    const content = document.getElementById('media-content')
+    if (isVideo) {
+      content.innerHTML = `<video controls autoplay class="max-w-[90vw] max-h-[85vh]"><source src="${escapeHTML(url)}">Your browser does not support video.</video>`
+    } else {
+      content.innerHTML = `<audio controls autoplay class="w-full mt-8"><source src="${escapeHTML(url)}">Your browser does not support audio.</audio>`
+    }
+    mp.style.display = 'flex'
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMediaPlayer() })
+  }
+
+  function closeMediaPlayer() {
+    const mp = document.getElementById('media-player')
+    if (mp) { mp.style.display = 'none'; mp.querySelector('#media-content').innerHTML = '' }
   }
 
   if (document.readyState === 'loading') {

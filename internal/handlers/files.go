@@ -1147,3 +1147,20 @@ func Thumb(cfg *config.Config) http.HandlerFunc {
 		w.Write(buf.Bytes())
 	}
 }
+
+// Stream serves media files with support for HTTP range requests.
+func Stream(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fullPath, err := SafePath(cfg.Root, r.URL.Query().Get("path"))
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		info, err := os.Stat(fullPath)
+		if err != nil || info.IsDir() {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+		http.ServeFile(w, r, fullPath)
+	}
+}
