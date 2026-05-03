@@ -177,13 +177,53 @@
       }
     })
 
-    // ESC key listener for modals
+    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return
+      }
+
       if (e.key === 'Escape') {
         closeAllMenus()
         document.querySelectorAll('[id^="modal-"]').forEach(m => {
-           if(!m.classList.contains('hidden')) closeModal(m.id.replace('modal-', ''))
+          if (!m.classList.contains('hidden')) closeModal(m.id.replace('modal-', ''))
         })
+        clearSelection()
+        return
+      }
+
+      if (e.key === 'Delete' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        onBulkDelete()
+        return
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault()
+        selectAllVisible()
+        return
+      }
+
+      if (e.key === 'Enter') {
+        const names = getSelectableNames()
+        if (names.length > 0) {
+          const selected = Array.from(selectedNames)
+          const target = selected.length > 0 ? selected[0] : names[0]
+          const item = document.querySelector(`.selectable-item[data-name="${escapeHTML(target)}"]`)
+          if (item) {
+            const isDir = item.dataset.isDir === 'true'
+            onOpen(target, isDir)
+          }
+        }
+        return
+      }
+
+      if (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        const path = getCurrentPath()
+        const parent = path.lastIndexOf('/') > 0 ? path.substring(0, path.lastIndexOf('/')) : '/'
+        navigate(parent)
+        return
       }
     })
 
