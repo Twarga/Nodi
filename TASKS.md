@@ -43,7 +43,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 ## Phase 14: File Operations (real file manager essentials)
 
 - [x] T76: **Compress to archive (ZIP)**. `POST /api/compress {paths: [...]}` streams selected files/folders as ZIP.
-- [ ] T77: **Extract archive (ZIP/TAR/GZ)**. `POST /api/extract` endpoint. Right-click a `.zip`/`.tar`/`.tar.gz` → "Extract here" or "Extract to…". Use `archive/zip` and `archive/tar`. Show error for nested zips exceeding depth limit.
+- [x] T77: **Extract archive (ZIP/TAR/GZ)**. `POST /api/extract {path}` with zip slip protection.
 - [ ] T78: **Create empty file**. Add "New File" button next to "New Folder" in workspace bar. `POST /api/file/create {path, name}`. Creates empty file via `os.Create`.
 - [ ] T79: **Inline text editor**. `GET /api/edit?path=` returns raw file content. Frontend shows code editor (textarea with monospace font + line numbers) for text files ≤1MB. `PUT /api/edit?path=` saves content. Detect encoding. Reject binary files.
 - [ ] T80: **Trash/recycle bin**. Instead of `os.RemoveAll`, move deleted items to `.trash/` inside QL_ROOT. Auto-purge items older than 30 days on startup. Add "Trash" view in sidebar showing deleted items with "Restore" and "Permanent Delete" options. `POST /api/restore {path}` moves from trash back.

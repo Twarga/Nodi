@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"archive/tar"
 	"archive/zip"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -735,4 +737,173 @@ func addToZip(zw *zip.Writer, fullPath, prefix string) {
 	}
 	defer src.Close()
 	io.Copy(w, src)
+}
+
+// Extract decompresses a supported archive in place.
+func Extract(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Path string `json:"path"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		fullPath, err := SafePath(cfg.Root, req.Path)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		dest := filepath.Dir(fullPath)
+		ext := strings.ToLower(filepath.Ext(fullPath))
+
+		switch ext {
+		case ".zip":
+			err = extractZip(fullPath, dest)
+		case ".gz":
+			if strings.HasSuffix(strings.ToLower(fullPath), ".tar.gz") {
+				err = extractTarGz(fullPath, dest)
+			} else {
+				http.Error(w, "Unsupported format", http.StatusBadRequest)
+				return
+			}
+		case ".tar":
+			err = extractTar(fullPath, dest)
+		default:
+			http.Error(w, "Unsupported format", http.StatusBadRequest)
+			return
+		}
+
+		if err != nil {
+			http.Error(w, "Extract failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}
+}
+
+func extractZip(src, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	for _, f := range r.File {
+		if err := extractZipFile(f, dest); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func extractZipFile(f *zip.File, dest string) error {
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	target := filepath.Join(dest, f.Name)
+	if !strings.HasPrefix(filepath.Clean(target), filepath.Clean(dest)+string(filepath.Separator)) {
+		return fmt.Errorf("zip traversal: %s", f.Name)
+	}
+
+	if f.FileInfo().IsDir() {
+		return os.MkdirAll(target, 0755)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+		return err
+	}
+	out, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, rc)
+	return err
+}
+
+func extractTar(src, dest string) error {
+	f, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	tr := tar.NewReader(f)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dest, hdr.Name)
+		if !strings.HasPrefix(filepath.Clean(target), filepath.Clean(dest)+string(filepath.Separator)) {
+			return fmt.Errorf("tar traversal: %s", hdr.Name)
+		}
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			os.MkdirAll(target, 0755)
+		case tar.TypeReg:
+			os.MkdirAll(filepath.Dir(target), 0755)
+			out, err := os.Create(target)
+			if err != nil {
+				return err
+			}
+			io.Copy(out, tr)
+			out.Close()
+		}
+	}
+	return nil
+}
+
+func extractTarGz(src, dest string) error {
+	f, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return err
+	}
+	defer gz.Close()
+	tr := tar.NewReader(gz)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dest, hdr.Name)
+		if !strings.HasPrefix(filepath.Clean(target), filepath.Clean(dest)+string(filepath.Separator)) {
+			return fmt.Errorf("tar.gz traversal: %s", hdr.Name)
+		}
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			os.MkdirAll(target, 0755)
+		case tar.TypeReg:
+			os.MkdirAll(filepath.Dir(target), 0755)
+			out, err := os.Create(target)
+			if err != nil {
+				return err
+			}
+			io.Copy(out, tr)
+			out.Close()
+		}
+	}
+	return nil
 }
