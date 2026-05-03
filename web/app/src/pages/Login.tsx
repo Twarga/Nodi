@@ -7,12 +7,21 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = async (e: Event) => {
-    e.preventDefault();
+  const handleLogin = async () => {
+    console.log('[Login] Starting login...');
     const ok = await login(username, password);
+    console.log('[Login] Result:', ok);
     if (ok) {
+      console.log('[Login] Navigating to /');
       navigate('/');
     }
+  };
+
+  // Prevent native form submission
+  const handleFormSubmit = (e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleLogin();
   };
 
   return (
@@ -27,13 +36,14 @@ export function LoginPage() {
           <h1 class="text-2xl font-bold tracking-tight">Nodi</h1>
         </div>
 
-        <form onSubmit={handleSubmit} class="space-y-4">
+        <form onSubmit={handleFormSubmit} class="space-y-4">
           <div>
             <label class="mb-1.5 block text-sm font-medium">Username</label>
             <input
               type="text"
               value={username}
               onInput={(e) => setUsername((e.target as HTMLInputElement).value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }}
               class="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
               placeholder="Enter username"
               required
@@ -47,6 +57,7 @@ export function LoginPage() {
               type="password"
               value={password}
               onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }}
               class="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
               placeholder="Enter password"
               required
@@ -60,9 +71,10 @@ export function LoginPage() {
           )}
 
           <button
-            type="submit"
+            type="button"
+            onClick={handleLogin}
             disabled={state.value.loading}
-            class="command-button primary h-10 w-full justify-center"
+            class="command-button primary h-10 w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {state.value.loading ? (
               <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
