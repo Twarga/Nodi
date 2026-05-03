@@ -1275,3 +1275,20 @@ func ChunkComplete(cfg *config.Config) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
 }
+
+// Recent returns files modified in the last 7 days.
+func Recent(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		files, _ := ListFiles(cfg.Root)
+		cutoff := time.Now().Add(-7 * 24 * time.Hour)
+		recent := files[:0]
+		for _, f := range files {
+			if f.ModTime.After(cutoff) {
+				recent = append(recent, f)
+			}
+		}
+		sort.Slice(recent, func(i, j int) bool { return recent[i].ModTime.After(recent[j].ModTime) })
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"files": recent})
+	}
+}

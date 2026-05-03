@@ -77,7 +77,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 - [x] T94: **Sidebar directory tree**. Collapsible sidebar showing folders, highlights current path.
 - [x] T95: **Show/hide hidden files toggle**. Button toggles dotfile visibility, persisted in localStorage.
-- [ ] T96: **Recent files view**. Add "Recent" tab/icon in sidebar. `GET /api/recent` returns files modified in last 7 days sorted by mtime descending. Show in same list/grid view.
+- [x] T96: **Recent files view**. `/api/recent` returns files modified in last 7 days.
 - [ ] T97: **Favorites/bookmarks**. Star a folder to add it to a sidebar "Favorites" section. Store in `.nodifav.json` in QL_ROOT. `POST /api/favorite {path}` and `DELETE /api/favorite {path}`.
 - [ ] T98: **Deep-link to files and folders**. URL reflects current path: `/browse?path=/documents/reports`. Copy-path button copies current URL. Shareable links.
 - [ ] T99: **File type icons**. Extend `icons.svg` with distinct icons for: PDF, image, video, audio, archive, code, text, spreadsheet, presentation. Match colors to `--icon-*` CSS variables. Use `GetMIME()` to pick icon.
