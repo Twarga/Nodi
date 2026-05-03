@@ -49,8 +49,11 @@ export function AuthProvider({ children }: { children: preact.ComponentChildren 
 
       const res = await fetch('/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ username, password, csrf_token: csrfToken }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ username, password }),
         credentials: 'same-origin',
       });
 
