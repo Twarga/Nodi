@@ -305,6 +305,24 @@
     })
     document.body.appendChild(input)
     uploadBtn.addEventListener('click', () => input.click())
+
+    // Folder upload
+    const folderInput = document.createElement('input')
+    folderInput.type = 'file'
+    folderInput.webkitdirectory = true
+    folderInput.hidden = true
+    folderInput.addEventListener('change', () => {
+      if (folderInput.files && folderInput.files.length > 0) {
+        onUpload(folderInput.files)
+      }
+      folderInput.value = ''
+    })
+    document.body.appendChild(folderInput)
+
+    const folderBtn = document.getElementById('upload-folder-btn')
+    if (folderBtn) {
+      folderBtn.addEventListener('click', () => folderInput.click())
+    }
   }
 
   function initLoginForm() {
