@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Nodi - Local Development Runner
-# Automates frontend build and Go server startup
+# Runs both frontend (Vite) and backend (Go) in development mode
 
 set -euo pipefail
 
@@ -16,12 +16,12 @@ Usage: $0 [OPTIONS]
 Run Nodi in local development mode.
 
 Options:
-  -w, --watch    Start Vite dev server with hot-reload
+  -w, --watch    Start Vite dev server with hot-reload (proxies API to Go)
   -h, --help     Show this help message
 
 Examples:
-  $0             # Build frontend and start server
-  $0 --watch     # Start Vite dev server + Go backend
+  $0             # Build frontend and start Go server
+  $0 --watch     # Start Vite dev server + Go backend simultaneously
 EOF
 }
 
@@ -40,18 +40,7 @@ if [ ! -d "web/app/node_modules" ]; then
     (cd web/app && npm ci)
 fi
 
-# 2. Build frontend
-if [ "$WATCH_MODE" = true ]; then
-    echo "==> Starting Vite dev server (watch mode)..."
-    (cd web/app && npm run dev &)
-    VITE_PID=$!
-    trap 'kill $VITE_PID 2>/dev/null || true' EXIT
-else
-    echo "==> Building frontend..."
-    (cd web/app && npm run build)
-fi
-
-# 3. Setup default environment if .env is missing
+# 2. Setup default environment if .env is missing
 if [ ! -f ".env" ]; then
     echo "==> .env not found. Creating a default test configuration..."
     cat > .env <<EOF
@@ -64,7 +53,7 @@ EOF
     mkdir -p data
 fi
 
-# 3b. Migrate older local defaults
+# 2b. Migrate older local defaults
 if grep -q '^QL_PORT=8080$' .env; then
     echo "==> Updating local .env port from 8080 to $DEFAULT_PORT..."
     sed -i.bak "s/^QL_PORT=8080$/QL_PORT=$DEFAULT_PORT/" .env
@@ -75,7 +64,7 @@ if grep -Fqx "QL_PASS_HASH=$OLD_INVALID_PASS_HASH" .env; then
     sed -i.bak "s|^QL_PASS_HASH=.*$|QL_PASS_HASH=$DEFAULT_PASS_HASH|" .env
 fi
 
-# 4. Load .env literally so bcrypt hashes containing '$' are not shell-expanded
+# 3. Load .env literally so bcrypt hashes containing '$' are not shell-expanded
 while IFS='=' read -r key value; do
     case "$key" in
         ''|\#*) continue ;;
@@ -83,10 +72,50 @@ while IFS='=' read -r key value; do
     export "$key=$value"
 done < .env
 
-# 5. Run the server
-echo "==> Starting Nodi Server..."
+# 4. Start services
 if [ "$WATCH_MODE" = true ]; then
-    echo "    Frontend: http://localhost:5173"
-    echo "    Backend:  http://localhost:$DEFAULT_PORT"
+    echo "==> Starting Nodi in development mode..."
+    echo ""
+    echo "    Frontend (Vite):  http://localhost:5173"
+    echo "    Backend (Go):     http://localhost:$DEFAULT_PORT"
+    echo "    API proxy:        Vite → Go (:$DEFAULT_PORT)"
+    echo ""
+    echo "    Press Ctrl+C to stop both services"
+    echo ""
+
+    # Start Go backend in background
+    go run cmd/server/main.go &
+    GO_PID=$!
+
+    # Wait for Go to be ready
+    echo "==> Waiting for Go backend on port $DEFAULT_PORT..."
+    for i in {1..30}; do
+        if curl -s http://localhost:$DEFAULT_PORT/api/health >/dev/null 2>&1; then
+            echo "    Go backend is ready!"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo "    WARNING: Go backend did not start in time"
+        fi
+        sleep 0.5
+    done
+
+    # Start Vite dev server in foreground (this is the main process)
+    (cd web/app && npm run dev)
+
+    # When Vite exits, kill Go
+    echo ""
+    echo "==> Stopping Go backend..."
+    kill $GO_PID 2>/dev/null || true
+    wait $GO_PID 2>/dev/null || true
+else
+    echo "==> Building frontend..."
+    (cd web/app && npm run build)
+
+    echo ""
+    echo "==> Starting Nodi Server..."
+    echo "    URL: http://localhost:$DEFAULT_PORT"
+    echo ""
+
+    go run cmd/server/main.go
 fi
-go run cmd/server/main.go
