@@ -11,6 +11,7 @@ import { SelectionBar } from '../components/SelectionBar';
 import { ContextMenu } from '../components/ContextMenu';
 import { Modal } from '../components/Modal';
 import { FolderPicker } from '../components/FolderPicker';
+import { Preview } from '../components/Preview';
 import type { FileInfo } from '../lib/api';
 
 function FolderOpenIcon({ class: cls }: { class?: string }) {
@@ -44,6 +45,7 @@ export function DashboardPage() {
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<'move'|'copy'>('move');
   const [processing, setProcessing] = useState(false);
+  const [previewFile, setPreviewFile] = useState<FileInfo | null>(null);
 
   useEffect(() => { loadFiles(state.currentPath); },
     [state.currentPath, state.sortBy, state.sortOrder, state.showHidden]);
@@ -87,7 +89,7 @@ export function DashboardPage() {
       setPath(np, data.path);
       setFiles(data.files);
     } else {
-      window.open(downloadAPI.downloadUrl(fullPath(file.name)), '_blank');
+      setPreviewFile(file);
     }
   };
 
@@ -240,6 +242,16 @@ export function DashboardPage() {
         title={pickerMode === 'move' ? 'Move to' : 'Copy to'}
         actionLabel={pickerMode === 'move' ? 'Move here' : 'Copy here'}
       />
+
+      {/* File Preview */}
+      {previewFile && (
+        <Preview
+          file={previewFile}
+          path={state.currentPath}
+          allFiles={state.files}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 }
