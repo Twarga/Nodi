@@ -129,6 +129,7 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	// T25: Create Folder API
 	mux.Handle("/api/folder/create", middleware.AuthRequired(cfg.CookieSecret)(handlers.CreateFolder(cfg)))
+	mux.Handle("/api/file/create", middleware.AuthRequired(cfg.CookieSecret)(handlers.CreateFile(cfg)))
 
 	// T26: Delete API
 	mux.Handle("/api/delete", middleware.AuthRequired(cfg.CookieSecret)(handlers.Delete(cfg)))

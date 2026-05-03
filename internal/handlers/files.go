@@ -739,6 +739,41 @@ func addToZip(zw *zip.Writer, fullPath, prefix string) {
 	io.Copy(w, src)
 }
 
+// CreateFile creates an empty file inside QL_ROOT.
+func CreateFile(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Path string `json:"path"`
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		if !validName(req.Name) {
+			http.Error(w, "Invalid filename", http.StatusBadRequest)
+			return
+		}
+		fullPath, err := SafePath(cfg.Root, req.Path)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		f, err := os.Create(filepath.Join(fullPath, req.Name))
+		if err != nil {
+			http.Error(w, "Create failed", http.StatusInternalServerError)
+			return
+		}
+		f.Close()
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}
+}
+
 // Extract decompresses a supported archive in place.
 func Extract(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
