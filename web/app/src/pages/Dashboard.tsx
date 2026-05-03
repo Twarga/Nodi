@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { appState, setPath, setFiles, setLoading, clearSelection, selectAll } from '../stores/app';
-import { browseAPI } from '../lib/api';
+import { browseAPI, fileAPI, downloadAPI } from '../lib/api';
 import { TopBar } from '../components/TopBar';
 import { Sidebar } from '../components/Sidebar';
 import { Breadcrumbs } from '../components/Breadcrumbs';
@@ -8,6 +8,9 @@ import { WorkspaceBar } from '../components/WorkspaceBar';
 import { FileList } from '../components/FileList';
 import { FileGrid } from '../components/FileGrid';
 import { SelectionBar } from '../components/SelectionBar';
+import { ContextMenu } from '../components/ContextMenu';
+import { Modal } from '../components/Modal';
+import { FolderPicker } from '../components/FolderPicker';
 import type { FileInfo } from '../lib/api';
 
 function FolderOpenIcon({ class: cls }: { class?: string }) {
@@ -28,34 +31,32 @@ function UploadCloudIcon({ class: cls }: { class?: string }) {
   );
 }
 
+interface CtxState { open: boolean; x: number; y: number; file: FileInfo | null; }
+
 export function DashboardPage() {
   const state = appState.value;
   const lastClicked = useRef(-1);
 
-  // Load files when path/sort/hidden changes
-  useEffect(() => {
-    loadFiles(state.currentPath);
-  }, [state.currentPath, state.sortBy, state.sortOrder, state.showHidden]);
+  const [ctx, setCtx] = useState<CtxState>({ open: false, x: 0, y: 0, file: null });
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameVal, setRenameVal] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'move'|'copy'>('move');
+  const [processing, setProcessing] = useState(false);
 
-  // Reload when search query changes (debounced in real app)
-  useEffect(() => {
-    if (state.searchQuery) {
-      loadFiles(state.currentPath);
-    }
-  }, [state.searchQuery]);
+  useEffect(() => { loadFiles(state.currentPath); },
+    [state.currentPath, state.sortBy, state.sortOrder, state.showHidden]);
 
-  // Keyboard shortcuts
+  useEffect(() => { if (state.searchQuery) loadFiles(state.currentPath); }, [state.searchQuery]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        clearSelection();
-      }
+      if (e.key === 'Escape') { clearSelection(); setCtx(p => ({ ...p, open: false })); }
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
         const names = state.files.map(f => f.name);
-        if (names.length > 0) {
-          selectAll(names);
-        }
+        if (names.length > 0) selectAll(names);
       }
     };
     document.addEventListener('keydown', handler);
@@ -65,65 +66,98 @@ export function DashboardPage() {
   const loadFiles = async (path: string) => {
     setLoading(true);
     try {
-      const data = await browseAPI.list({
-        path,
-        sortBy: state.sortBy,
-        sortOrder: state.sortOrder,
-      });
+      const data = await browseAPI.list({ path, sortBy: state.sortBy, sortOrder: state.sortOrder });
       let files = data.files;
-      if (!state.showHidden) {
-        files = files.filter(f => !f.name.startsWith('.'));
-      }
+      if (!state.showHidden) files = files.filter(f => !f.name.startsWith('.'));
       if (state.searchQuery) {
         const q = state.searchQuery.toLowerCase();
         files = files.filter(f => f.name.toLowerCase().includes(q));
       }
       setPath(path, data.path);
       setFiles(files);
-    } catch {
-      setFiles([]);
-    }
+    } catch { setFiles([]); }
   };
+
+  const fullPath = (name: string) => state.currentPath ? state.currentPath + '/' + name : name;
 
   const handleOpen = async (file: FileInfo) => {
     if (file.is_dir) {
-      const newPath = state.currentPath
-        ? `${state.currentPath}/${file.name}`
-        : file.name;
-      const data = await browseAPI.list({ path: newPath });
-      setPath(newPath, data.path);
+      const np = fullPath(file.name);
+      const data = await browseAPI.list({ path: np });
+      setPath(np, data.path);
       setFiles(data.files);
     } else {
-      // Preview file (TD-20-23)
-      window.open(`/api/download?path=${encodeURIComponent(
-        state.currentPath ? `${state.currentPath}/${file.name}` : file.name
-      )}`, '_blank');
+      window.open(downloadAPI.downloadUrl(fullPath(file.name)), '_blank');
     }
   };
 
   const handleContextMenu = (e: MouseEvent, file: FileInfo) => {
-    // TD-17: Context menu
-    // For now, just log - will be replaced with proper context menu
-    console.log('Context menu for', file.name, 'at', e.clientX, e.clientY);
+    e.preventDefault();
+    setCtx({ open: true, x: e.clientX, y: e.clientY, file });
+  };
+
+  const closeCtx = () => setCtx(p => ({ ...p, open: false }));
+
+  const actDownload = () => { if (ctx.file) window.open(downloadAPI.downloadUrl(fullPath(ctx.file.name)), '_blank'); };
+
+  const actRename = () => {
+    if (!ctx.file) return;
+    setRenameVal(ctx.file.name);
+    setRenameOpen(true);
+    closeCtx();
+  };
+
+  const submitRename = async () => {
+    if (!ctx.file || !renameVal.trim() || renameVal === ctx.file.name) { setRenameOpen(false); return; }
+    setProcessing(true);
+    try { await fileAPI.rename(fullPath(ctx.file.name), renameVal); loadFiles(state.currentPath); }
+    catch (err) { alert('Rename failed: ' + (err as Error).message); }
+    finally { setProcessing(false); setRenameOpen(false); }
+  };
+
+  const actDelete = () => { setDeleteOpen(true); closeCtx(); };
+
+  const submitDelete = async () => {
+    if (!ctx.file) return;
+    setProcessing(true);
+    try { await fileAPI.delete([fullPath(ctx.file.name)]); loadFiles(state.currentPath); }
+    catch (err) { alert('Delete failed: ' + (err as Error).message); }
+    finally { setProcessing(false); setDeleteOpen(false); }
+  };
+
+  const actMove = () => { setPickerMode('move'); setFolderPickerOpen(true); closeCtx(); };
+  const actCopy = () => { setPickerMode('copy'); setFolderPickerOpen(true); closeCtx(); };
+
+  const submitPicker = async (dest: string) => {
+    if (!ctx.file) return;
+    setProcessing(true);
+    try {
+      const paths = [fullPath(ctx.file.name)];
+      if (pickerMode === 'move') await fileAPI.move(paths, dest);
+      else await fileAPI.copy(paths, dest);
+      loadFiles(state.currentPath);
+    } catch (err) { alert(pickerMode + ' failed: ' + (err as Error).message); }
+    finally { setProcessing(false); setFolderPickerOpen(false); }
+  };
+
+  const actDuplicate = async () => {
+    if (!ctx.file) return;
+    closeCtx();
+    setProcessing(true);
+    try { await fileAPI.duplicate(fullPath(ctx.file.name)); loadFiles(state.currentPath); }
+    catch (err) { alert('Duplicate failed: ' + (err as Error).message); }
+    finally { setProcessing(false); }
   };
 
   return (
     <div class="flex h-screen flex-col">
       <TopBar />
-
       <div class="flex flex-1 overflow-hidden">
         <Sidebar />
-
         <main class="flex-1 overflow-auto app-main">
           <Breadcrumbs />
-
-          <div class="mt-4">
-            <WorkspaceBar />
-          </div>
-
-          <div class="mt-4">
-            <SelectionBar />
-          </div>
+          <div class="mt-4"><WorkspaceBar /></div>
+          <div class="mt-4"><SelectionBar /></div>
 
           <div class="mt-4">
             {state.isLoading ? (
@@ -139,30 +173,73 @@ export function DashboardPage() {
                   <FolderOpenIcon class="h-12 w-12 text-muted-foreground/50" />
                 </div>
                 <h3 class="mb-1 text-lg font-semibold text-foreground">This folder is empty</h3>
-                <p class="mb-4 max-w-xs text-sm">
-                  Drop files here or create a new folder to get started.
-                </p>
+                <p class="mb-4 max-w-xs text-sm">Drop files here or create a new folder to get started.</p>
                 <button class="command-button primary gap-2">
                   <UploadCloudIcon class="h-4 w-4" />
                   Upload files
                 </button>
               </div>
             ) : state.viewMode === 'list' ? (
-              <FileList
-                onOpen={handleOpen}
-                onContextMenu={handleContextMenu}
-                lastClicked={lastClicked}
-              />
+              <FileList onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
             ) : (
-              <FileGrid
-                onOpen={handleOpen}
-                onContextMenu={handleContextMenu}
-                lastClicked={lastClicked}
-              />
+              <FileGrid onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
             )}
           </div>
         </main>
       </div>
+
+      {/* Context Menu */}
+      {ctx.open && ctx.file && (
+        <ContextMenu
+          x={ctx.x} y={ctx.y} file={ctx.file} onClose={closeCtx}
+          onDownload={actDownload} onRename={actRename} onMove={actMove}
+          onCopy={actCopy} onDuplicate={actDuplicate} onDelete={actDelete}
+        />
+      )}
+
+      {/* Rename Modal */}
+      <Modal open={renameOpen} onClose={() => setRenameOpen(false)} title="Rename" size="sm"
+        footer={
+          <>
+            <button onClick={() => setRenameOpen(false)} class="command-button h-9 px-4 text-sm">Cancel</button>
+            <button onClick={submitRename} disabled={processing} class="command-button primary h-9 px-4 text-sm">
+              {processing ? 'Renaming...' : 'Rename'}
+            </button>
+          </>
+        }
+      >
+        <input
+          type="text" value={renameVal}
+          onInput={(e) => setRenameVal((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submitRename(); }}
+          class="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          autoFocus
+        />
+      </Modal>
+
+      {/* Delete Modal */}
+      <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete" size="sm"
+        footer={
+          <>
+            <button onClick={() => setDeleteOpen(false)} class="command-button h-9 px-4 text-sm">Cancel</button>
+            <button onClick={submitDelete} disabled={processing} class="selection-danger h-9 px-4 text-sm">
+              {processing ? 'Deleting...' : 'Delete'}
+            </button>
+          </>
+        }
+      >
+        <p class="text-sm">Are you sure you want to delete <strong class="text-foreground">{ctx.file?.name}</strong>?</p>
+        <p class="mt-2 text-xs text-muted-foreground">This item will be moved to trash.</p>
+      </Modal>
+
+      {/* Folder Picker */}
+      <FolderPicker
+        open={folderPickerOpen}
+        onClose={() => setFolderPickerOpen(false)}
+        onSelect={submitPicker}
+        title={pickerMode === 'move' ? 'Move to' : 'Copy to'}
+        actionLabel={pickerMode === 'move' ? 'Move here' : 'Copy here'}
+      />
     </div>
   );
 }
