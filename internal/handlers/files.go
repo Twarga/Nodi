@@ -540,7 +540,15 @@ func Download(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 		if info.IsDir() {
-			http.Error(w, "Cannot download directory", http.StatusBadRequest)
+			if r.URL.Query().Get("format") != "zip" {
+				http.Error(w, "Cannot download directory. Use ?format=zip", http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "application/zip")
+			w.Header().Set("Content-Disposition", `attachment; filename="`+filepath.Base(fullPath)+`.zip"`)
+			zw := zip.NewWriter(w)
+			defer zw.Close()
+			addToZip(zw, fullPath, "")
 			return
 		}
 
