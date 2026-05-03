@@ -57,7 +57,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T83: **Image thumbnail generation**. `GET /api/thumb?path=&size=sm|md|lg` with JPEG caching in `.cache/thumbs/`.
 - [x] T84: **Image preview with zoom/lightbox**. Click image → full-screen lightbox, arrow keys to navigate.
 - [x] T85: **Video/audio streaming**. `/api/stream?path=` with range support, inline player for media files.
-- [ ] T86: **PDF viewer**. For `.pdf` files, embed a `<object>` or `<iframe>` with the download URL. Falls back to download link if browser doesn't support inline PDF.
+- [x] T86: **PDF viewer**. Click PDF → embedded iframe viewer.
 - [ ] T87: **Text/code preview with highlighting**. For text, code, config, and markdown files ≤2MB, show a read-only preview modal with syntax highlighting (use highlight.js from CDN or self-hosted). Line numbers. Copy button. For markdown, render HTML.
 - [ ] T88: **File metadata panel**. Click file → sidebar or modal shows: name, size, MIME type, modified time, permissions (octal), path. For images: dimensions, EXIF (orientation, camera, date taken). For audio: duration, bitrate.
 

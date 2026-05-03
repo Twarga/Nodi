@@ -672,6 +672,8 @@
         showLightbox(name)
       } else if (videoExts.includes(ext) || audioExts.includes(ext)) {
         showMediaPlayer(name, videoExts.includes(ext))
+      } else if (ext === 'pdf') {
+        showPDFViewer(name)
       } else {
         onDownload(name)
       }
@@ -1095,6 +1097,31 @@
   function closeMediaPlayer() {
     const mp = document.getElementById('media-player')
     if (mp) { mp.style.display = 'none'; mp.querySelector('#media-content').innerHTML = '' }
+  }
+
+  // --- PDF Viewer ---
+  function showPDFViewer(name) {
+    const path = joinPath(getCurrentPath(), name)
+    const url = `/api/download?path=${encodeURIComponent(path)}`
+
+    let pv = document.getElementById('pdf-viewer')
+    if (!pv) {
+      pv = document.createElement('div')
+      pv.id = 'pdf-viewer'
+      pv.className = 'fixed inset-0 z-50 bg-black/90 flex items-center justify-center'
+      pv.innerHTML = `<button id="pdf-close" class="absolute top-4 right-4 z-50 text-white/80 hover:text-white text-3xl p-2">&times;</button><iframe id="pdf-frame" class="w-[95vw] h-[95vh] rounded" src=""></iframe>`
+      document.body.appendChild(pv)
+      pv.addEventListener('click', (e) => { if (e.target === pv) closePDFViewer() })
+      document.getElementById('pdf-close').addEventListener('click', closePDFViewer)
+    }
+    document.getElementById('pdf-frame').src = url
+    pv.style.display = 'flex'
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePDFViewer() })
+  }
+
+  function closePDFViewer() {
+    const pv = document.getElementById('pdf-viewer')
+    if (pv) { pv.style.display = 'none'; document.getElementById('pdf-frame').src = '' }
   }
 
   if (document.readyState === 'loading') {
