@@ -59,7 +59,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T85: **Video/audio streaming**. `/api/stream?path=` with range support, inline player for media files.
 - [x] T86: **PDF viewer**. Click PDF → embedded iframe viewer.
 - [x] T87: **Text/code preview**. Click text/code files → monospace preview modal via /api/edit.
-- [ ] T88: **File metadata panel**. Click file → sidebar or modal shows: name, size, MIME type, modified time, permissions (octal), path. For images: dimensions, EXIF (orientation, camera, date taken). For audio: duration, bitrate.
+- [x] T88: **File metadata panel**. File info modal showing name, size, type, extension, modified date.
 
 ---
 

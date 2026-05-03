@@ -1175,6 +1175,52 @@
     if (tv) tv.style.display = 'none'
   }
 
+  // --- File Metadata Panel ---
+  window.showFileInfo = async (name) => {
+    const path = joinPath(getCurrentPath(), name)
+    const resp = await fetch(`/browse?path=${encodeURIComponent(path)}`)
+    const info = (await resp.json())?.files?.[0]
+    if (!info) return
+
+    const size = info.is_dir ? '--' : formatBytes(info.size)
+    const date = new Date(info.mod_time).toLocaleString()
+    const ext = (name || '').split('.').pop().toLowerCase()
+
+    let mi = document.getElementById('file-info')
+    if (!mi) {
+      mi = document.createElement('div')
+      mi.id = 'file-info'
+      mi.className = 'fixed inset-0 z-50 bg-black/40 flex items-center justify-center'
+      mi.innerHTML = `
+        <div class="bg-popover rounded-lg shadow-2xl w-80 p-6 border border-border">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">File Info</h3>
+            <button id="file-info-close" class="text-muted-foreground hover:text-foreground text-xl">&times;</button>
+          </div>
+          <div id="file-info-content" class="space-y-2 text-sm"></div>
+        </div>
+      `
+      document.body.appendChild(mi)
+      mi.addEventListener('click', (e) => { if (e.target === mi) closeFileInfo() })
+      document.getElementById('file-info-close').addEventListener('click', closeFileInfo)
+    }
+
+    document.getElementById('file-info-content').innerHTML = `
+      <div><span class="text-muted-foreground">Name:</span> ${escapeHTML(name)}</div>
+      <div><span class="text-muted-foreground">Size:</span> ${size}</div>
+      <div><span class="text-muted-foreground">Type:</span> ${escapeHTML(info.mime || '')}</div>
+      <div><span class="text-muted-foreground">Extension:</span> ${ext}</div>
+      <div><span class="text-muted-foreground">Modified:</span> ${date}</div>
+    `
+    mi.style.display = 'flex'
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFileInfo() })
+  }
+
+  function closeFileInfo() {
+    const mi = document.getElementById('file-info')
+    if (mi) mi.style.display = 'none'
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init)
   } else {
