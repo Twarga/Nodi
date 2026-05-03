@@ -165,6 +165,18 @@ func Browse(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Search/filter
+		if search := r.URL.Query().Get("search"); search != "" {
+			s := strings.ToLower(strings.TrimSpace(search))
+			filtered := files[:0]
+			for _, f := range files {
+				if strings.Contains(strings.ToLower(f.Name), s) {
+					filtered = append(filtered, f)
+				}
+			}
+			files = filtered
+		}
+
 		// Sorting
 		sortBy := r.URL.Query().Get("sort")
 		order := strings.ToLower(r.URL.Query().Get("order"))
