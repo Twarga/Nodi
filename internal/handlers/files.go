@@ -149,6 +149,57 @@ func validName(name string) bool {
 	return true
 }
 
+// moveToTrash moves a file/folder to .trash/ inside root preserving original path info.
+func moveToTrash(root, fullPath string) error {
+	trashDir := filepath.Join(root, ".trash")
+	if err := os.MkdirAll(trashDir, 0700); err != nil {
+		return err
+	}
+	rel, err := filepath.Rel(root, fullPath)
+	if err != nil {
+		return err
+	}
+	// Encode path: replace / with @, append timestamp
+	encoded := strings.ReplaceAll(filepath.ToSlash(rel), "/", "@") + "@" + fmt.Sprint(time.Now().UnixNano())
+	return os.Rename(fullPath, filepath.Join(trashDir, encoded))
+}
+
+// Restore moves a file from .trash back to its original location by reversing the encoding.
+func Restore(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		// Decode: remove trailing timestamp, replace @ with /
+		idx := strings.LastIndex(req.Name, "@")
+		if idx < 1 {
+			http.Error(w, "Invalid trash entry", http.StatusBadRequest)
+			return
+		}
+		origPath := strings.ReplaceAll(req.Name[:idx], "@", "/")
+
+		srcPath := filepath.Join(cfg.Root, ".trash", req.Name)
+		dstPath := filepath.Join(cfg.Root, origPath)
+		if err := os.Rename(srcPath, dstPath); err != nil {
+			http.Error(w, "Restore failed", http.StatusInternalServerError)
+			return
+		}
+		os.MkdirAll(filepath.Dir(dstPath), 0755)
+		os.Rename(srcPath, dstPath)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}
+}
+
 // Edit handles reading and writing text files for inline editing (≤1MB, text only).
 func Edit(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -386,7 +437,7 @@ func Delete(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		if err := os.RemoveAll(fullPath); err != nil {
+		if err := moveToTrash(cfg.Root, fullPath); err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
