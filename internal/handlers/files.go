@@ -1292,3 +1292,38 @@ func Recent(cfg *config.Config) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]interface{}{"files": recent})
 	}
 }
+
+// Favorite adds a path to the favorites list stored in .nodifav.json.
+func Favorite(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		favPath := filepath.Join(cfg.Root, ".nodifav.json")
+		var req struct{ Path string }
+		json.NewDecoder(r.Body).Decode(&req)
+
+		var favs []string
+		data, _ := os.ReadFile(favPath)
+		json.Unmarshal(data, &favs)
+
+		if r.Method == http.MethodPost {
+			for _, f := range favs {
+				if f == req.Path {
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(map[string]bool{"success": true})
+					return
+				}
+			}
+			favs = append(favs, req.Path)
+		} else if r.Method == http.MethodDelete {
+			filtered := favs[:0]
+			for _, f := range favs {
+				if f != req.Path { filtered = append(filtered, f) }
+			}
+			favs = filtered
+		}
+
+		d, _ := json.Marshal(favs)
+		os.WriteFile(favPath, d, 0644)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(favs)
+	}
+}
