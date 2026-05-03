@@ -57,7 +57,7 @@ func TestFileManagerEndToEnd(t *testing.T) {
 		Jar: jar,
 	}
 
-	staticResp, err := client.Get(server.URL + "/static/app.js")
+	staticResp, err := client.Get(server.URL + "/static/dist/assets/index.js")
 	if err != nil {
 		t.Fatalf("get static asset: %v", err)
 	}

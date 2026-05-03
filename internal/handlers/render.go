@@ -90,14 +90,6 @@ func InitTemplates() error {
 			"web/templates/layout.html",
 			"web/templates/login.html",
 		},
-		"dashboard": {
-			"web/templates/layout.html",
-			"web/templates/dashboard.html",
-			"web/templates/components/breadcrumbs.html",
-			"web/templates/components/file-row.html",
-			"web/templates/components/file-card.html",
-			"web/templates/components/modal.html",
-		},
 	}
 
 	for key, files := range patterns {
@@ -143,14 +135,9 @@ func RenderTemplate(w http.ResponseWriter, r *http.Request, data interface{}, pa
 	}
 
 	// Use cache key derived from first pattern for lookup
-	cacheKey := ""
-	switch {
-	case len(patterns) >= 2 && patterns[1] == "web/templates/dashboard.html":
-		cacheKey = "dashboard"
-	case len(patterns) >= 2 && patterns[1] == "web/templates/login.html":
+	cacheKey := "login"
+	if len(patterns) >= 2 && patterns[1] == "web/templates/login.html" {
 		cacheKey = "login"
-	default:
-		cacheKey = "dashboard"
 	}
 
 	tmpl := GetCachedTemplate(cacheKey)

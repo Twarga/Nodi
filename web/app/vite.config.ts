@@ -11,7 +11,7 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
           const info = assetInfo.name?.split('.') ?? [];
@@ -21,6 +21,10 @@ export default defineConfig({
           }
           if (/\.(png|jpe?g|gif|svg|webp)$/.test(assetInfo.name ?? '')) {
             return 'assets/images/[name]-[hash][extname]';
+          }
+          // Keep CSS entry file predictable for Go templates
+          if (assetInfo.name === 'index.css') {
+            return 'assets/[name][extname]';
           }
           return 'assets/[name]-[hash][extname]';
         },
@@ -43,5 +47,10 @@ export default defineConfig({
       'react': 'preact/compat',
       'react-dom': 'preact/compat',
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.ts',
   },
 });

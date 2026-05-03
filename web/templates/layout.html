@@ -8,18 +8,15 @@
     <!-- Meta -->
     <meta name="description" content="Lightweight, self-hosted web file manager.">
     
-    <!-- Tailwind CSS (compiled output) -->
-    <link href="/static/output.css" rel="stylesheet">
+    <!-- Vite-built CSS -->
+    <link href="/static/dist/assets/index.css" rel="stylesheet">
     
     <!-- Embed Nodi Favicon (Reused Logo) -->
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-
-    <!-- Global App JS -->
-    <script src="/static/app.js" type="module" defer nonce="{{.Nonce}}"></script>
 </head>
 <body class="bg-background text-foreground antialiased min-h-screen">
     <!-- Main Application Shell -->
-    <div id="root" class="flex flex-col h-screen overflow-hidden">
+    <div id="app" class="flex flex-col h-screen overflow-hidden">
         {{block "content" .}}
         <!-- Default Fallback Layout -->
         <main class="flex-1 flex items-center justify-center">
@@ -27,8 +24,5 @@
         </main>
         {{end}}
     </div>
-
-    <!-- Toast Notifications Container -->
-    <div id="toast-container" class="toast-container"></div>
 </body>
 </html>

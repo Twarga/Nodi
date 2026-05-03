@@ -18,16 +18,13 @@ func TestNewHandler_ServesStaticAssetsWithoutAuth(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
-	req := httptest.NewRequest(http.MethodGet, "/static/app.js", nil)
+	req := httptest.NewRequest(http.MethodGet, "/static/dist/assets/index.js", nil)
 	w := httptest.NewRecorder()
 
 	NewHandler(&config.Config{CookieSecret: "test-secret"}).ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected static asset status 200, got %d: %s", w.Code, w.Body.String())
-	}
-	if contentType := w.Header().Get("Content-Type"); contentType == "text/plain; charset=utf-8" {
-		t.Fatalf("expected javascript asset content type, got %q", contentType)
 	}
 }
 

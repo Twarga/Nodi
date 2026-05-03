@@ -1,25 +1,13 @@
 #!/usr/bin/env bash
 
 # Nodi - Local Development Runner
-# Automates Tailwind CSS compilation and Go server startup
+# Automates frontend build and Go server startup
 
 set -euo pipefail
 
 DEFAULT_PORT=7319
 DEFAULT_PASS_HASH='$2b$10$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy'
 OLD_INVALID_PASS_HASH='$2y$10$y58t9Y6PqBf9N6qA58t9Ye8Zp6iS6Y7YmS6i6Y7YmS6i6Y7YmS6i6'
-
-# Detect platform
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64) ARCH="x64" ;;
-    arm64|aarch64) ARCH="arm64" ;;
-    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
-esac
-
-TAILWIND_VERSION="3.4.17"
-TAILWIND_BIN="./tailwindcss-${OS}-${ARCH}"
 
 usage() {
     cat <<EOF
@@ -28,12 +16,12 @@ Usage: $0 [OPTIONS]
 Run Nodi in local development mode.
 
 Options:
-  -w, --watch    Watch for CSS changes and auto-recompile
+  -w, --watch    Start Vite dev server with hot-reload
   -h, --help     Show this help message
 
 Examples:
-  $0             # Start server once
-  $0 --watch     # Start server with CSS hot-reload
+  $0             # Build frontend and start server
+  $0 --watch     # Start Vite dev server + Go backend
 EOF
 }
 
@@ -46,28 +34,21 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 1. Ensure Tailwind CSS binary exists
-if [ ! -f "$TAILWIND_BIN" ]; then
-    echo "==> Downloading Tailwind CSS ${TAILWIND_VERSION} for ${OS}-${ARCH}..."
-    curl -sLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v${TAILWIND_VERSION}/tailwindcss-${OS}-${ARCH}"
-    chmod +x "tailwindcss-${OS}-${ARCH}"
-    # Verify it's a valid binary
-    if ! "$TAILWIND_BIN" --help >/dev/null 2>&1; then
-        echo "ERROR: Downloaded Tailwind binary is not executable. Removing."
-        rm -f "$TAILWIND_BIN"
-        exit 1
-    fi
+# 1. Ensure node_modules exists
+if [ ! -d "web/app/node_modules" ]; then
+    echo "==> Installing frontend dependencies..."
+    (cd web/app && npm ci)
 fi
 
-# 2. Compile CSS
+# 2. Build frontend
 if [ "$WATCH_MODE" = true ]; then
-    echo "==> Compiling CSS (watch mode)..."
-    $TAILWIND_BIN -i ./web/static/input.css -o ./web/static/output.css --minify --watch &
-    TAILWIND_PID=$!
-    trap 'kill $TAILWIND_PID 2>/dev/null || true' EXIT
+    echo "==> Starting Vite dev server (watch mode)..."
+    (cd web/app && npm run dev &)
+    VITE_PID=$!
+    trap 'kill $VITE_PID 2>/dev/null || true' EXIT
 else
-    echo "==> Compiling CSS..."
-    $TAILWIND_BIN -i ./web/static/input.css -o ./web/static/output.css --minify
+    echo "==> Building frontend..."
+    (cd web/app && npm run build)
 fi
 
 # 3. Setup default environment if .env is missing
@@ -104,4 +85,8 @@ done < .env
 
 # 5. Run the server
 echo "==> Starting Nodi Server..."
+if [ "$WATCH_MODE" = true ]; then
+    echo "    Frontend: http://localhost:5173"
+    echo "    Backend:  http://localhost:$DEFAULT_PORT"
+fi
 go run cmd/server/main.go
