@@ -115,8 +115,11 @@ func NewHandler(cfg *config.Config) http.Handler {
 	mux.HandleFunc("/api/version", versionHandler)
 	mux.HandleFunc("/api/metrics", metricsHandler)
 
-	// Protected root endpoint — renders dashboard
-	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret)(handlers.Dashboard(cfg)))
+	// SPA auth check
+	mux.Handle("/api/whoami", middleware.AuthRequired(cfg.CookieSecret)(handlers.Whoami()))
+
+	// Protected root endpoint — serves Preact SPA
+	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret)(handlers.SPA()))
 
 	// T12: Rate Limiter (5 requests per 15 minutes)
 	loginRateLimiter := middleware.NewRateLimiter(5, 15*time.Minute)

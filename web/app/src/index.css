@@ -1,0 +1,231 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Light theme tokens */
+  --color-background: hsl(190 24% 97%);
+  --color-foreground: hsl(222 28% 12%);
+
+  --color-surface: hsl(0 0% 100%);
+  --color-surface-hover: hsl(190 24% 94%);
+
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(220 18% 14%);
+
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(220 18% 14%);
+
+  --color-primary: hsl(182 64% 28%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-primary-hover: hsl(182 64% 23%);
+
+  --color-secondary: hsl(220 14% 94%);
+  --color-secondary-foreground: hsl(220 18% 14%);
+
+  --color-muted: hsl(190 24% 94%);
+  --color-muted-foreground: hsl(215 12% 43%);
+
+  --color-accent: hsl(182 64% 28%);
+  --color-accent-foreground: hsl(0 0% 100%);
+
+  --color-destructive: hsl(0 72% 50%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+
+  --color-success: hsl(152 60% 36%);
+  --color-warning: hsl(38 92% 50%);
+
+  --color-border: hsl(204 24% 88%);
+  --color-border-strong: hsl(204 22% 75%);
+  --color-input: hsl(204 24% 86%);
+  --color-ring: hsl(182 64% 28%);
+
+  --color-icon-folder: hsl(38 92% 50%);
+  --color-icon-image: hsl(152 60% 46%);
+  --color-icon-pdf: hsl(0 72% 55%);
+  --color-icon-video: hsl(270 60% 55%);
+  --color-icon-generic: hsl(220 9% 46%);
+
+  --radius: 0.5rem;
+
+  /* Animations */
+  --animate-ql-slide-in-right: ql-slide-in-right 0.3s ease-out;
+  --animate-ql-pop-in: ql-pop-in 0.25s ease-out;
+  --animate-ql-fade-in: ql-fade-in 0.2s ease-out;
+  --animate-ql-slide-up: ql-slide-up 0.3s ease-out;
+}
+
+@layer base {
+  html, body { height: 100%; }
+
+  body {
+    background:
+      radial-gradient(circle at top left, hsl(182 64% 28% / 0.08), transparent 34rem),
+      linear-gradient(180deg, hsl(190 24% 97%), hsl(190 24% 94% / 0.34));
+    color: hsl(222 28% 12%);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark body {
+    background:
+      radial-gradient(circle at top left, hsl(182 60% 50% / 0.12), transparent 32rem),
+      radial-gradient(circle at bottom right, hsl(215 70% 40% / 0.09), transparent 30rem),
+      hsl(220 22% 8%);
+    color: hsl(210 24% 94%);
+  }
+
+  .dark {
+    --color-background: hsl(220 22% 8%);
+    --color-foreground: hsl(210 24% 94%);
+    --color-surface: hsl(220 21% 11%);
+    --color-surface-hover: hsl(220 18% 16%);
+    --color-card: hsl(220 21% 11%);
+    --color-card-foreground: hsl(220 14% 94%);
+    --color-popover: hsl(220 21% 11%);
+    --color-popover-foreground: hsl(220 14% 94%);
+    --color-primary: hsl(182 60% 50%);
+    --color-primary-foreground: hsl(220 18% 9%);
+    --color-primary-hover: hsl(182 60% 56%);
+    --color-secondary: hsl(220 16% 18%);
+    --color-secondary-foreground: hsl(220 14% 94%);
+    --color-muted: hsl(220 18% 15%);
+    --color-muted-foreground: hsl(215 13% 68%);
+    --color-accent: hsl(182 60% 50%);
+    --color-accent-foreground: hsl(220 18% 9%);
+    --color-destructive: hsl(0 72% 55%);
+    --color-destructive-foreground: hsl(0 0% 100%);
+    --color-success: hsl(152 50% 50%);
+    --color-warning: hsl(38 92% 55%);
+    --color-border: hsl(216 18% 22%);
+    --color-border-strong: hsl(214 18% 32%);
+    --color-input: hsl(216 18% 22%);
+    --color-ring: hsl(182 60% 50%);
+    --color-icon-folder: hsl(38 92% 60%);
+    --color-icon-image: hsl(152 50% 55%);
+    --color-icon-pdf: hsl(0 72% 62%);
+    --color-icon-video: hsl(270 60% 65%);
+    --color-icon-generic: hsl(220 9% 62%);
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar { width: 10px; height: 10px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(204 22% 75%);
+    border-radius: 999px;
+    border: 2px solid hsl(190 24% 97%);
+  }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(214 18% 32%);
+    border: 2px solid hsl(220 22% 8%);
+  }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* Keyframes */
+@keyframes ql-slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes ql-pop-in {
+  0% { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes ql-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ql-slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  width: 100%;
+  min-width: 280px;
+  max-width: 24rem;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid hsl(204 24% 88%);
+  background: hsl(0 0% 100%);
+  padding: 1rem;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  animation: ql-slide-in-right 0.3s ease-out;
+}
+
+.dark .toast { background: hsl(220 21% 11%); border-color: hsl(216 18% 22%); }
+
+/* Drop overlay */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(190 24% 97% / 0.6);
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+}
+
+.dark .drop-overlay { background: hsl(220 22% 8% / 0.6); }
+
+.drop-overlay.hidden { opacity: 0; pointer-events: none; }
+
+.drop-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 1rem;
+  border: 2px dashed hsl(182 64% 28% / 0.5);
+  background: hsl(0 0% 100%);
+  padding: 3rem;
+  text-align: center;
+  animation: ql-pop-in 0.25s ease-out;
+}
+
+.dark .drop-overlay-content { background: hsl(220 21% 11%); }
+
+/* Upload panel */
+.upload-panel {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  z-index: 90;
+  width: 20rem;
+  border-radius: var(--radius);
+  border: 1px solid hsl(204 24% 88%);
+  background: hsl(0 0% 100%);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  transition: all 0.3s;
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.dark .upload-panel { background: hsl(220 21% 11%); border-color: hsl(216 18% 22%); }
+
+.upload-panel.active { transform: translateY(0); opacity: 1; }

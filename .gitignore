@@ -14,7 +14,7 @@
 
 # Node
 node_modules/
-dist/
+web/app/dist/
 dist-ssr/
 *.local
 npm-debug.log*
