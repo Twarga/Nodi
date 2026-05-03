@@ -45,7 +45,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T76: **Compress to archive (ZIP)**. `POST /api/compress {paths: [...]}` streams selected files/folders as ZIP.
 - [x] T77: **Extract archive (ZIP/TAR/GZ)**. `POST /api/extract {path}` with zip slip protection.
 - [x] T78: **Create empty file**. `POST /api/file/create {path, name}` endpoint.
-- [ ] T79: **Inline text editor**. `GET /api/edit?path=` returns raw file content. Frontend shows code editor (textarea with monospace font + line numbers) for text files ≤1MB. `PUT /api/edit?path=` saves content. Detect encoding. Reject binary files.
+- [x] T79: **Inline text editor**. `GET/PUT /api/edit?path=` endpoint, ≤1MB, rejects binary files.
 - [ ] T80: **Trash/recycle bin**. Instead of `os.RemoveAll`, move deleted items to `.trash/` inside QL_ROOT. Auto-purge items older than 30 days on startup. Add "Trash" view in sidebar showing deleted items with "Restore" and "Permanent Delete" options. `POST /api/restore {path}` moves from trash back.
 - [ ] T81: **Duplicate file/folder**. `POST /api/duplicate {path}`. Creates a copy with " (copy)" suffix. Uses `io.Copy` for files, recursive copy for directories.
 - [ ] T82: **Download directory as ZIP**. `GET /api/download?path=/folder&format=zip`. If path is a directory, stream a ZIP. Show progress indicator for large dirs.

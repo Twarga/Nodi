@@ -142,6 +142,7 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	// Download API
 	mux.Handle("/api/download", middleware.AuthRequired(cfg.CookieSecret)(handlers.Download(cfg)))
+	mux.Handle("/api/edit", middleware.AuthRequired(cfg.CookieSecret)(handlers.Edit(cfg)))
 
 	// Move and Copy API
 	mux.Handle("/api/move", middleware.AuthRequired(cfg.CookieSecret)(handlers.Move(cfg)))

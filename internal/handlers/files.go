@@ -3,6 +3,7 @@ package handlers
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -146,6 +147,49 @@ func validName(name string) bool {
 		}
 	}
 	return true
+}
+
+// Edit handles reading and writing text files for inline editing (≤1MB, text only).
+func Edit(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fullPath, err := SafePath(cfg.Root, r.URL.Query().Get("path"))
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		switch r.Method {
+		case http.MethodGet:
+			info, err := os.Stat(fullPath)
+			if err != nil || info.IsDir() || info.Size() > 1024*1024 {
+				http.Error(w, "Not found or too large", http.StatusNotFound)
+				return
+			}
+			data, err := os.ReadFile(fullPath)
+			if err != nil || bytes.Contains(data, []byte{0}) {
+				http.Error(w, "Cannot read binary file", http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.Write(data)
+
+		case http.MethodPut:
+			data, err := io.ReadAll(io.LimitReader(r.Body, 1024*1024))
+			if err != nil {
+				http.Error(w, "Read error", http.StatusBadRequest)
+				return
+			}
+			if err := os.WriteFile(fullPath, data, 0644); err != nil {
+				http.Error(w, "Write failed", http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+
+		default:
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	}
 }
 
 // Browse returns a handler that lists directory contents as JSON.
