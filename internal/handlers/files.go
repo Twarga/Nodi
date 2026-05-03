@@ -1037,3 +1037,33 @@ func extractTarGz(src, dest string) error {
 	}
 	return nil
 }
+
+// Duplicate copies a file/folder with " (copy)" suffix.
+func Duplicate(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct{ Path string }
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		srcPath, err := SafePath(cfg.Root, req.Path)
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		base := filepath.Base(srcPath)
+		ext := filepath.Ext(base)
+		name := base[:len(base)-len(ext)]
+		dstPath := filepath.Join(filepath.Dir(srcPath), name+" (copy)"+ext)
+		if err := copyPath(srcPath, dstPath); err != nil {
+			http.Error(w, "Duplicate failed", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}
+}

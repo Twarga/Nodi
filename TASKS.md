@@ -47,7 +47,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 - [x] T78: **Create empty file**. `POST /api/file/create {path, name}` endpoint.
 - [x] T79: **Inline text editor**. `GET/PUT /api/edit?path=` endpoint, ≤1MB, rejects binary files.
 - [x] T80: **Trash/recycle bin**. Delete moves to `.trash/`, restore endpoint, preserve original paths.
-- [ ] T81: **Duplicate file/folder**. `POST /api/duplicate {path}`. Creates a copy with " (copy)" suffix. Uses `io.Copy` for files, recursive copy for directories.
+- [x] T81: **Duplicate file/folder**. `POST /api/duplicate {path}` copies with " (copy)" suffix.
 - [ ] T82: **Download directory as ZIP**. `GET /api/download?path=/folder&format=zip`. If path is a directory, stream a ZIP. Show progress indicator for large dirs.
 
 ---
