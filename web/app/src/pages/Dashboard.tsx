@@ -14,26 +14,12 @@ import { FolderPicker } from '../components/FolderPicker';
 import { Preview } from '../components/Preview';
 import { UploadPanel } from '../components/UploadPanel';
 import { DropOverlay } from '../components/DropOverlay';
+import { SkeletonList, SkeletonGrid } from '../components/Skeleton';
+import { EmptyState } from '../components/EmptyState';
+import { KeyboardShortcuts } from '../components/KeyboardShortcuts';
+import { ToastContainer, toast } from '../hooks/useToast';
 import { uploadFiles } from '../hooks/useUpload';
 import type { FileInfo } from '../lib/api';
-
-function FolderOpenIcon({ class: cls }: { class?: string }) {
-  return (
-    <svg class={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-    </svg>
-  );
-}
-
-function UploadCloudIcon({ class: cls }: { class?: string }) {
-  return (
-    <svg class={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="17 8 12 3 7 8"/>
-      <line x1="12" y1="3" x2="12" y2="15"/>
-    </svg>
-  );
-}
 
 interface CtxState { open: boolean; x: number; y: number; file: FileInfo | null; }
 
@@ -53,7 +39,10 @@ export function DashboardPage() {
 
   const handleUpload = (files: FileList) => {
     const fileArray = Array.from(files);
-    uploadFiles(fileArray, state.currentPath, () => loadFiles(state.currentPath));
+    uploadFiles(fileArray, state.currentPath, () => {
+      loadFiles(state.currentPath);
+      toast(`${fileArray.length} file(s) uploaded`, 'success');
+    });
   };
 
   const triggerFileInput = () => fileInputRef.current?.click();
@@ -61,7 +50,13 @@ export function DashboardPage() {
   useEffect(() => { loadFiles(state.currentPath); },
     [state.currentPath, state.sortBy, state.sortOrder, state.showHidden]);
 
-  useEffect(() => { if (state.searchQuery) loadFiles(state.currentPath); }, [state.searchQuery]);
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (state.searchQuery !== undefined) loadFiles(state.currentPath);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [state.searchQuery]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -111,7 +106,9 @@ export function DashboardPage() {
 
   const closeCtx = () => setCtx(p => ({ ...p, open: false }));
 
-  const actDownload = () => { if (ctx.file) window.open(downloadAPI.downloadUrl(fullPath(ctx.file.name)), '_blank'); };
+  const actDownload = () => {
+    if (ctx.file) window.open(downloadAPI.downloadUrl(fullPath(ctx.file.name)), '_blank');
+  };
 
   const actRename = () => {
     if (!ctx.file) return;
@@ -121,11 +118,21 @@ export function DashboardPage() {
   };
 
   const submitRename = async () => {
-    if (!ctx.file || !renameVal.trim() || renameVal === ctx.file.name) { setRenameOpen(false); return; }
+    if (!ctx.file || !renameVal.trim() || renameVal === ctx.file.name) {
+      setRenameOpen(false);
+      return;
+    }
     setProcessing(true);
-    try { await fileAPI.rename(fullPath(ctx.file.name), renameVal); loadFiles(state.currentPath); }
-    catch (err) { alert('Rename failed: ' + (err as Error).message); }
-    finally { setProcessing(false); setRenameOpen(false); }
+    try {
+      await fileAPI.rename(fullPath(ctx.file.name), renameVal);
+      loadFiles(state.currentPath);
+      toast('Renamed successfully', 'success');
+    } catch (err) {
+      toast('Rename failed: ' + (err as Error).message, 'error');
+    } finally {
+      setProcessing(false);
+      setRenameOpen(false);
+    }
   };
 
   const actDelete = () => { setDeleteOpen(true); closeCtx(); };
@@ -133,9 +140,16 @@ export function DashboardPage() {
   const submitDelete = async () => {
     if (!ctx.file) return;
     setProcessing(true);
-    try { await fileAPI.delete([fullPath(ctx.file.name)]); loadFiles(state.currentPath); }
-    catch (err) { alert('Delete failed: ' + (err as Error).message); }
-    finally { setProcessing(false); setDeleteOpen(false); }
+    try {
+      await fileAPI.delete([fullPath(ctx.file.name)]);
+      loadFiles(state.currentPath);
+      toast('Moved to trash', 'success');
+    } catch (err) {
+      toast('Delete failed: ' + (err as Error).message, 'error');
+    } finally {
+      setProcessing(false);
+      setDeleteOpen(false);
+    }
   };
 
   const actMove = () => { setPickerMode('move'); setFolderPickerOpen(true); closeCtx(); };
@@ -146,20 +160,35 @@ export function DashboardPage() {
     setProcessing(true);
     try {
       const paths = [fullPath(ctx.file.name)];
-      if (pickerMode === 'move') await fileAPI.move(paths, dest);
-      else await fileAPI.copy(paths, dest);
+      if (pickerMode === 'move') {
+        await fileAPI.move(paths, dest);
+        toast('Moved successfully', 'success');
+      } else {
+        await fileAPI.copy(paths, dest);
+        toast('Copied successfully', 'success');
+      }
       loadFiles(state.currentPath);
-    } catch (err) { alert(pickerMode + ' failed: ' + (err as Error).message); }
-    finally { setProcessing(false); setFolderPickerOpen(false); }
+    } catch (err) {
+      toast(pickerMode + ' failed: ' + (err as Error).message, 'error');
+    } finally {
+      setProcessing(false);
+      setFolderPickerOpen(false);
+    }
   };
 
   const actDuplicate = async () => {
     if (!ctx.file) return;
     closeCtx();
     setProcessing(true);
-    try { await fileAPI.duplicate(fullPath(ctx.file.name)); loadFiles(state.currentPath); }
-    catch (err) { alert('Duplicate failed: ' + (err as Error).message); }
-    finally { setProcessing(false); }
+    try {
+      await fileAPI.duplicate(fullPath(ctx.file.name));
+      loadFiles(state.currentPath);
+      toast('Duplicated successfully', 'success');
+    } catch (err) {
+      toast('Duplicate failed: ' + (err as Error).message, 'error');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -174,24 +203,9 @@ export function DashboardPage() {
 
           <div class="mt-4">
             {state.isLoading ? (
-              <div class="flex min-h-[200px] items-center justify-center">
-                <svg class="h-8 w-8 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-              </div>
+              state.viewMode === 'list' ? <SkeletonList /> : <SkeletonGrid />
             ) : state.files.length === 0 ? (
-              <div class="empty-state">
-                <div class="mb-4 rounded-2xl border-2 border-dashed border-border p-6">
-                  <FolderOpenIcon class="h-12 w-12 text-muted-foreground/50" />
-                </div>
-                <h3 class="mb-1 text-lg font-semibold text-foreground">This folder is empty</h3>
-                <p class="mb-4 max-w-xs text-sm">Drop files here or create a new folder to get started.</p>
-                <button onClick={triggerFileInput} class="command-button primary gap-2">
-                  <UploadCloudIcon class="h-4 w-4" />
-                  Upload files
-                </button>
-              </div>
+              <EmptyState onUpload={triggerFileInput} />
             ) : state.viewMode === 'list' ? (
               <FileList onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
             ) : (
@@ -270,6 +284,7 @@ export function DashboardPage() {
         type="file"
         multiple
         class="hidden"
+        aria-label="Upload files"
         onChange={(e) => {
           const files = (e.target as HTMLInputElement).files;
           if (files) handleUpload(files);
@@ -282,6 +297,12 @@ export function DashboardPage() {
 
       {/* Upload panel */}
       <UploadPanel />
+
+      {/* Toast notifications */}
+      <ToastContainer />
+
+      {/* Keyboard shortcuts help */}
+      <KeyboardShortcuts />
     </div>
   );
 }

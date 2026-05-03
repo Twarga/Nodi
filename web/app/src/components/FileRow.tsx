@@ -104,10 +104,12 @@ export function FileRow({ file, selected, onToggle, onOpen, onContextMenu }: Fil
   return (
     <li
       class={[
-        'group grid cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-all',
-        'grid-cols-[34px_1fr_100px_140px_44px] sm:grid-cols-[34px_1fr_110px_160px_56px]',
+        'group grid cursor-pointer items-center gap-2 rounded-lg px-3 py-3 text-sm transition-all',
+        'grid-cols-[34px_1fr_44px] sm:grid-cols-[34px_1fr_110px_160px_56px]',
         selected ? 'bg-primary/10 ring-1 ring-inset ring-primary/25' : 'hover:bg-surface-hover',
       ].join(' ')}
+      role="listitem"
+      aria-selected={selected}
       onClick={() => onOpen(file)}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, file); }}
     >
@@ -128,12 +130,12 @@ export function FileRow({ file, selected, onToggle, onOpen, onContextMenu }: Fil
       </div>
 
       {/* Size */}
-      <span class="text-right text-xs text-muted-foreground tabular">
+      <span class="hidden text-right text-xs text-muted-foreground tabular sm:block">
         {file.is_dir ? '—' : formatBytes(file.size)}
       </span>
 
       {/* Date */}
-      <span class="text-right text-xs text-muted-foreground tabular">
+      <span class="hidden text-right text-xs text-muted-foreground tabular sm:block">
         {formatDate(file.mod_time)}
       </span>
 

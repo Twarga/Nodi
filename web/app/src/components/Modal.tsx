@@ -11,14 +11,26 @@ interface ModalProps {
 
 export function Modal({ open, onClose, title, children, footer, size = 'md' }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Focus first focusable element
+    const timer = setTimeout(() => {
+      const focusable = dialogRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      focusable?.focus();
+    }, 50);
+
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handler);
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -38,15 +50,17 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }: M
       }}
     >
       <div
+        ref={dialogRef}
         class={[
           'w-full rounded-2xl border border-border/80 bg-surface/95 shadow-2xl backdrop-blur-xl animate-ql-pop-in mx-4',
           sizeClasses[size],
         ].join(' ')}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="modal-title"
       >
         <div class="flex items-center justify-between border-b border-border/50 px-6 py-4">
-          <h3 class="text-lg font-semibold">{title}</h3>
+          <h3 id="modal-title" class="text-lg font-semibold">{title}</h3>
           <button
             onClick={onClose}
             class="icon-button h-8 w-8"
