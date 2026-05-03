@@ -54,7 +54,7 @@ All tasks from Phase 0 through Phase 10 (T1–T55) are done.
 
 ## Phase 15: File Preview & Viewing
 
-- [ ] T83: **Image thumbnail generation**. `GET /api/thumb?path=&size=sm|md|lg`. Generate thumbnails on-the-fly for images (jpg, png, gif, webp) using `image/jpeg` resize. Cache thumbnails in `.cache/thumbs/`. Show thumbnails in grid view instead of generic file icon.
+- [x] T83: **Image thumbnail generation**. `GET /api/thumb?path=&size=sm|md|lg` with JPEG caching in `.cache/thumbs/`.
 - [ ] T84: **Image preview with zoom**. Clicking an image opens full-screen lightbox modal. Pinch/spread to zoom. Arrow keys to navigate between images in current folder. Close with Esc or click outside.
 - [ ] T85: **Video/audio streaming**. `GET /api/stream?path=` with `Content-Range` header support. For video (mp4, webm, mkv) and audio (mp3, ogg, flac) files, show inline player in preview modal. Use `http.ServeFile` with range support.
 - [ ] T86: **PDF viewer**. For `.pdf` files, embed a `<object>` or `<iframe>` with the download URL. Falls back to download link if browser doesn't support inline PDF.

@@ -7,6 +7,10 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
+	_ "image/gif"
+	_ "image/png"
 	"io"
 	stdmime "mime"
 	"net/http"
@@ -19,6 +23,7 @@ import (
 
 	"github.com/Twarga/Nodi/internal/config"
 	"github.com/Twarga/Nodi/internal/storage"
+	"golang.org/x/image/draw"
 )
 
 // FileInfo represents metadata for a file or directory.
@@ -1073,5 +1078,72 @@ func Duplicate(cfg *config.Config) http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}
+}
+
+// Thumb generates and caches image thumbnails.
+func Thumb(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fullPath, err := SafePath(cfg.Root, r.URL.Query().Get("path"))
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		// Determine output size
+		size := 128
+		switch r.URL.Query().Get("size") {
+		case "lg":
+			size = 256
+		case "md":
+			size = 128
+		default:
+			size = 64
+		}
+
+		// Check cache
+		cacheDir := filepath.Join(cfg.Root, ".cache", "thumbs")
+		os.MkdirAll(cacheDir, 0700)
+		cacheKey := filepath.Base(fullPath) + "_" + fmt.Sprint(size)
+		cachePath := filepath.Join(cacheDir, cacheKey+".jpg")
+		if cached, err := os.ReadFile(cachePath); err == nil {
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.Write(cached)
+			return
+		}
+
+		// Decode source image
+		src, err := os.Open(fullPath)
+		if err != nil {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+		defer src.Close()
+		img, _, err := image.Decode(src)
+		if err != nil {
+			http.Error(w, "Invalid image", http.StatusBadRequest)
+			return
+		}
+
+		// Resize
+		bounds := img.Bounds()
+		w2, h2 := size, size
+		if bounds.Dx() > bounds.Dy() {
+			h2 = size * bounds.Dy() / bounds.Dx()
+		} else {
+			w2 = size * bounds.Dx() / bounds.Dy()
+		}
+		dst := image.NewRGBA(image.Rect(0, 0, w2, h2))
+		draw.ApproxBiLinear.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
+
+		// Save to cache and serve
+		var buf bytes.Buffer
+		if err := jpeg.Encode(&buf, dst, &jpeg.Options{Quality: 80}); err != nil {
+			http.Error(w, "Encode failed", http.StatusInternalServerError)
+			return
+		}
+		os.WriteFile(cachePath, buf.Bytes(), 0644)
+
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Write(buf.Bytes())
 	}
 }
