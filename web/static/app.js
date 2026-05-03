@@ -675,7 +675,12 @@
       } else if (ext === 'pdf') {
         showPDFViewer(name)
       } else {
-        onDownload(name)
+        const textExts = ['txt', 'md', 'json', 'yaml', 'yml', 'log', 'csv', 'xml', 'html', 'css', 'js', 'go', 'py', 'sh', 'conf', 'cfg', 'ini', 'toml']
+        if (textExts.includes(ext)) {
+          showTextPreview(name)
+        } else {
+          onDownload(name)
+        }
       }
     }
   }
@@ -1122,6 +1127,52 @@
   function closePDFViewer() {
     const pv = document.getElementById('pdf-viewer')
     if (pv) { pv.style.display = 'none'; document.getElementById('pdf-frame').src = '' }
+  }
+
+  // --- Text Preview ---
+  async function showTextPreview(name) {
+    const path = joinPath(getCurrentPath(), name)
+    const url = `/api/edit?path=${encodeURIComponent(path)}`
+
+    let tv = document.getElementById('text-viewer')
+    if (!tv) {
+      tv = document.createElement('div')
+      tv.id = 'text-viewer'
+      tv.className = 'fixed inset-0 z-50 bg-black/80 flex items-center justify-center'
+      tv.innerHTML = `
+        <div class="bg-background rounded-lg shadow-2xl w-[90vw] max-h-[90vh] flex flex-col">
+          <div class="flex items-center justify-between p-4 border-b border-border">
+            <h3 class="font-semibold text-sm" id="text-viewer-title"></h3>
+            <button id="text-close" class="text-muted-foreground hover:text-foreground text-2xl p-1">&times;</button>
+          </div>
+          <pre class="overflow-auto p-4 font-mono text-xs whitespace-pre-wrap break-all max-h-[80vh]" id="text-viewer-content"></pre>
+        </div>
+      `
+      document.body.appendChild(tv)
+      tv.addEventListener('click', (e) => { if (e.target === tv) closeTextViewer() })
+      document.getElementById('text-close').addEventListener('click', closeTextViewer)
+    }
+
+    document.getElementById('text-viewer-title').textContent = name
+    document.getElementById('text-viewer-content').textContent = 'Loading...'
+    tv.style.display = 'flex'
+
+    try {
+      const resp = await fetch(url)
+      if (resp.ok) {
+        document.getElementById('text-viewer-content').textContent = await resp.text()
+      } else {
+        document.getElementById('text-viewer-content').textContent = 'Cannot preview this file'
+      }
+    } catch {
+      document.getElementById('text-viewer-content').textContent = 'Failed to load'
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTextViewer() })
+  }
+
+  function closeTextViewer() {
+    const tv = document.getElementById('text-viewer')
+    if (tv) tv.style.display = 'none'
   }
 
   if (document.readyState === 'loading') {
