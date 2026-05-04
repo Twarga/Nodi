@@ -213,9 +213,10 @@ EOF
 build_image() {
     info "Building Docker image..."
     info "${DIM}This takes 2–5 minutes on first run. Grab a coffee.${NC}"
+    printf "\n"
 
-    # Run build in foreground so errors bubble up naturally with set -e
-    if ! (cd "$INSTALL_DIR" && $COMPOSE build --no-cache >/dev/null 2>&1); then
+    # Show build output so errors are visible
+    if ! (cd "$INSTALL_DIR" && $COMPOSE build --no-cache); then
         printf "\n"
         fail "Docker build failed.\n\n  Try running manually to see the error:\n  ${CYAN}cd $INSTALL_DIR && $COMPOSE build --no-cache${NC}"
     fi
