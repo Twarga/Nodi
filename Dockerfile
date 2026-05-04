@@ -2,7 +2,7 @@
 
 # Stage 1: Front-end Build (Vite + Preact)
 FROM node:22-alpine AS frontend
-WORKDIR /app
+WORKDIR /app/web/app
 COPY web/app/package.json web/app/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/app/ ./
