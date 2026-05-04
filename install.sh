@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # Nodi Installer — Beautiful, bulletproof, always fresh
-# Creates a systemd service so Nodi auto-starts on boot
 # Usage: bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
 
 set -euo pipefail
@@ -21,7 +20,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
 WHITE='\033[1;37m'
 NC='\033[0m'
 CLEAR='\r\033[K'
@@ -32,21 +30,17 @@ spinner() {
     local pid=$1 msg="$2"
     local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local i=0
-    local exit_code=0
-
     while kill -0 "$pid" 2>/dev/null; do
         i=$(( (i+1) % 10 ))
         printf "${CLEAR}  ${CYAN}${spin:$i:1}${NC}  %s" "$msg"
         sleep 0.08
     done
-
-    # Wait for background job, capture exit code safely (set -e safe)
-    wait "$pid" || exit_code=$?
-
+    wait "$pid" || true
+    local exit_code=$?
     if [ $exit_code -eq 0 ]; then
         printf "${CLEAR}  ${GREEN}✓${NC}  %s\n" "$msg"
     else
-        printf "${CLEAR}  ${RED}✗${NC}  %s failed (exit %d)\n" "$msg" "$exit_code"
+        printf "${CLEAR}  ${RED}✗${NC}  %s\n" "$msg"
         return $exit_code
     fi
 }
@@ -219,21 +213,12 @@ EOF
 build_image() {
     info "Building Docker image..."
     info "${DIM}This takes 2–5 minutes on first run. Grab a coffee.${NC}"
-    local build_log="$INSTALL_DIR/build.log"
-    (
-        cd "$INSTALL_DIR"
-        $COMPOSE build --no-cache >"$build_log" 2>&1
-    ) &
-    if ! spinner $! "Building Docker image"; then
+
+    # Run build in foreground so errors bubble up naturally with set -e
+    if ! (cd "$INSTALL_DIR" && $COMPOSE build --no-cache >/dev/null 2>&1); then
         printf "\n"
-        warn "Build failed. Showing last 30 lines of build log:\n"
-        if [ -f "$build_log" ]; then
-            tail -n 30 "$build_log" | sed 's/^/    /'
-        fi
-        printf "\n"
-        fail "Docker build failed. Check the full log: ${CYAN}cat $INSTALL_DIR/build.log${NC}"
+        fail "Docker build failed.\n\n  Try running manually to see the error:\n  ${CYAN}cd $INSTALL_DIR && $COMPOSE build --no-cache${NC}"
     fi
-    rm -f "$build_log"
     step "Image built successfully"
 }
 
@@ -241,21 +226,13 @@ build_image() {
 
 start_app() {
     info "Starting Nodi..."
-    (
-        cd "$INSTALL_DIR"
-        $COMPOSE up -d >/dev/null 2>&1
-    ) &
-    if ! spinner $! "Starting container"; then
-        fail "Failed to start container. Check: ${CYAN}cd $INSTALL_DIR && $COMPOSE logs${NC}"
-    fi
+    (cd "$INSTALL_DIR" && $COMPOSE up -d >/dev/null 2>&1)
+    step "Container started"
 
     info "Waiting for health check..."
     local healthy=false
     for i in $(seq 1 60); do
-        if (
-            cd "$INSTALL_DIR"
-            $COMPOSE ps 2>/dev/null | grep -q "(healthy)"
-        ); then
+        if (cd "$INSTALL_DIR" && $COMPOSE ps 2>/dev/null | grep -q "(healthy)"); then
             healthy=true
             break
         fi
