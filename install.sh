@@ -6,9 +6,7 @@
 set -e
 
 REPO_URL="https://github.com/Twarga/Nodi.git"
-APP_NAME="nodi"
 INSTALL_DIR="${INSTALL_DIR:-nodi-app}"
-PORT="${NODI_PORT:-7319}"
 HOST="${NODI_HOST:-0.0.0.0}"
 USER_NAME="${NODI_USER:-admin}"
 PASS_HASH="${NODI_PASS_HASH:-\$2b\$10\$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy}"
@@ -116,6 +114,15 @@ cleanup_old() {
         rm -rf "$INSTALL_DIR"
         step "Old installation cleaned up"
     fi
+
+    if [ -f /etc/systemd/system/nodi.service ]; then
+        info "Removing old systemd service..."
+        systemctl stop nodi 2>/dev/null || true
+        systemctl disable nodi 2>/dev/null || true
+        rm -f /etc/systemd/system/nodi.service
+        systemctl daemon-reload 2>/dev/null || true
+        step "Old systemd service removed"
+    fi
 }
 
 # ─── Clone ──────────────────────────────────────────────────────
@@ -161,7 +168,7 @@ services:
     container_name: nodi
     restart: unless-stopped
     ports:
-      - "$PORT:7319"
+      - "7319:7319"
     env_file:
       - path: nodi.env
         format: raw
@@ -246,6 +253,38 @@ start_app() {
     step "Nodi is running"
 }
 
+# ─── Systemd Service ────────────────────────────────────────────
+
+setup_systemd() {
+    info "Creating systemd service..."
+
+    INSTALL_ABS="$(cd "$INSTALL_DIR" && pwd)"
+
+    sudo tee /etc/systemd/system/nodi.service > /dev/null <<EOF
+[Unit]
+Description=Nodi Self-Hosted File Manager
+Documentation=https://github.com/Twarga/Nodi
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=$INSTALL_ABS
+ExecStart=$COMPOSE up -d
+ExecStop=$COMPOSE down
+ExecReload=$COMPOSE up -d --build
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo systemctl daemon-reload >/dev/null 2>&1
+    sudo systemctl enable nodi >/dev/null 2>&1
+    step "Systemd service created and enabled"
+}
+
 # ─── Success Screen ─────────────────────────────────────────────
 
 show_success() {
@@ -261,9 +300,9 @@ show_success() {
     printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
     printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}🚀  Nodi is live!${NC}                      ${GREEN}${BOLD}│${NC}\n"
     printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}   ${CYAN}Local:${NC}   http://localhost:${PORT}        ${GREEN}${BOLD}│${NC}\n"
+    printf "  ${GREEN}${BOLD}│${NC}   ${CYAN}Local:${NC}   http://localhost:7319         ${GREEN}${BOLD}│${NC}\n"
     if [ -n "$LOCAL_IP" ]; then
-        printf "  ${GREEN}${BOLD}│${NC}   ${CYAN}Network:${NC} http://${LOCAL_IP}:${PORT}      ${GREEN}${BOLD}│${NC}\n"
+        printf "  ${GREEN}${BOLD}│${NC}   ${CYAN}Network:${NC} http://${LOCAL_IP}:7319       ${GREEN}${BOLD}│${NC}\n"
     fi
     printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
     printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}User:${NC}     ${WHITE}${BOLD}${USER_NAME}${NC}                     ${GREEN}${BOLD}│${NC}\n"
@@ -273,9 +312,14 @@ show_success() {
     printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
     printf "  ${GREEN}${BOLD}╰──────────────────────────────────────────╯${NC}\n"
     printf "\n"
-    printf "  ${DIM}Useful commands:${NC}\n"
+    printf "  ${DIM}Systemd commands:${NC}\n"
+    printf "    ${CYAN}sudo systemctl status nodi${NC}    — check status\n"
+    printf "    ${CYAN}sudo systemctl stop nodi${NC}      — stop Nodi\n"
+    printf "    ${CYAN}sudo systemctl start nodi${NC}     — start Nodi\n"
+    printf "    ${CYAN}sudo systemctl restart nodi${NC}   — restart Nodi\n"
+    printf "\n"
+    printf "  ${DIM}Docker commands:${NC}\n"
     printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE logs -f${NC}\n"
-    printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE down${NC}\n"
     printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE up -d --build${NC}\n"
     printf "\n"
 }
@@ -290,6 +334,7 @@ main() {
     write_configs
     build_image
     start_app
+    setup_systemd
     show_success
 }
 

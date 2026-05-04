@@ -1,6 +1,5 @@
 # Nodi - Self-hosted web file manager
 # Copy this file and create a nodi.env from .env.example before running.
-# Copy this file and create a nodi.env from .env.example before running.
 
 services:
   nodi:

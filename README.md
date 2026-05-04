@@ -42,23 +42,35 @@ Nodi is a minimalist file management solution for users who value density and pe
 
 ## Deployment (Fast Install)
 
-Run the one-click installer on any Linux server with Docker installed. It **always builds from the latest source** — no old images.
+Run the one-click installer on any Linux server with Docker installed. It **always builds from the latest source** and creates a **systemd service** so Nodi auto-starts on boot.
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
 ```
 
-The installer clones the repo, builds a fresh Docker image, and starts Nodi. Default credentials are `admin / admin`; change these in `nodi.env` before exposing outside a trusted network.
+The installer clones the repo, builds a fresh Docker image, starts Nodi on port **7319**, and registers it with `systemd`. Default credentials are `admin / admin`; change these in `nodi.env` before exposing outside a trusted network.
 
-**Custom port or directory:**
+**Custom install directory:**
 
 ```bash
-NODI_PORT=9090 INSTALL_DIR=/opt/nodi bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
+INSTALL_DIR=/opt/nodi bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
 ```
 
-**Remove old installation:**
+**Manage Nodi:**
 
 ```bash
+sudo systemctl status nodi     # check status
+sudo systemctl stop nodi       # stop
+sudo systemctl start nodi      # start
+sudo systemctl restart nodi    # restart
+```
+
+**Remove completely:**
+
+```bash
+sudo systemctl stop nodi && sudo systemctl disable nodi
+sudo rm /etc/systemd/system/nodi.service
+sudo systemctl daemon-reload
 cd nodi-app && docker compose down -v && cd .. && rm -rf nodi-app
 ```
 
