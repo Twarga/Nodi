@@ -11,6 +11,7 @@ type Config struct {
 	User          string
 	PassHash      string
 	Root          string
+	Host          string
 	Port          string
 	MaxUpload     int64
 	CookieSecret  string
@@ -22,9 +23,10 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		User:          getEnv("QL_USER", "admin"),
 		PassHash:      getEnv("QL_PASS_HASH", ""),
-		Root:          getEnv("QL_ROOT", "/data"),
+		Root:          getEnv("QL_ROOT", "./nodi_files"),
+		Host:          getEnv("QL_HOST", "0.0.0.0"),
 		Port:          getEnv("QL_PORT", "7319"),
-		MaxUpload:     int64(2147483648), // 2GB default
+		MaxUpload:     int64(2147483648),
 		CookieSecret:  getEnv("QL_COOKIE_SECRET", ""),
 		Theme:         getEnv("QL_THEME", "system"),
 		SessionExpiry: 24 * time.Hour,

@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://twarga.github.io/Nodi/sitemap.xml

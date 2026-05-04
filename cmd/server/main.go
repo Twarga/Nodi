@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -110,10 +111,12 @@ func NewHandler(cfg *config.Config) http.Handler {
 	staticFiles := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", cacheStaticHeaders(http.StripPrefix("/static/", staticFiles)))
 
-	// Health, version, and metrics endpoints (no auth required)
+	// Health and version endpoints (no auth required)
 	mux.HandleFunc("/api/health", healthHandler)
 	mux.HandleFunc("/api/version", versionHandler)
-	mux.HandleFunc("/api/metrics", metricsHandler)
+
+	// Metrics endpoint requires auth to prevent info leakage
+	mux.Handle("/api/metrics", middleware.AuthRequired(cfg.CookieSecret)(http.HandlerFunc(metricsHandler)))
 
 	// SPA auth check
 	mux.Handle("/api/whoami", middleware.AuthRequired(cfg.CookieSecret)(handlers.Whoami()))
@@ -145,6 +148,17 @@ func NewHandler(cfg *config.Config) http.Handler {
 	mux.Handle("/api/storage", middleware.AuthRequired(cfg.CookieSecret)(handlers.StorageStats(cfg)))
 	mux.Handle("/api/password", middleware.AuthRequired(cfg.CookieSecret)(handlers.ChangePassword(cfg)))
 
+	// Share API
+	mux.Handle("/api/share", middleware.AuthRequired(cfg.CookieSecret)(handlers.SharesRouter(cfg)))
+	mux.Handle("/s/", http.StripPrefix("/s/", handlers.ServeShare(cfg)))
+
+	// Activity log
+	mux.Handle("/api/activity", middleware.AuthRequired(cfg.CookieSecret)(handlers.Activity(cfg)))
+
+	// Backup / Restore
+	mux.Handle("/api/backup", middleware.AuthRequired(cfg.CookieSecret)(handlers.Backup(cfg)))
+	mux.Handle("/api/restore-backup", middleware.AuthRequired(cfg.CookieSecret)(handlers.RestoreBackup(cfg)))
+
 	// T33: Upload API
 	mux.Handle("/api/upload", middleware.AuthRequired(cfg.CookieSecret)(handlers.Upload(cfg)))
 	mux.Handle("/api/upload/chunk", middleware.AuthRequired(cfg.CookieSecret)(handlers.ChunkUpload(cfg)))
@@ -169,6 +183,39 @@ func NewHandler(cfg *config.Config) http.Handler {
 	return loggingMiddleware(securityHeaders(middleware.CSPNonce(middleware.CSRFProtect(mux))))
 }
 
+func localIPs() []string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	var ips []string
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
+				continue
+			}
+			if ipv4 := ip.To4(); ipv4 != nil {
+				ips = append(ips, ipv4.String())
+			}
+		}
+	}
+	return ips
+}
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -179,24 +226,40 @@ func main() {
 		log.Fatalf("Template init error: %v", err)
 	}
 
-	fmt.Printf("Nodi starting on port %s\n", cfg.Port)
+	fmt.Printf("Nodi starting on %s:%s\n", cfg.Host, cfg.Port)
 	fmt.Printf("Serving files from: %s\n", cfg.Root)
 
+	bindAddr := cfg.Host + ":" + cfg.Port
+
 	srv := &http.Server{
-		Addr:         ":" + cfg.Port,
+		Addr:         bindAddr,
 		Handler:      NewHandler(cfg),
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  30 * time.Minute,
+		WriteTimeout: 60 * time.Minute,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	// Graceful shutdown on SIGINT/SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	go func() {
-		log.Printf("Listening on :%s", cfg.Port)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		listener, err := net.Listen("tcp", bindAddr)
+		if err != nil {
+			log.Fatalf("Listen error: %v", err)
+		}
+		defer listener.Close()
+
+		fmt.Println("")
+		fmt.Printf("  Local:   http://localhost:%s\n", cfg.Port)
+		if ips := localIPs(); len(ips) > 0 {
+			for _, ip := range ips {
+				fmt.Printf("  Network: http://%s:%s\n", ip, cfg.Port)
+			}
+		}
+		fmt.Println("")
+
+		log.Printf("Listening on %s", bindAddr)
+		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
 		}
 	}()

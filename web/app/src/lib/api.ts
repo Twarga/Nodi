@@ -351,4 +351,60 @@ export const versionAPI = {
   get: () => fetchJSON<VersionInfo>('/api/version'),
 };
 
+// ─── Shares ──────────────────────────────────────────
+export interface Share {
+  token: string;
+  path: string;
+  is_dir: boolean;
+  created_at: string;
+  expires_at: string | null;
+  has_password: boolean;
+  mode: 'read' | 'upload';
+  url: string;
+}
+
+export const shareAPI = {
+  list: () => fetchJSON<Share[]>('/api/share'),
+  create: (params: { path: string; expires_at?: string; password?: string; mode: 'read' | 'upload' }) =>
+    fetchJSON<{ token: string; url: string }>('/api/share', { method: 'POST', body: JSON.stringify(params) }),
+  revoke: (token: string) =>
+    fetchJSON<void>(`/api/share?token=${encodeURIComponent(token)}`, { method: 'DELETE' }),
+};
+
+// ─── Activity ─────────────────────────────────────────
+export interface ActivityEvent {
+  at: string;
+  user: string;
+  action: string;
+  path: string;
+  extra?: string;
+}
+
+export const activityAPI = {
+  list: (limit = 50) => fetchJSON<ActivityEvent[]>(`/api/activity?limit=${limit}`),
+};
+
+// ─── Backup ──────────────────────────────────────────
+export const backupAPI = {
+  downloadUrl: () => '/api/backup',
+  restore: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const csrfMatch = document.cookie.match(/ql_csrf=([^;]+)/);
+    const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
+    return fetch('/api/restore-backup', {
+      method: 'POST',
+      body: form,
+      credentials: 'same-origin',
+      headers: { 'X-CSRF-Token': csrfToken, 'X-Confirm': 'DELETE' },
+    }).then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+      return res.json();
+    });
+  },
+};
+
 export { APIError, fetchJSON };

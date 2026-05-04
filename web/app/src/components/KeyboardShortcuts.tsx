@@ -19,7 +19,10 @@ export function KeyboardShortcuts() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !isInput) {
         e.preventDefault();
         setOpen(prev => !prev);
       }
@@ -35,11 +38,11 @@ export function KeyboardShortcuts() {
 
   return (
     <div
-      class="fixed inset-0 z-[150] flex items-center justify-center bg-background/70 backdrop-blur-sm animate-ql-fade-in"
+      class="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-ql-fade-in"
       onClick={() => setOpen(false)}
     >
       <div
-        class="w-full max-w-sm rounded-2xl border border-border/80 bg-surface/95 p-6 shadow-2xl backdrop-blur-xl animate-ql-pop-in mx-4"
+        class="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-2xl animate-ql-pop-in mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div class="mb-4 flex items-center justify-between">

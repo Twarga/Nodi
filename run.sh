@@ -1,121 +1,108 @@
 #!/usr/bin/env bash
-
-# Nodi - Local Development Runner
-# Runs both frontend (Vite) and backend (Go) in development mode
-
 set -euo pipefail
 
-DEFAULT_PORT=7319
+# Nodi — run the full app locally (development mode)
+# Usage: ./run.sh
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Default configuration
+DEFAULT_HOST="0.0.0.0"
+DEFAULT_PORT="7319"
 DEFAULT_PASS_HASH='$2b$10$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy'
-OLD_INVALID_PASS_HASH='$2y$10$y58t9Y6PqBf9N6qA58t9Ye8Zp6iS6Y7YmS6i6Y7YmS6i6Y7YmS6i6'
 
-usage() {
-    cat <<EOF
-Usage: $0 [OPTIONS]
+# ─── Helpers ────────────────────────────────────────────────────
 
-Run Nodi in local development mode.
-
-Options:
-  -w, --watch    Start Vite dev server with hot-reload (proxies API to Go)
-  -h, --help     Show this help message
-
-Examples:
-  $0             # Build frontend and start Go server
-  $0 --watch     # Start Vite dev server + Go backend simultaneously
-EOF
+check_cmd() {
+  if ! command -v "$1" &>/dev/null; then
+    echo -e "${RED}Error: $1 is required but not installed.${NC}"
+    echo "       Install it and try again."
+    exit 1
+  fi
 }
 
-WATCH_MODE=false
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -w|--watch) WATCH_MODE=true; shift ;;
-        -h|--help) usage; exit 0 ;;
-        *) echo "Unknown option: $1"; usage; exit 1 ;;
-    esac
-done
+step() {
+  echo -e "${BLUE}==>${NC} $1"
+}
 
-# 1. Ensure node_modules exists
-if [ ! -d "web/app/node_modules" ]; then
-    echo "==> Installing frontend dependencies..."
-    (cd web/app && npm ci)
+ok() {
+  echo -e "${GREEN}   ✓${NC} $1"
+}
+
+warn() {
+  echo -e "${YELLOW}   !${NC} $1"
+}
+
+# ─── Dependency Check ───────────────────────────────────────────
+
+step "Checking dependencies"
+check_cmd go
+check_cmd node
+check_cmd npm
+ok "Go $(go version | awk '{print $3}')"
+ok "Node $(node --version)"
+ok "npm $(npm --version)"
+
+# ─── Frontend Build ─────────────────────────────────────────────
+
+step "Building frontend"
+cd web/app
+if [ ! -d "node_modules" ]; then
+  npm ci --no-audit --no-fund
 fi
+npm run build
+ok "Frontend built"
+cd "$SCRIPT_DIR"
 
-# 2. Setup default environment if .env is missing
+# ─── Environment Setup ──────────────────────────────────────────
+
+step "Checking environment"
 if [ ! -f ".env" ]; then
-    echo "==> .env not found. Creating a default test configuration..."
-    cat > .env <<EOF
+  warn ".env not found — creating default"
+  cat > .env <<EOF
+QL_HOST=$DEFAULT_HOST
 QL_PORT=$DEFAULT_PORT
-QL_ROOT=./data
+QL_ROOT=./nodi_files
 QL_USER=admin
 QL_PASS_HASH=$DEFAULT_PASS_HASH
 QL_COOKIE_SECRET=local-development-secret-keep-it-safe-123
+QL_THEME=system
 EOF
-    mkdir -p data
+  ok "Created .env with default values"
+  warn "Default credentials: admin / admin"
+  warn "Change QL_PASS_HASH and QL_COOKIE_SECRET before production use"
 fi
 
-# 2b. Migrate older local defaults
-if grep -q '^QL_PORT=8080$' .env; then
-    echo "==> Updating local .env port from 8080 to $DEFAULT_PORT..."
-    sed -i.bak "s/^QL_PORT=8080$/QL_PORT=$DEFAULT_PORT/" .env
-fi
-
-if grep -Fqx "QL_PASS_HASH=$OLD_INVALID_PASS_HASH" .env; then
-    echo "==> Replacing invalid local admin password hash..."
-    sed -i.bak "s|^QL_PASS_HASH=.*$|QL_PASS_HASH=$DEFAULT_PASS_HASH|" .env
-fi
-
-# 3. Load .env literally so bcrypt hashes containing '$' are not shell-expanded
-while IFS='=' read -r key value; do
-    case "$key" in
-        ''|\#*) continue ;;
-    esac
-    export "$key=$value"
+# Export variables from .env safely (skip comments, don't expand $ in values)
+while IFS='=' read -r key val; do
+  [ -z "$key" ] && continue
+  [[ "$key" =~ ^[[:space:]]*# ]] && continue
+  key=$(echo "$key" | xargs) # trim whitespace
+  val=$(echo "$val" | xargs) # trim whitespace
+  [ -z "$key" ] && continue
+  export "$key=$val"
 done < .env
 
-# 4. Start services
-if [ "$WATCH_MODE" = true ]; then
-    echo "==> Starting Nodi in development mode..."
-    echo ""
-    echo "    Frontend (Vite):  http://localhost:5173"
-    echo "    Backend (Go):     http://localhost:$DEFAULT_PORT"
-    echo "    API proxy:        Vite → Go (:$DEFAULT_PORT)"
-    echo ""
-    echo "    Press Ctrl+C to stop both services"
-    echo ""
+mkdir -p nodi_files
+ok "Storage directory ready: ./nodi_files"
 
-    # Start Go backend in background
-    go run cmd/server/main.go &
-    GO_PID=$!
+# ─── Start Server ───────────────────────────────────────────────
 
-    # Wait for Go to be ready
-    echo "==> Waiting for Go backend on port $DEFAULT_PORT..."
-    for i in {1..30}; do
-        if curl -s http://localhost:$DEFAULT_PORT/api/health >/dev/null 2>&1; then
-            echo "    Go backend is ready!"
-            break
-        fi
-        if [ $i -eq 30 ]; then
-            echo "    WARNING: Go backend did not start in time"
-        fi
-        sleep 0.5
-    done
-
-    # Start Vite dev server in foreground (this is the main process)
-    (cd web/app && npm run dev)
-
-    # When Vite exits, kill Go
-    echo ""
-    echo "==> Stopping Go backend..."
-    kill $GO_PID 2>/dev/null || true
-    wait $GO_PID 2>/dev/null || true
-else
-    echo "==> Building frontend..."
-    (cd web/app && npm run build)
-
-    echo ""
-    echo "==> Starting Nodi Server..."
-    echo "    URL: http://localhost:$DEFAULT_PORT"
-    echo ""
-
-    go run cmd/server/main.go
+step "Starting Nodi server"
+echo ""
+echo -e "   ${GREEN}Local:${NC}   http://localhost:${DEFAULT_PORT}"
+NETWORK_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || ip route get 1 2>/dev/null | awk '{print $7; exit}' || echo "")
+if [ -n "$NETWORK_IP" ]; then
+  echo -e "   ${GREEN}Network:${NC} http://${NETWORK_IP}:${DEFAULT_PORT}"
 fi
+echo ""
+
+go run ./cmd/server

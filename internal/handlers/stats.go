@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"bufio"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Twarga/Nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/storage"
 )
 
 type storageStats struct {
@@ -89,5 +92,57 @@ func StorageStats(cfg *config.Config) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(s)
+	}
+}
+
+func Activity(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		limit := 100
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if parsed, err := fmt.Sscanf(l, "%d", &limit); err != nil || parsed != 1 || limit <= 0 {
+				limit = 100
+			}
+			if limit > 500 {
+				limit = 500
+			}
+		}
+
+		logPath := filepath.Join(cfg.Root, ".nodilog.jsonl")
+		f, err := os.Open(logPath)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode([]storage.ActivityEvent{})
+			return
+		}
+		defer f.Close()
+
+		var events []storage.ActivityEvent
+		scanner := bufio.NewScanner(f)
+		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+		for scanner.Scan() {
+			var ev storage.ActivityEvent
+			if err := json.Unmarshal(scanner.Bytes(), &ev); err != nil {
+				continue
+			}
+			events = append(events, ev)
+		}
+
+		// Reverse: newest first
+		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
+			events[i], events[j] = events[j], events[i]
+		}
+
+		if limit > len(events) {
+			limit = len(events)
+		}
+		events = events[:limit]
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(events)
 	}
 }

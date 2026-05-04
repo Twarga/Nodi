@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { ctxState, closeCtx } from '../stores/ui';
 import type { FileInfo } from '../lib/api';
 
 interface ContextMenuProps {
+  x: number;
+  y: number;
+  file: FileInfo;
+  onClose: () => void;
   onDownload: () => void;
   onRename: () => void;
   onMove: () => void;
@@ -11,17 +14,17 @@ interface ContextMenuProps {
   onDelete: () => void;
 }
 
-export function ContextMenu({ onDownload, onRename, onMove, onCopy, onDuplicate, onDelete }: ContextMenuProps) {
+export function ContextMenu({ x, y, file, onClose, onDownload, onRename, onMove, onCopy, onDuplicate, onDelete }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent | KeyboardEvent) => {
       if (e instanceof KeyboardEvent) {
-        if (e.key === 'Escape') closeCtx();
+        if (e.key === 'Escape') onClose();
         return;
       }
-      if (ctxState.value.open && menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        closeCtx();
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
       }
     };
     document.addEventListener('mousedown', handler);
@@ -30,45 +33,38 @@ export function ContextMenu({ onDownload, onRename, onMove, onCopy, onDuplicate,
       document.removeEventListener('mousedown', handler);
       document.removeEventListener('keydown', handler);
     };
-  }, []);
+  }, [onClose]);
 
-  const ctx = ctxState.value;
-  const visible = ctx.open && ctx.file;
+  // Position within viewport
+  const menuWidth = 180;
+  const menuHeight = 280;
+  const posX = Math.min(x, window.innerWidth - menuWidth - 8);
+  const posY = Math.min(y, window.innerHeight - menuHeight - 8);
 
-  const menuWidth = 200;
-  const menuHeight = 300;
-  const posX = visible ? Math.min(ctx.x, window.innerWidth - menuWidth - 8) : 0;
-  const posY = visible ? Math.min(ctx.y, window.innerHeight - menuHeight - 8) : 0;
-
-  const items = visible ? [
-    ...(!ctx.file!.is_dir ? [{ label: 'Download', action: onDownload }] : []),
+  const items = [
+    ...(!file.is_dir ? [{ label: 'Download', action: onDownload }] : []),
     { label: 'Rename', action: onRename },
     { label: 'Move to', action: onMove },
     { label: 'Copy to', action: onCopy },
     { label: 'Duplicate', action: onDuplicate },
     { label: 'Delete', action: onDelete, danger: true },
-  ] : [];
+  ];
 
   return (
     <div
       ref={menuRef}
-      class={[
-        'fixed z-[130] min-w-[200px] rounded-xl glass py-1.5 shadow-2xl',
-        'transition-opacity duration-150',
-        visible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-      ].join(' ')}
+      class="fixed z-[130] min-w-[180px] rounded-xl border border-border bg-surface py-1 shadow-xl animate-ql-pop-in"
       style={{ left: posX, top: posY }}
     >
       {items.map((item, i) => (
         <button
           key={i}
-          onClick={() => { item.action(); closeCtx(); }}
+          onClick={() => { item.action(); onClose(); }}
           class={[
-            'flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-all duration-150 mx-1.5',
-            'w-[calc(100%-12px)]',
+            'flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors',
             item.danger
               ? 'text-destructive hover:bg-destructive/10'
-              : 'text-foreground hover:bg-surface-hover/80',
+              : 'text-foreground hover:bg-surface-hover',
           ].join(' ')}
         >
           {item.label}

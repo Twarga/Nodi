@@ -6,10 +6,8 @@
 *.dylib
 /server
 /bin/
-/tailwindcss-linux-x64
 
 # Go build
-/bin/
 /vendor/
 
 # Node
@@ -29,29 +27,18 @@ nodi.env
 .env.*.local
 
 # Local managed files
-data/
+nodi_files/
 
 # IDE
 .vscode/
-!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
 
 # Build outputs
 *.out
-*.exe
 coverage.txt
-
-# Testcoverage
 coverage/
 *.prof
-
-# Reference / inspiration code (not part of runtime)
-front-end inspiration/

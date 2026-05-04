@@ -1,16 +1,9 @@
 .git
 .gitignore
-tailwindcss-linux-x64
-server
 logo.png
-front-end inspiration
-plan.md
-TASKS.md
-data/
-uploads/
+nodi_files/
 /tmp/
 *.log
 nodi.env
 .env
 .github/
-landing-page/

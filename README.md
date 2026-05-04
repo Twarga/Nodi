@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Go-1.26+-1f1f1f?style=flat-square&logo=go&logoColor=00ADD8" alt="Go" />
+  <img src="https://img.shields.io/badge/Go-1.24+-1f1f1f?style=flat-square&logo=go&logoColor=00ADD8" alt="Go" />
   <img src="https://img.shields.io/badge/Vanilla_JS-Frontend-1f1f1f?style=flat-square&logo=javascript&logoColor=F7DF1E" alt="Vanilla JS" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-1f1f1f?style=flat-square&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Docker-Packaging-1f1f1f?style=flat-square&logo=docker&logoColor=2496ED" alt="Docker" />
@@ -65,22 +65,27 @@ cp .env.example nodi.env
 docker compose up -d
 ```
 
-The compose file uses a named `nodi-data` volume mounted at `/data`.
+The compose file uses a named `nodi-files` volume mounted at `/nodi_files`.
 
 ## Development
 
 Prerequisites:
-- [Go 1.26+](https://go.dev/)
+- [Go 1.24+](https://go.dev/)
 - [Docker](https://www.docker.com/) (optional)
 
-To start the project locally for testing:
+## Quick Start (Local)
+
+Run the full app with one command:
 
 ```bash
-chmod +x run.sh
 ./run.sh
 ```
 
-This will download the Tailwind CLI, compile the CSS, scaffold a default `.env`, and start the server.
+This installs frontend dependencies, builds the UI, scaffolds a default `.env`, and starts the Go server.
+
+**Requires:** Go 1.24+, Node.js 20+, npm
+
+Default credentials: `admin` / `admin` — change these before exposing to a network.
 
 ## License
 MIT License. Created by [Twarga](https://github.com/Twarga).

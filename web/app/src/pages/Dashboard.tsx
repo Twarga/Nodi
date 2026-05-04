@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'preact/hooks';
-import { appState, setPath, setFiles, setLoading, clearSelection, selectAll, currentPath, sortBy as sortBySig, sortOrder as sortOrderSig, showHidden as showHiddenSig, searchQuery as searchQuerySig, files as filesSig, isLoading as isLoadingSig, viewMode as viewModeSig } from '../stores/app';
-import { ctxState, openCtx, closeCtx, previewFileState, openPreview, closePreview } from '../stores/ui';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { appState, setPath, setFiles, setLoading, clearSelection, selectAll } from '../stores/app';
 import { browseAPI, fileAPI, downloadAPI } from '../lib/api';
 import { TopBar } from '../components/TopBar';
+
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { WorkspaceBar } from '../components/WorkspaceBar';
 import { FileList } from '../components/FileList';
@@ -21,23 +21,13 @@ import { ToastContainer, toast } from '../hooks/useToast';
 import { uploadFiles } from '../hooks/useUpload';
 import type { FileInfo } from '../lib/api';
 
-function buildBreadcrumbs(path: string): { name: string; path: string }[] {
-  if (!path || path === '/') return [];
-  const parts = path.replace(/^\//, '').split('/');
-  const segments: { name: string; path: string }[] = [];
-  let current = '';
-  for (const part of parts) {
-    if (!part) continue;
-    current += '/' + part;
-    segments.push({ name: part, path: current });
-  }
-  return segments;
-}
+interface CtxState { open: boolean; x: number; y: number; file: FileInfo | null; }
 
 export function DashboardPage() {
+  const state = appState.value;
   const lastClicked = useRef(-1);
-  const loadGeneration = useRef(0);
 
+  const [ctx, setCtx] = useState<CtxState>({ open: false, x: 0, y: 0, file: null });
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameVal, setRenameVal] = useState('');
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,111 +38,98 @@ export function DashboardPage() {
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<'move' | 'copy'>('move');
   const [processing, setProcessing] = useState(false);
+  const [previewFile, setPreviewFile] = useState<FileInfo | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const _curPath = currentPath.value;
-  const _sortBy = sortBySig.value;
-  const _sortOrder = sortOrderSig.value;
-  const _showHidden = showHiddenSig.value;
-  const _searchQuery = searchQuerySig.value;
-  const _files = filesSig.value;
-  const _isLoading = isLoadingSig.value;
-  const _viewMode = viewModeSig.value;
-
-  const fullPath = useCallback((name: string) => appState.value.currentPath ? appState.value.currentPath + '/' + name : name, []);
-
-  const loadFiles = useCallback(async (path: string, showLoading: boolean) => {
-    const gen = ++loadGeneration.current;
-    if (showLoading) setLoading(true);
-    try {
-      const data = await browseAPI.list({
-        path,
-        sortBy: appState.value.sortBy,
-        sortOrder: appState.value.sortOrder,
-        showHidden: appState.value.showHidden,
-        query: appState.value.searchQuery || undefined,
-      });
-      if (gen !== loadGeneration.current) return;
-      const files = data.files || [];
-      setPath(path, buildBreadcrumbs(path));
-      setFiles(files);
-    } catch {
-      if (gen !== loadGeneration.current) return;
-      setFiles([]);
-    }
-  }, []);
-
-  const silentReload = useCallback(() => {
-    loadFiles(appState.value.currentPath, false);
-  }, [loadFiles]);
-
-  const handleUpload = useCallback((files: FileList) => {
+  const handleUpload = (files: FileList) => {
     const fileArray = Array.from(files);
     if (fileArray.length === 0) return;
-    uploadFiles(fileArray, appState.value.currentPath, () => {
-      silentReload();
+    uploadFiles(fileArray, state.currentPath, () => {
+      loadFiles(state.currentPath);
       toast(`${fileArray.length} file(s) uploaded`, 'success');
     });
-  }, [silentReload]);
+  };
 
-  const triggerFileInput = useCallback(() => fileInputRef.current?.click(), []);
+  const triggerFileInput = () => fileInputRef.current?.click();
 
-  useEffect(() => { loadFiles(_curPath, true); }, [_curPath, _sortBy, _sortOrder, _showHidden]);
+  const loadFiles = async (path: string) => {
+    setLoading(true);
+    try {
+      const data = await browseAPI.list({ path, sortBy: state.sortBy, sortOrder: state.sortOrder });
+      let files = data.files;
+      if (!state.showHidden) files = files.filter(f => !f.name.startsWith('.'));
+      if (state.searchQuery) {
+        const q = state.searchQuery.toLowerCase();
+        files = files.filter(f => f.name.toLowerCase().includes(q));
+      }
+      setPath(path);
+      setFiles(files);
+    } catch {
+      setFiles([]);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadFiles(state.currentPath); },
+    [state.currentPath, state.sortBy, state.sortOrder, state.showHidden]);
 
   useEffect(() => {
-    if (!_searchQuery && !_curPath) return;
-    const timer = setTimeout(() => { loadFiles(appState.value.currentPath, _searchQuery !== ''); }, 300);
+    const timer = setTimeout(() => { loadFiles(state.currentPath); }, 300);
     return () => clearTimeout(timer);
-  }, [_searchQuery]);
+  }, [state.searchQuery]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { clearSelection(); closeCtx(); }
+      if (e.key === 'Escape') { clearSelection(); setCtx(p => ({ ...p, open: false })); }
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
-        const names = _files.map(f => f.name);
+        const names = state.files.map(f => f.name);
         if (names.length > 0) selectAll(names);
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [_files.length]);
+  }, [state.files.length]);
 
-  const handleOpen = useCallback((file: FileInfo) => {
+  const fullPath = (name: string) => state.currentPath ? state.currentPath + '/' + name : name;
+
+  const handleOpen = async (file: FileInfo) => {
     if (file.is_dir) {
-      loadFiles(appState.value.currentPath ? appState.value.currentPath + '/' + file.name : file.name, true);
+      const np = fullPath(file.name);
+      await loadFiles(np);
     } else {
-      openPreview(file);
+      setPreviewFile(file);
     }
-  }, [loadFiles]);
+  };
 
-  const handleContextMenu = useCallback((e: MouseEvent, file: FileInfo) => {
-    openCtx(e, file);
-  }, []);
+  const handleContextMenu = (e: MouseEvent, file: FileInfo) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtx({ open: true, x: e.clientX, y: e.clientY, file });
+  };
 
-  const actDownload = useCallback(() => {
-    const f = ctxState.value.file;
-    if (!f) return;
-    window.open(downloadAPI.downloadUrl(fullPath(f.name)), '_blank');
-  }, [fullPath]);
+  const closeCtx = () => setCtx(p => ({ ...p, open: false }));
 
-  const actRename = useCallback(() => {
-    const f = ctxState.value.file;
-    if (!f) return;
-    setRenameVal(f.name);
+  const actDownload = () => {
+    if (ctx.file) window.open(downloadAPI.downloadUrl(fullPath(ctx.file.name)), '_blank');
+  };
+
+  const actRename = () => {
+    if (!ctx.file) return;
+    setRenameVal(ctx.file.name);
     setRenameOpen(true);
-  }, []);
+    closeCtx();
+  };
 
-  const submitRename = useCallback(async () => {
-    const f = ctxState.value.file;
-    if (!f || !renameVal.trim() || renameVal === f.name) {
+  const submitRename = async () => {
+    if (!ctx.file || !renameVal.trim() || renameVal === ctx.file.name) {
       setRenameOpen(false);
       return;
     }
     setProcessing(true);
     try {
-      await fileAPI.rename(fullPath(f.name), renameVal.trim());
-      silentReload();
+      await fileAPI.rename(fullPath(ctx.file.name), renameVal.trim());
+      loadFiles(state.currentPath);
       toast('Renamed successfully', 'success');
     } catch (err) {
       toast('Rename failed: ' + (err as Error).message, 'error');
@@ -160,17 +137,16 @@ export function DashboardPage() {
       setProcessing(false);
       setRenameOpen(false);
     }
-  }, [renameVal, fullPath, silentReload]);
+  };
 
-  const actDelete = useCallback(() => { setDeleteOpen(true); }, []);
+  const actDelete = () => { setDeleteOpen(true); closeCtx(); };
 
-  const submitDelete = useCallback(async () => {
-    const f = ctxState.value.file;
-    if (!f) return;
+  const submitDelete = async () => {
+    if (!ctx.file) return;
     setProcessing(true);
     try {
-      await fileAPI.delete(fullPath(f.name));
-      silentReload();
+      await fileAPI.delete(fullPath(ctx.file.name));
+      loadFiles(state.currentPath);
       toast('Moved to trash', 'success');
     } catch (err) {
       toast('Delete failed: ' + (err as Error).message, 'error');
@@ -178,98 +154,96 @@ export function DashboardPage() {
       setProcessing(false);
       setDeleteOpen(false);
     }
-  }, [fullPath, silentReload]);
+  };
 
-  const actMove = useCallback(() => { setPickerMode('move'); setFolderPickerOpen(true); }, []);
-  const actCopy = useCallback(() => { setPickerMode('copy'); setFolderPickerOpen(true); }, []);
+  const actMove = () => { setPickerMode('move'); setFolderPickerOpen(true); closeCtx(); };
+  const actCopy = () => { setPickerMode('copy'); setFolderPickerOpen(true); closeCtx(); };
 
-  const submitPicker = useCallback(async (dest: string) => {
-    const f = ctxState.value.file;
-    if (!f) return;
+  const submitPicker = async (dest: string) => {
+    if (!ctx.file) return;
     setProcessing(true);
     try {
-      const srcPath = fullPath(f.name);
-      const dstPath = dest + '/' + f.name;
+      const src = fullPath(ctx.file.name);
       if (pickerMode === 'move') {
-        await fileAPI.move(srcPath, dstPath);
+        await fileAPI.move(src, dest);
         toast('Moved successfully', 'success');
       } else {
-        await fileAPI.copy(srcPath, dstPath);
+        await fileAPI.copy(src, dest);
         toast('Copied successfully', 'success');
       }
-      silentReload();
+      loadFiles(state.currentPath);
     } catch (err) {
       toast(pickerMode + ' failed: ' + (err as Error).message, 'error');
     } finally {
       setProcessing(false);
       setFolderPickerOpen(false);
     }
-  }, [fullPath, pickerMode, silentReload]);
+  };
 
-  const actDuplicate = useCallback(async () => {
-    const f = ctxState.value.file;
-    if (!f) return;
+  const actDuplicate = async () => {
+    if (!ctx.file) return;
+    closeCtx();
     setProcessing(true);
     try {
-      await fileAPI.duplicate(fullPath(f.name));
-      silentReload();
+      await fileAPI.duplicate(fullPath(ctx.file.name));
+      loadFiles(state.currentPath);
       toast('Duplicated successfully', 'success');
     } catch (err) {
       toast('Duplicate failed: ' + (err as Error).message, 'error');
     } finally {
       setProcessing(false);
     }
-  }, [fullPath, silentReload]);
+  };
 
-  const handleNewFolder = useCallback(async () => {
+  const handleNewFolder = async () => {
     const name = newFolderName.trim();
     if (!name) return;
     setProcessing(true);
     try {
-      await fileAPI.createFolder(appState.value.currentPath, name);
+      await fileAPI.createFolder(state.currentPath, name);
       setNewFolderOpen(false);
       setNewFolderName('');
-      silentReload();
+      loadFiles(state.currentPath);
       toast('Folder created', 'success');
     } catch (err) {
       toast('Failed to create folder: ' + (err as Error).message, 'error');
     } finally {
       setProcessing(false);
     }
-  }, [newFolderName, silentReload]);
+  };
 
-  const handleNewFile = useCallback(async () => {
+  const handleNewFile = async () => {
     const name = newFileName.trim();
     if (!name) return;
     setProcessing(true);
     try {
-      await fileAPI.createFile(appState.value.currentPath, name);
+      await fileAPI.createFile(state.currentPath, name);
       setNewFileOpen(false);
       setNewFileName('');
-      silentReload();
+      loadFiles(state.currentPath);
       toast('File created', 'success');
     } catch (err) {
       toast('Failed to create file: ' + (err as Error).message, 'error');
     } finally {
       setProcessing(false);
     }
-  }, [newFileName, silentReload]);
+  };
 
   return (
-    <div class="flex h-screen flex-col overflow-hidden bg-background">
+    <>
+    <div class="flex h-screen flex-col overflow-hidden">
       <TopBar />
-      <div class="flex flex-1 overflow-hidden relative z-0">
-        <main class="flex-1 overflow-y-auto overflow-x-hidden relative z-0">
-          <div class="px-4 sm:px-6 lg:px-8 pt-6 pb-8 mx-auto max-w-screen-2xl">
+      <main class="flex-1 overflow-y-auto overflow-x-hidden">
+          <div class="px-4 pt-4 pb-6 sm:px-6">
             <Breadcrumbs />
             <div class="mt-4"><WorkspaceBar onUpload={triggerFileInput} onNewFolder={() => setNewFolderOpen(true)} onNewFile={() => setNewFileOpen(true)} /></div>
             <div class="mt-3"><SelectionBar /></div>
             <div class="mt-4">
-              {_isLoading ? (
-                _viewMode === 'list' ? <SkeletonList /> : <SkeletonGrid />
-              ) : _files.length === 0 ? (
+              {state.isLoading ? (
+                state.viewMode === 'list' ? <SkeletonList /> : <SkeletonGrid />
+              ) : state.files.length === 0 ? (
                 <EmptyState onUpload={triggerFileInput} />
-              ) : _viewMode === 'list' ? (
+              ) : state.viewMode === 'list' ? (
                 <FileList onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
               ) : (
                 <FileGrid onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
@@ -279,10 +253,13 @@ export function DashboardPage() {
         </main>
       </div>
 
-      <ContextMenu
-        onDownload={actDownload} onRename={actRename} onMove={actMove}
-        onCopy={actCopy} onDuplicate={actDuplicate} onDelete={actDelete}
-      />
+      {ctx.open && ctx.file && (
+        <ContextMenu
+          x={ctx.x} y={ctx.y} file={ctx.file} onClose={closeCtx}
+          onDownload={actDownload} onRename={actRename} onMove={actMove}
+          onCopy={actCopy} onDuplicate={actDuplicate} onDelete={actDelete}
+        />
+      )}
 
       <Modal open={renameOpen} onClose={() => setRenameOpen(false)} title="Rename" size="sm"
         footer={
@@ -313,7 +290,7 @@ export function DashboardPage() {
           </>
         }
       >
-        <p class="text-sm">Are you sure you want to delete <strong class="text-foreground">{ctxState.value.file?.name}</strong>?</p>
+        <p class="text-sm">Are you sure you want to delete <strong class="text-foreground">{ctx.file?.name}</strong>?</p>
         <p class="mt-2 text-xs text-muted-foreground">This item will be moved to trash.</p>
       </Modal>
 
@@ -365,7 +342,15 @@ export function DashboardPage() {
         actionLabel={pickerMode === 'move' ? 'Move here' : 'Copy here'}
       />
 
-      <PreviewOverlay />
+      {previewFile && (
+        <Preview
+          file={previewFile}
+          path={state.currentPath}
+          allFiles={state.files}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
+
       <input
         ref={fileInputRef}
         type="file"
@@ -383,19 +368,6 @@ export function DashboardPage() {
       <UploadPanel />
       <ToastContainer />
       <KeyboardShortcuts />
-    </div>
-  );
-}
-
-function PreviewOverlay() {
-  const file = previewFileState.value;
-  if (!file) return null;
-  return (
-    <Preview
-      file={file}
-      path={appState.value.currentPath}
-      allFiles={appState.value.files}
-      onClose={closePreview}
-    />
+    </>
   );
 }

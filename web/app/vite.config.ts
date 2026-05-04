@@ -48,9 +48,4 @@ export default defineConfig({
       'react-dom': 'preact/compat',
     },
   },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: './src/test/setup.ts',
-  },
 });

@@ -1,6 +1,6 @@
 # Nodi - Self-hosted web file manager
 # Copy this file and create a nodi.env from .env.example before running.
-# See docs/installation.md for full setup instructions.
+# Copy this file and create a nodi.env from .env.example before running.
 
 services:
   nodi:
@@ -15,7 +15,7 @@ services:
       - path: nodi.env
         format: raw
     volumes:
-      - nodi-data:/data
+      - nodi-files:/nodi_files
     # Health check verifies the login page is reachable
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7319/login"]
@@ -48,5 +48,5 @@ services:
         max-file: "3"
 
 volumes:
-  nodi-data:
+  nodi-files:
     driver: local

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
-import { storageAPI, passwordAPI, versionAPI } from '../lib/api';
-import type { StorageStats, VersionInfo } from '../lib/api';
+import { storageAPI, passwordAPI, versionAPI, activityAPI, backupAPI } from '../lib/api';
+import type { StorageStats, VersionInfo, ActivityEvent } from '../lib/api';
 import { TopBar } from '../components/TopBar';
 import { toast, ToastContainer } from '../hooks/useToast';
 import { navigate } from '../lib/router';
@@ -18,11 +18,14 @@ export function SettingsPage() {
   const [stats, setStats] = useState<StorageStats | null>(null);
   const [version, setVersion] = useState<VersionInfo | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [activities, setActivities] = useState<ActivityEvent[]>([]);
 
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
+  const [restoreConfirm, setRestoreConfirm] = useState('');
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     storageAPI.stats()
@@ -30,6 +33,7 @@ export function SettingsPage() {
       .catch(() => toast('Failed to load storage stats', 'error'))
       .finally(() => setStatsLoading(false));
     versionAPI.get().then(setVersion).catch(() => {});
+    activityAPI.list(50).then(setActivities).catch(() => {});
   }, []);
 
   const submitPassword = async (e: Event) => {
@@ -169,6 +173,62 @@ export function SettingsPage() {
             </form>
           </section>
 
+          {/* Backup card */}
+          <section class="rounded-2xl border border-border bg-surface p-6 mb-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Backup & Restore</h2>
+            <div class="space-y-4">
+              <div>
+                <button
+                  onClick={() => { window.location.href = backupAPI.downloadUrl(); }}
+                  class="command-button primary h-10 px-4 text-sm inline-flex items-center gap-2"
+                  title="Backup everything inside nodi_files as a ZIP"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Backup
+                </button>
+                <p class="mt-1.5 text-xs text-muted-foreground">
+                  Creates a ZIP of your entire <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">nodi_files</code> folder
+                  (includes files, shares, favorites, and activity log; excludes trash and cache).
+                </p>
+              </div>
+              <hr class="border-border" />
+              <div>
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Restore from file</label>
+                <p class="mb-2 text-xs text-destructive font-medium">Warning: This overwrites existing files. Type DELETE to confirm.</p>
+                <input
+                  type="text" value={restoreConfirm}
+                  onInput={(e) => setRestoreConfirm((e.target as HTMLInputElement).value)}
+                  class="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 mb-2"
+                  placeholder='Type "DELETE" to confirm'
+                />
+                <input
+                  type="file" accept=".zip"
+                  class="h-10 w-full text-sm"
+                  disabled={restoreConfirm !== 'DELETE'}
+                  onChange={async (e) => {
+                    const f = (e.target as HTMLInputElement).files?.[0];
+                    if (!f || restoreConfirm !== 'DELETE') return;
+                    setRestoring(true);
+                    try {
+                      await backupAPI.restore(f);
+                      toast('Restore complete', 'success');
+                      setRestoreConfirm('');
+                    } catch (err) {
+                      toast((err as Error).message || 'Restore failed', 'error');
+                    } finally {
+                      setRestoring(false);
+                    }
+                  }}
+                />
+                {restoring && <p class="mt-2 text-xs text-muted-foreground">Restoring...</p>}
+              </div>
+            </div>
+          </section>
+
           {/* About card */}
           <section class="rounded-2xl border border-border bg-surface p-6">
             <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">About</h2>
@@ -186,6 +246,37 @@ export function SettingsPage() {
                 <dd>Nodi · Self-hosted file manager</dd>
               </div>
             </dl>
+          </section>
+
+          {/* Activity card */}
+          <section class="rounded-2xl border border-border bg-surface p-6 mb-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Recent Activity</h2>
+            {activities.length === 0 ? (
+              <p class="text-sm text-muted-foreground">No activity recorded.</p>
+            ) : (
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-border text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <th class="pb-2 text-left">Time</th>
+                      <th class="pb-2 text-left">Action</th>
+                      <th class="pb-2 text-left">User</th>
+                      <th class="pb-2 text-left">Path</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activities.map((ev, i) => (
+                      <tr key={i} class="border-b border-border/30 last:border-0">
+                        <td class="py-1.5 font-mono text-xs text-muted-foreground whitespace-nowrap">{new Date(ev.at).toLocaleString()}</td>
+                        <td class="py-1.5"><span class="inline-block rounded px-1.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">{ev.action}</span></td>
+                        <td class="py-1.5 text-muted-foreground">{ev.user}</td>
+                        <td class="py-1.5 font-mono text-xs truncate max-w-[200px]" title={ev.path}>{ev.path}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </div>
       </main>

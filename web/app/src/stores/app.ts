@@ -42,13 +42,26 @@ export const showHidden = computed(() => appState.value.showHidden);
 export const selectedFiles = computed(() => appState.value.selectedFiles);
 export const isLoading = computed(() => appState.value.isLoading);
 
-export function setPath(path: string, bc: BreadcrumbSegment[]) {
+export function setPath(path: string) {
+  const breadcrumbs = buildBreadcrumbs(path);
   appState.value = {
     ...appState.value,
     currentPath: path,
-    breadcrumbs: bc,
+    breadcrumbs,
     selectedFiles: new Set(),
   };
+}
+
+function buildBreadcrumbs(path: string): BreadcrumbSegment[] {
+  if (!path) return [];
+  const parts = path.split('/');
+  const segments: BreadcrumbSegment[] = [];
+  let current = '';
+  for (const part of parts) {
+    current = current ? `${current}/${part}` : part;
+    segments.push({ name: part, path: current });
+  }
+  return segments;
 }
 
 export function setFiles(files: FileInfo[]) {

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Twarga/Nodi/internal/config"
+	"github.com/Twarga/Nodi/internal/storage"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -58,6 +59,7 @@ func ChangePassword(cfg *config.Config) http.HandlerFunc {
 		}
 
 		cfg.PassHash = string(newHash)
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "password_change", Path: ""})
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})

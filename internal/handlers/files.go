@@ -200,6 +200,7 @@ func Restore(cfg *config.Config) http.HandlerFunc {
 		}
 		os.MkdirAll(filepath.Dir(dstPath), 0755)
 		os.Rename(srcPath, dstPath)
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "restore", Path: origPath})
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
@@ -420,6 +421,8 @@ func CreateFolder(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "create_folder", Path: req.Path + "/" + req.Name})
+
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Folder created"})
 	}
@@ -457,6 +460,8 @@ func Delete(cfg *config.Config) http.HandlerFunc {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "delete", Path: req.Path})
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Item deleted"})
@@ -520,6 +525,8 @@ func Rename(cfg *config.Config) http.HandlerFunc {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "rename", Path: req.OldPath, Extra: req.NewName})
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Item renamed"})
@@ -674,6 +681,7 @@ func Upload(cfg *config.Config) http.HandlerFunc {
 			}
 
 			results = append(results, res)
+			storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "upload", Path: path + "/" + fileHeader.Filename})
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -714,6 +722,8 @@ func Move(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "move", Path: req.Src, Extra: req.Dst})
+
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
@@ -751,6 +761,8 @@ func Copy(cfg *config.Config) http.HandlerFunc {
 			http.Error(w, "Copy failed: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "copy", Path: req.Src, Extra: req.Dst})
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
@@ -888,6 +900,7 @@ func CreateFile(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 		f.Close()
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "create_file", Path: req.Path + "/" + req.Name})
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
@@ -1087,6 +1100,7 @@ func Duplicate(cfg *config.Config) http.HandlerFunc {
 			http.Error(w, "Duplicate failed", http.StatusInternalServerError)
 			return
 		}
+		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "duplicate", Path: req.Path})
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
@@ -1257,20 +1271,35 @@ func ChunkComplete(cfg *config.Config) http.HandlerFunc {
 		}
 		defer out.Close()
 
+		success := false
+		defer func() {
+			if !success {
+				out.Close()
+				os.Remove(dstPath)
+				// Clean up any remaining chunks for this flow
+				for i := 0; i < req.TotalChunks; i++ {
+					os.Remove(filepath.Join(chunkDir, fmt.Sprintf("%s_%d", req.FlowID, i)))
+				}
+			}
+		}()
+
 		for i := 0; i < req.TotalChunks; i++ {
 			chunkPath := filepath.Join(chunkDir, fmt.Sprintf("%s_%d", req.FlowID, i))
 			chunk, err := os.Open(chunkPath)
 			if err != nil {
-				out.Close()
-				os.Remove(dstPath)
 				http.Error(w, "Missing chunk "+fmt.Sprint(i), http.StatusBadRequest)
 				return
 			}
-			io.Copy(out, chunk)
+			if _, err := io.Copy(out, chunk); err != nil {
+				chunk.Close()
+				http.Error(w, "Failed to assemble chunk "+fmt.Sprint(i), http.StatusInternalServerError)
+				return
+			}
 			chunk.Close()
 			os.Remove(chunkPath)
 		}
 
+		success = true
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
