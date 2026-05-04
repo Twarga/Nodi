@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(git describe --tags --always 2>/dev || echo dev)" -o nodi ./cmd/server
 
 # Stage 3: Runtime
-FROM alpine:3.21
+FROM alpine:3.23
 RUN apk add --no-cache ca-certificates \
     && addgroup -S nodi \
     && adduser -S -G nodi -h /app nodi
