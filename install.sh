@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 # Nodi Installer — Beautiful, bulletproof, always fresh
+# Creates a systemd service so Nodi auto-starts on boot
 # Usage: bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
 
-set -e
+set -euo pipefail
 
 REPO_URL="https://github.com/Twarga/Nodi.git"
 INSTALL_DIR="${INSTALL_DIR:-nodi-app}"
@@ -31,17 +32,21 @@ spinner() {
     local pid=$1 msg="$2"
     local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local i=0
+    local exit_code=0
+
     while kill -0 "$pid" 2>/dev/null; do
         i=$(( (i+1) % 10 ))
         printf "${CLEAR}  ${CYAN}${spin:$i:1}${NC}  %s" "$msg"
         sleep 0.08
     done
-    wait "$pid"
-    local exit_code=$?
+
+    # Wait for background job, capture exit code safely (set -e safe)
+    wait "$pid" || exit_code=$?
+
     if [ $exit_code -eq 0 ]; then
         printf "${CLEAR}  ${GREEN}✓${NC}  %s\n" "$msg"
     else
-        printf "${CLEAR}  ${RED}✗${NC}  %s\n" "$msg"
+        printf "${CLEAR}  ${RED}✗${NC}  %s failed (exit %d)\n" "$msg" "$exit_code"
         return $exit_code
     fi
 }
@@ -117,10 +122,10 @@ cleanup_old() {
 
     if [ -f /etc/systemd/system/nodi.service ]; then
         info "Removing old systemd service..."
-        systemctl stop nodi 2>/dev/null || true
-        systemctl disable nodi 2>/dev/null || true
-        rm -f /etc/systemd/system/nodi.service
-        systemctl daemon-reload 2>/dev/null || true
+        sudo systemctl stop nodi 2>/dev/null || true
+        sudo systemctl disable nodi 2>/dev/null || true
+        sudo rm -f /etc/systemd/system/nodi.service
+        sudo systemctl daemon-reload 2>/dev/null || true
         step "Old systemd service removed"
     fi
 }
@@ -214,11 +219,21 @@ EOF
 build_image() {
     info "Building Docker image..."
     info "${DIM}This takes 2–5 minutes on first run. Grab a coffee.${NC}"
+    local build_log="$INSTALL_DIR/build.log"
     (
         cd "$INSTALL_DIR"
-        $COMPOSE build --no-cache >/dev/null 2>&1
+        $COMPOSE build --no-cache >"$build_log" 2>&1
     ) &
-    spinner $! "Building Docker image"
+    if ! spinner $! "Building Docker image"; then
+        printf "\n"
+        warn "Build failed. Showing last 30 lines of build log:\n"
+        if [ -f "$build_log" ]; then
+            tail -n 30 "$build_log" | sed 's/^/    /'
+        fi
+        printf "\n"
+        fail "Docker build failed. Check the full log: ${CYAN}cat $INSTALL_DIR/build.log${NC}"
+    fi
+    rm -f "$build_log"
     step "Image built successfully"
 }
 
@@ -230,7 +245,9 @@ start_app() {
         cd "$INSTALL_DIR"
         $COMPOSE up -d >/dev/null 2>&1
     ) &
-    spinner $! "Starting container"
+    if ! spinner $! "Starting container"; then
+        fail "Failed to start container. Check: ${CYAN}cd $INSTALL_DIR && $COMPOSE logs${NC}"
+    fi
 
     info "Waiting for health check..."
     local healthy=false
