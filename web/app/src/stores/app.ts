@@ -1,4 +1,4 @@
-import { signal } from '@preact/signals';
+import { signal, computed } from '@preact/signals';
 import type { FileInfo, BreadcrumbSegment } from '../lib/api';
 
 export type ViewMode = 'list' | 'grid';
@@ -31,11 +31,22 @@ export const appState = signal<AppState>({
   isLoading: false,
 });
 
-export function setPath(path: string, breadcrumbs: BreadcrumbSegment[]) {
+export const currentPath = computed(() => appState.value.currentPath);
+export const breadcrumbs = computed(() => appState.value.breadcrumbs);
+export const files = computed(() => appState.value.files);
+export const viewMode = computed(() => appState.value.viewMode);
+export const sortBy = computed(() => appState.value.sortBy);
+export const sortOrder = computed(() => appState.value.sortOrder);
+export const searchQuery = computed(() => appState.value.searchQuery);
+export const showHidden = computed(() => appState.value.showHidden);
+export const selectedFiles = computed(() => appState.value.selectedFiles);
+export const isLoading = computed(() => appState.value.isLoading);
+
+export function setPath(path: string, bc: BreadcrumbSegment[]) {
   appState.value = {
     ...appState.value,
     currentPath: path,
-    breadcrumbs,
+    breadcrumbs: bc,
     selectedFiles: new Set(),
   };
 }

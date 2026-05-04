@@ -3,6 +3,7 @@ import { ThemeProvider } from './stores/theme';
 import { useRoute } from './lib/router';
 import { LoginPage } from './pages/Login';
 import { DashboardPage } from './pages/Dashboard';
+import { SettingsPage } from './pages/Settings';
 
 function Router() {
   const route = useRoute();
@@ -31,6 +32,19 @@ function Router() {
   if (!state.value.user) {
     window.location.href = '/login';
     return null;
+  }
+
+  const isDashboard = route.value === 'dashboard' || route.value === 'settings';
+
+  if (isDashboard) {
+    return (
+      <>
+        <div style={route.value === 'dashboard' ? undefined : 'display:none'}>
+          <DashboardPage />
+        </div>
+        {route.value === 'settings' && <SettingsPage />}
+      </>
+    );
   }
 
   return <DashboardPage />;

@@ -142,6 +142,8 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	// T27: Rename API
 	mux.Handle("/api/rename", middleware.AuthRequired(cfg.CookieSecret)(handlers.Rename(cfg)))
+	mux.Handle("/api/storage", middleware.AuthRequired(cfg.CookieSecret)(handlers.StorageStats(cfg)))
+	mux.Handle("/api/password", middleware.AuthRequired(cfg.CookieSecret)(handlers.ChangePassword(cfg)))
 
 	// T33: Upload API
 	mux.Handle("/api/upload", middleware.AuthRequired(cfg.CookieSecret)(handlers.Upload(cfg)))

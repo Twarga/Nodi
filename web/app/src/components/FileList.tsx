@@ -1,4 +1,4 @@
-import { appState, toggleSelect, selectAll, clearSelection } from '../stores/app';
+import { toggleSelect, selectAll, clearSelection, files, selectedFiles } from '../stores/app';
 import { FileRow } from './FileRow';
 import type { FileInfo } from '../lib/api';
 
@@ -9,16 +9,17 @@ interface FileListProps {
 }
 
 export function FileList({ onOpen, onContextMenu, lastClicked }: FileListProps) {
-  const state = appState.value;
-  const allSelected = state.files.length > 0 && state.files.every(f => state.selectedFiles.has(f.name));
-  const someSelected = state.selectedFiles.size > 0 && !allSelected;
+  const _files = files.value;
+  const _selected = selectedFiles.value;
+  const allSelected = _files.length > 0 && _files.every(f => _selected.has(f.name));
+  const someSelected = _selected.size > 0 && !allSelected;
 
   const handleToggle = (name: string, index: number, e: MouseEvent) => {
     if (e.shiftKey && lastClicked.current >= 0) {
       const start = Math.min(lastClicked.current, index);
       const end = Math.max(lastClicked.current, index);
-      const names = state.files.slice(start, end + 1).map(f => f.name);
-      const next = new Set(state.selectedFiles);
+      const names = _files.slice(start, end + 1).map(f => f.name);
+      const next = new Set(_selected);
       names.forEach(n => next.add(n));
       selectAll(Array.from(next));
     } else {
@@ -36,7 +37,7 @@ export function FileList({ onOpen, onContextMenu, lastClicked }: FileListProps) 
             type="checkbox"
             checked={allSelected}
             ref={(el) => { if (el) el.indeterminate = someSelected; }}
-            onChange={() => allSelected ? clearSelection() : selectAll(state.files.map(f => f.name))}
+            onChange={() => allSelected ? clearSelection() : selectAll(_files.map(f => f.name))}
             class="selection-checkbox"
           />
         </div>
@@ -48,11 +49,11 @@ export function FileList({ onOpen, onContextMenu, lastClicked }: FileListProps) 
 
       {/* File rows */}
       <ul class="divide-y divide-border/30">
-        {state.files.map((file, i) => (
+        {_files.map((file, i) => (
           <FileRow
             key={file.name}
             file={file}
-            selected={state.selectedFiles.has(file.name)}
+            selected={_selected.has(file.name)}
             onToggle={(name) => handleToggle(name, i, window.event as MouseEvent || new MouseEvent('click'))}
             onOpen={onOpen}
             onContextMenu={onContextMenu}

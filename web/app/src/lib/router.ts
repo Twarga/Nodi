@@ -1,9 +1,9 @@
 import { signal } from '@preact/signals';
-import { useEffect } from 'preact/hooks';
 
 type Route = 'dashboard' | 'login' | 'settings';
 
 const currentRoute = signal<Route>('dashboard');
+let initialized = false;
 
 function getRouteFromPath(): Route {
   const path = window.location.pathname;
@@ -12,9 +12,10 @@ function getRouteFromPath(): Route {
   return 'dashboard';
 }
 
-export function initRouter() {
+function initRouter() {
+  if (initialized) return;
+  initialized = true;
   currentRoute.value = getRouteFromPath();
-
   window.addEventListener('popstate', () => {
     currentRoute.value = getRouteFromPath();
   });
@@ -26,9 +27,7 @@ export function navigate(path: string) {
 }
 
 export function useRoute() {
-  useEffect(() => {
-    initRouter();
-  }, []);
+  initRouter();
   return currentRoute;
 }
 

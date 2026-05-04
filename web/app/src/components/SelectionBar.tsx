@@ -1,4 +1,4 @@
-import { appState, clearSelection } from '../stores/app';
+import { clearSelection, currentPath, selectedFiles } from '../stores/app';
 import { fileAPI } from '../lib/api';
 
 function TrashIcon({ class: cls }: { class?: string }) {
@@ -20,14 +20,15 @@ function XIcon({ class: cls }: { class?: string }) {
 }
 
 export function SelectionBar() {
-  const state = appState.value;
-  const count = state.selectedFiles.size;
+  const sel = selectedFiles.value;
+  const count = sel.size;
+  const cp = currentPath.value;
 
   if (count === 0) return null;
 
   const handleDelete = async () => {
-    const paths = Array.from(state.selectedFiles).map(name => {
-      return state.currentPath ? `${state.currentPath}/${name}` : name;
+    const paths = Array.from(sel).map(name => {
+      return cp ? `${cp}/${name}` : name;
     });
     if (!confirm(`Delete ${count} item${count > 1 ? 's' : ''}?`)) return;
     try {
@@ -35,7 +36,6 @@ export function SelectionBar() {
         await fileAPI.delete(p);
       }
       clearSelection();
-      // Reload will happen via parent
     } catch (err) {
       alert('Failed to delete: ' + (err as Error).message);
     }

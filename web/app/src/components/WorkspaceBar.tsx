@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { appState, setViewMode, setSort, setSearch, toggleHidden } from '../stores/app';
+import { setViewMode, setSort, setSearch, toggleHidden, viewMode, sortBy, sortOrder, showHidden, searchQuery } from '../stores/app';
 
 function ListIcon() {
   return (
@@ -50,9 +50,13 @@ interface WorkspaceBarProps {
 }
 
 export function WorkspaceBar({ onUpload, onNewFolder, onNewFile }: WorkspaceBarProps) {
-  const state = appState.value;
+  const _viewMode = viewMode.value;
+  const _sortBy = sortBy.value;
+  const _sortOrder = sortOrder.value;
+  const _showHidden = showHidden.value;
+  const _searchQuery = searchQuery.value;
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchVal, setSearchVal] = useState(state.searchQuery);
+  const [searchVal, setSearchVal] = useState(_searchQuery);
 
   const handleSearchInput = (val: string) => {
     setSearchVal(val);
@@ -66,14 +70,14 @@ export function WorkspaceBar({ onUpload, onNewFolder, onNewFile }: WorkspaceBarP
         <div class="view-switch">
           <button
             onClick={() => setViewMode('list')}
-            class={['view-switch-btn', state.viewMode === 'list' ? 'is-active' : ''].join(' ')}
+            class={['view-switch-btn', _viewMode === 'list' ? 'is-active' : ''].join(' ')}
             title="List view"
           >
             <ListIcon />
           </button>
           <button
             onClick={() => setViewMode('grid')}
-            class={['view-switch-btn', state.viewMode === 'grid' ? 'is-active' : ''].join(' ')}
+            class={['view-switch-btn', _viewMode === 'grid' ? 'is-active' : ''].join(' ')}
             title="Grid view"
           >
             <GridIcon />
@@ -82,8 +86,8 @@ export function WorkspaceBar({ onUpload, onNewFolder, onNewFile }: WorkspaceBarP
 
         <div class="flex items-center gap-1">
           <select
-            value={state.sortBy}
-            onChange={(e) => setSort((e.target as HTMLSelectElement).value as any, state.sortOrder)}
+            value={_sortBy}
+            onChange={(e) => setSort((e.target as HTMLSelectElement).value as any, _sortOrder)}
             class="h-8 rounded-lg border border-border bg-surface px-2 text-xs font-medium outline-none focus:border-primary cursor-pointer"
           >
             <option value="name">Name</option>
@@ -91,20 +95,20 @@ export function WorkspaceBar({ onUpload, onNewFolder, onNewFile }: WorkspaceBarP
             <option value="modified">Modified</option>
           </select>
           <button
-            onClick={() => setSort(state.sortBy, state.sortOrder === 'asc' ? 'desc' : 'asc')}
+            onClick={() => setSort(_sortBy, _sortOrder === 'asc' ? 'desc' : 'asc')}
             class="icon-button h-8 w-8"
-            title={state.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+            title={_sortOrder === 'asc' ? 'Ascending' : 'Descending'}
           >
-            {state.sortOrder === 'asc' ? <SortAscIcon /> : <SortDescIcon />}
+            {_sortOrder === 'asc' ? <SortAscIcon /> : <SortDescIcon />}
           </button>
         </div>
 
         <button
           onClick={toggleHidden}
-          class={['icon-button h-9 w-9', state.showHidden ? 'text-primary' : ''].join(' ')}
-          title={state.showHidden ? 'Hide hidden files' : 'Show hidden files'}
+          class={['icon-button h-9 w-9', _showHidden ? 'text-primary' : ''].join(' ')}
+          title={_showHidden ? 'Hide hidden files' : 'Show hidden files'}
         >
-          {state.showHidden ? (
+          {_showHidden ? (
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
             </svg>

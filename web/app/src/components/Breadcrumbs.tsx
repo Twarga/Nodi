@@ -1,13 +1,5 @@
-import { appState, setPath, setFiles, setLoading } from '../stores/app';
+import { setPath, setFiles, setLoading, currentPath, breadcrumbs } from '../stores/app';
 import { browseAPI } from '../lib/api';
-
-function ChevronRightIcon() {
-  return (
-    <svg class="h-3.5 w-3.5 text-muted-foreground/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
-  );
-}
 
 function buildBreadcrumbs(path: string): { name: string; path: string }[] {
   if (!path || path === '/') return [];
@@ -22,8 +14,17 @@ function buildBreadcrumbs(path: string): { name: string; path: string }[] {
   return segments;
 }
 
+function ChevronRightIcon() {
+  return (
+    <svg class="h-3.5 w-3.5 text-muted-foreground/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  );
+}
+
 export function Breadcrumbs() {
-  const { breadcrumbs, currentPath } = appState.value;
+  const bc = breadcrumbs.value;
+  const cp = currentPath.value;
 
   const navigateTo = async (path: string) => {
     setLoading(true);
@@ -42,7 +43,7 @@ export function Breadcrumbs() {
         onClick={() => navigateTo('')}
         class={[
           'flex items-center gap-1.5 rounded-lg px-2 py-1 whitespace-nowrap transition-all duration-200 hover:bg-surface-hover/80 hover:text-foreground hover:shadow-sm',
-          currentPath === '' ? 'text-primary font-semibold' : 'text-muted-foreground',
+          cp === '' ? 'text-primary font-semibold' : 'text-muted-foreground',
         ].join(' ')}
         title="Home"
       >
@@ -53,8 +54,8 @@ export function Breadcrumbs() {
         <span class="hidden sm:inline">Home</span>
       </button>
 
-      {breadcrumbs.map((segment, i) => {
-        const isLast = i === breadcrumbs.length - 1;
+      {bc.map((segment, i) => {
+        const isLast = i === bc.length - 1;
         return (
           <span key={segment.path} class="flex items-center gap-1.5">
             <ChevronRightIcon />

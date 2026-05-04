@@ -80,7 +80,13 @@ export function AuthProvider({ children }: { children: preact.ComponentChildren 
 
   const logout = async () => {
     try {
-      await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+      const csrfMatch = document.cookie.match(/ql_csrf=([^;]+)/);
+      const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
+      await fetch('/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
     } finally {
       authState.value = { user: null, loading: false, error: null };
       window.location.href = '/login';

@@ -316,4 +316,39 @@ export const trashAPI = {
   restore: (name: string) => fileAPI.restore(name),
 };
 
+// ─── Storage ─────────────────────────────────────────
+export interface StorageStats {
+  used: number;
+  total: number;
+  free: number;
+  file_count: number;
+  dir_count: number;
+}
+
+export const storageAPI = {
+  stats: () => fetchJSON<StorageStats>('/api/storage'),
+};
+
+// ─── Password ────────────────────────────────────────
+export const passwordAPI = {
+  change: (currentPassword: string, newPassword: string) =>
+    fetchJSON<{ success: boolean }>('/api/password', {
+      method: 'POST',
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    }),
+};
+
+// ─── Version ─────────────────────────────────────────
+export interface VersionInfo {
+  version: string;
+  go_version: string;
+}
+
+export const versionAPI = {
+  get: () => fetchJSON<VersionInfo>('/api/version'),
+};
+
 export { APIError, fetchJSON };
