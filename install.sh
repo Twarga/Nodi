@@ -25,6 +25,7 @@ MAX_UPLOAD="${NODI_MAX_UPLOAD:-2147483648}"
 DRY_RUN=false
 INTERACTIVE=false
 NO_PULL=false
+BUILD=false
 
 spinner_pid=""
 
@@ -144,6 +145,7 @@ usage() {
     -H, --host HOST       Bind address (default: 0.0.0.0)
     -i, --image IMAGE     Docker image (default: ghcr.io/twarga/nodi:latest)
     -u, --user USER       Admin username (default: admin)
+        --build           Build from source instead of pulling image
         --interactive     Interactive setup with prompts
         --no-pull         Skip pulling image (use local)
         --dry-run         Show what would be done without executing
@@ -180,6 +182,7 @@ while [[ $# -gt 0 ]]; do
         -i|--image) IMAGE="$2"; shift 2 ;;
         -u|--user) USER_NAME="$2"; shift 2 ;;
         --interactive) INTERACTIVE=true; shift ;;
+        --build) BUILD=true; shift ;;
         --no-pull) NO_PULL=true; shift ;;
         --dry-run) DRY_RUN=true; shift ;;
         --uninstall) ACTION="uninstall"; shift ;;
@@ -295,10 +298,15 @@ QL_THEME=${NODI_THEME:-system}
 QL_MAX_UPLOAD=${MAX_UPLOAD}
 EOF
 
+    if [ "$BUILD" = true ]; then
+      COMPOSE_BUILD="    build: ."
+    else
+      COMPOSE_BUILD="    image: ${IMAGE}"
+    fi
     cat > "$INSTALL_DIR/docker-compose.yml" <<EOF
 services:
   ${APP_NAME}:
-    image: ${IMAGE}
+${COMPOSE_BUILD}
     container_name: ${APP_NAME}
     restart: unless-stopped
     ports:
@@ -374,12 +382,27 @@ QL_THEME=${NODI_THEME:-system}
 QL_MAX_UPLOAD=${MAX_UPLOAD}
 EOF
 
+# Clone source if building
+if [ "$BUILD" = true ]; then
+    step_start "Cloning source code"
+    if ! git clone --depth 1 https://github.com/Twarga/Nodi.git "$INSTALL_DIR/src" >/dev/null 2>&1; then
+        step_fail
+        fail "Could not clone repository. Check your internet connection."
+    fi
+    step_done
+fi
+
 # Write docker-compose.yml
 step_start "Writing docker-compose.yml"
+if [ "$BUILD" = true ]; then
+  COMPOSE_BUILD="    build: ./src"
+else
+  COMPOSE_BUILD="    image: ${IMAGE}"
+fi
 cat > "$INSTALL_DIR/docker-compose.yml" <<EOF
 services:
   ${APP_NAME}:
-    image: ${IMAGE}
+${COMPOSE_BUILD}
     container_name: ${APP_NAME}
     restart: unless-stopped
     ports:
@@ -408,8 +431,8 @@ volumes:
 EOF
 step_done
 
-# Pull image
-if [ "$NO_PULL" != true ]; then
+# Pull image (skip if building)
+if [ "$BUILD" != true ] && [ "$NO_PULL" != true ]; then
     step_start "Pulling Docker image"
     if ! (cd "$INSTALL_DIR" && $COMPOSE pull) >/dev/null 2>&1; then
         step_fail
@@ -420,7 +443,11 @@ fi
 
 # Start containers
 step_start "Starting Nodi"
-(cd "$INSTALL_DIR" && $COMPOSE up -d) >/dev/null 2>&1
+if [ "$BUILD" = true ]; then
+    (cd "$INSTALL_DIR" && $COMPOSE up --build -d) >/dev/null 2>&1
+else
+    (cd "$INSTALL_DIR" && $COMPOSE up -d) >/dev/null 2>&1
+fi
 step_done
 
 # Wait for healthy

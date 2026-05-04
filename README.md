@@ -48,12 +48,22 @@ Run the one-click installer on any Linux server with Docker installed:
 curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash
 ```
 
-The installer creates `./nodi-app`, writes `nodi.env`, pulls `ghcr.io/twarga/nodi:latest`, and starts Docker Compose. Default local credentials are `admin / admin`; change `QL_USER` and `QL_PASS_HASH` in `nodi.env` before exposing the app outside a trusted network.
+The installer creates `./nodi-app`, writes `nodi.env`, pulls the latest image, and starts Docker Compose. Default credentials are `admin / admin`; change these in `nodi.env` before exposing outside a trusted network.
+
+**Build from source** (gets the absolute latest code, including unreleased features):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash -s -- --build
+```
 
 Useful installer overrides:
 
 ```bash
+# Custom port and directory
 curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | NODI_PORT=9090 INSTALL_DIR=/opt/nodi bash
+
+# Update existing installation
+curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash -s -- --update
 ```
 
 ## Docker
