@@ -26,9 +26,10 @@ func CSPNonce(next http.Handler) http.Handler {
 
 		w.Header().Set("Content-Security-Policy",
 			"default-src 'self'; "+
-				"script-src 'self' 'nonce-"+nonce+"'; "+
-				"style-src 'self' 'nonce-"+nonce+"'; "+
-				"img-src 'self' data:; "+
+				"script-src 'self'; "+
+				"style-src 'self' 'unsafe-inline'; "+
+				"img-src 'self' data: blob:; "+
+				"font-src 'self'; "+
 				"object-src 'none'; "+
 				"base-uri 'self'; "+
 				"frame-ancestors 'none'")

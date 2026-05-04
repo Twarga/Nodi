@@ -8,7 +8,6 @@ import (
 
 	"github.com/Twarga/Nodi/internal/auth"
 	"github.com/Twarga/Nodi/internal/config"
-	"github.com/Twarga/Nodi/internal/middleware"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,16 +24,11 @@ type LoginResponse struct {
 
 func Login(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-			data := struct{ Nonce string }{Nonce: middleware.GetNonce(r)}
-			RenderTemplate(w, r, data,
-				"web/templates/layout.html",
-				"web/templates/login.html",
-			)
-			return
-		}
+if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		http.ServeFile(w, r, "web/static/dist/index.html")
+		return
+	}
 
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

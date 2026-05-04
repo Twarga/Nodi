@@ -31,7 +31,9 @@ export function SelectionBar() {
     });
     if (!confirm(`Delete ${count} item${count > 1 ? 's' : ''}?`)) return;
     try {
-      await fileAPI.delete(paths);
+      for (const p of paths) {
+        await fileAPI.delete(p);
+      }
       clearSelection();
       // Reload will happen via parent
     } catch (err) {

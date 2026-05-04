@@ -104,9 +104,9 @@ export function FileRow({ file, selected, onToggle, onOpen, onContextMenu }: Fil
   return (
     <li
       class={[
-        'group grid cursor-pointer items-center gap-2 rounded-lg px-3 py-3 text-sm transition-all',
-        'grid-cols-[34px_1fr_44px] sm:grid-cols-[34px_1fr_110px_160px_56px]',
-        selected ? 'bg-primary/10 ring-1 ring-inset ring-primary/25' : 'hover:bg-surface-hover',
+        'group grid cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors',
+        'grid-cols-[30px_1fr_44px] sm:grid-cols-[30px_1fr_100px_140px_52px]',
+        selected ? 'bg-primary/8 ring-1 ring-inset ring-primary/20' : 'hover:bg-surface-hover',
       ].join(' ')}
       role="listitem"
       aria-selected={selected}
@@ -159,22 +159,24 @@ export function FileRow({ file, selected, onToggle, onOpen, onContextMenu }: Fil
 
 interface FileCardProps {
   file: FileInfo;
+  currentPath: string;
   selected: boolean;
   onToggle: (name: string) => void;
   onOpen: (file: FileInfo) => void;
   onContextMenu: (e: MouseEvent, file: FileInfo) => void;
 }
 
-export function FileCard({ file, selected, onToggle, onOpen, onContextMenu }: FileCardProps) {
+export function FileCard({ file, currentPath, selected, onToggle, onOpen, onContextMenu }: FileCardProps) {
   const isImage = file.mime.startsWith('image/');
+  const filePath = currentPath ? `${currentPath}/${file.name}` : file.name;
 
   return (
     <div
       class={[
-        'group relative flex cursor-pointer flex-col gap-2 rounded-xl border p-3 transition-all',
+        'group relative flex cursor-pointer flex-col gap-2 rounded-xl border p-3 transition-colors',
         selected
-          ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/20'
-          : 'border-border/60 bg-surface/60 hover:border-border hover:bg-surface-hover',
+          ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
+          : 'border-border bg-surface hover:border-border-strong hover:bg-surface-hover',
       ].join(' ')}
       onClick={() => onOpen(file)}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, file); }}
@@ -193,7 +195,7 @@ export function FileCard({ file, selected, onToggle, onOpen, onContextMenu }: Fi
       <div class="flex aspect-square items-center justify-center rounded-lg bg-muted/50">
         {isImage ? (
           <img
-            src={`/api/thumb?path=${encodeURIComponent(file.name)}`}
+            src={`/api/thumb?path=${encodeURIComponent(filePath)}`}
             alt={file.name}
             class="h-full w-full rounded-lg object-cover"
             loading="lazy"

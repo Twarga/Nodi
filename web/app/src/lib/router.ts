@@ -1,4 +1,4 @@
-import { signal, useSignal } from '@preact/signals';
+import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
 type Route = 'dashboard' | 'login' | 'settings';

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { appState, setPath, setFiles, setLoading, clearSelection, selectAll } from '../stores/app';
 import { browseAPI, fileAPI, downloadAPI } from '../lib/api';
 import { TopBar } from '../components/TopBar';
-import { Sidebar } from '../components/Sidebar';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { WorkspaceBar } from '../components/WorkspaceBar';
 import { FileList } from '../components/FileList';
@@ -31,14 +30,19 @@ export function DashboardPage() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameVal, setRenameVal] = useState('');
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFileOpen, setNewFileOpen] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'move'|'copy'>('move');
+  const [pickerMode, setPickerMode] = useState<'move' | 'copy'>('move');
   const [processing, setProcessing] = useState(false);
   const [previewFile, setPreviewFile] = useState<FileInfo | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = (files: FileList) => {
     const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
     uploadFiles(fileArray, state.currentPath, () => {
       loadFiles(state.currentPath);
       toast(`${fileArray.length} file(s) uploaded`, 'success');
@@ -47,14 +51,43 @@ export function DashboardPage() {
 
   const triggerFileInput = () => fileInputRef.current?.click();
 
+  // Build breadcrumbs client-side from a path string
+  const buildBreadcrumbs = (path: string): { name: string; path: string }[] => {
+    if (!path || path === '/') return [];
+    const parts = path.replace(/^\//, '').split('/');
+    const segments: { name: string; path: string }[] = [];
+    let current = '';
+    for (const part of parts) {
+      if (!part) continue;
+      current += '/' + part;
+      segments.push({ name: part, path: current });
+    }
+    return segments;
+  };
+
+  const loadFiles = async (path: string) => {
+    setLoading(true);
+    try {
+      const data = await browseAPI.list({
+        path,
+        sortBy: state.sortBy,
+        sortOrder: state.sortOrder,
+        showHidden: state.showHidden,
+        query: state.searchQuery || undefined,
+      });
+      const files = data.files || [];
+      setPath(path, buildBreadcrumbs(path));
+      setFiles(files);
+    } catch {
+      setFiles([]);
+    }
+  };
+
   useEffect(() => { loadFiles(state.currentPath); },
     [state.currentPath, state.sortBy, state.sortOrder, state.showHidden]);
 
-  // Debounced search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (state.searchQuery !== undefined) loadFiles(state.currentPath);
-    }, 300);
+    const timer = setTimeout(() => { loadFiles(state.currentPath); }, 300);
     return () => clearTimeout(timer);
   }, [state.searchQuery]);
 
@@ -71,29 +104,12 @@ export function DashboardPage() {
     return () => document.removeEventListener('keydown', handler);
   }, [state.files.length]);
 
-  const loadFiles = async (path: string) => {
-    setLoading(true);
-    try {
-      const data = await browseAPI.list({ path, sortBy: state.sortBy, sortOrder: state.sortOrder });
-      let files = data.files;
-      if (!state.showHidden) files = files.filter(f => !f.name.startsWith('.'));
-      if (state.searchQuery) {
-        const q = state.searchQuery.toLowerCase();
-        files = files.filter(f => f.name.toLowerCase().includes(q));
-      }
-      setPath(path, data.path);
-      setFiles(files);
-    } catch { setFiles([]); }
-  };
-
   const fullPath = (name: string) => state.currentPath ? state.currentPath + '/' + name : name;
 
   const handleOpen = async (file: FileInfo) => {
     if (file.is_dir) {
       const np = fullPath(file.name);
-      const data = await browseAPI.list({ path: np });
-      setPath(np, data.path);
-      setFiles(data.files);
+      loadFiles(np);
     } else {
       setPreviewFile(file);
     }
@@ -101,6 +117,7 @@ export function DashboardPage() {
 
   const handleContextMenu = (e: MouseEvent, file: FileInfo) => {
     e.preventDefault();
+    e.stopPropagation();
     setCtx({ open: true, x: e.clientX, y: e.clientY, file });
   };
 
@@ -124,7 +141,7 @@ export function DashboardPage() {
     }
     setProcessing(true);
     try {
-      await fileAPI.rename(fullPath(ctx.file.name), renameVal);
+      await fileAPI.rename(fullPath(ctx.file.name), renameVal.trim());
       loadFiles(state.currentPath);
       toast('Renamed successfully', 'success');
     } catch (err) {
@@ -141,7 +158,7 @@ export function DashboardPage() {
     if (!ctx.file) return;
     setProcessing(true);
     try {
-      await fileAPI.delete([fullPath(ctx.file.name)]);
+      await fileAPI.delete(fullPath(ctx.file.name));
       loadFiles(state.currentPath);
       toast('Moved to trash', 'success');
     } catch (err) {
@@ -159,12 +176,13 @@ export function DashboardPage() {
     if (!ctx.file) return;
     setProcessing(true);
     try {
-      const paths = [fullPath(ctx.file.name)];
+      const srcPath = fullPath(ctx.file.name);
+      const dstPath = dest + '/' + ctx.file.name;
       if (pickerMode === 'move') {
-        await fileAPI.move(paths, dest);
+        await fileAPI.move(srcPath, dstPath);
         toast('Moved successfully', 'success');
       } else {
-        await fileAPI.copy(paths, dest);
+        await fileAPI.copy(srcPath, dstPath);
         toast('Copied successfully', 'success');
       }
       loadFiles(state.currentPath);
@@ -191,31 +209,64 @@ export function DashboardPage() {
     }
   };
 
-  return (
-    <div class="flex h-screen flex-col">
-      <TopBar />
-      <div class="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main class="flex-1 overflow-auto app-main">
-          <Breadcrumbs />
-          <div class="mt-4"><WorkspaceBar onUpload={triggerFileInput} /></div>
-          <div class="mt-4"><SelectionBar /></div>
+  const handleNewFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    setProcessing(true);
+    try {
+      await fileAPI.createFolder(state.currentPath, name);
+      setNewFolderOpen(false);
+      setNewFolderName('');
+      loadFiles(state.currentPath);
+      toast('Folder created', 'success');
+    } catch (err) {
+      toast('Failed to create folder: ' + (err as Error).message, 'error');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
-          <div class="mt-4">
-            {state.isLoading ? (
-              state.viewMode === 'list' ? <SkeletonList /> : <SkeletonGrid />
-            ) : state.files.length === 0 ? (
-              <EmptyState onUpload={triggerFileInput} />
-            ) : state.viewMode === 'list' ? (
-              <FileList onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
-            ) : (
-              <FileGrid onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
-            )}
+  const handleNewFile = async () => {
+    const name = newFileName.trim();
+    if (!name) return;
+    setProcessing(true);
+    try {
+      await fileAPI.createFile(state.currentPath, name);
+      setNewFileOpen(false);
+      setNewFileName('');
+      loadFiles(state.currentPath);
+      toast('File created', 'success');
+    } catch (err) {
+      toast('Failed to create file: ' + (err as Error).message, 'error');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <div class="flex h-screen flex-col overflow-hidden bg-background">
+      <TopBar />
+      <div class="flex flex-1 overflow-hidden relative z-0">
+        <main class="flex-1 overflow-y-auto overflow-x-hidden relative z-0">
+          <div class="px-4 sm:px-6 lg:px-8 pt-6 pb-8 mx-auto max-w-screen-2xl">
+            <Breadcrumbs />
+            <div class="mt-4"><WorkspaceBar onUpload={triggerFileInput} onNewFolder={() => setNewFolderOpen(true)} onNewFile={() => setNewFileOpen(true)} /></div>
+            <div class="mt-3"><SelectionBar /></div>
+            <div class="mt-4">
+              {state.isLoading ? (
+                state.viewMode === 'list' ? <SkeletonList /> : <SkeletonGrid />
+              ) : state.files.length === 0 ? (
+                <EmptyState onUpload={triggerFileInput} />
+              ) : state.viewMode === 'list' ? (
+                <FileList onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
+              ) : (
+                <FileGrid onOpen={handleOpen} onContextMenu={handleContextMenu} lastClicked={lastClicked} />
+              )}
+            </div>
           </div>
         </main>
       </div>
 
-      {/* Context Menu */}
       {ctx.open && ctx.file && (
         <ContextMenu
           x={ctx.x} y={ctx.y} file={ctx.file} onClose={closeCtx}
@@ -224,7 +275,6 @@ export function DashboardPage() {
         />
       )}
 
-      {/* Rename Modal */}
       <Modal open={renameOpen} onClose={() => setRenameOpen(false)} title="Rename" size="sm"
         footer={
           <>
@@ -244,7 +294,6 @@ export function DashboardPage() {
         />
       </Modal>
 
-      {/* Delete Modal */}
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete" size="sm"
         footer={
           <>
@@ -259,7 +308,46 @@ export function DashboardPage() {
         <p class="mt-2 text-xs text-muted-foreground">This item will be moved to trash.</p>
       </Modal>
 
-      {/* Folder Picker */}
+      <Modal open={newFolderOpen} onClose={() => { setNewFolderOpen(false); setNewFolderName(''); }} title="New Folder" size="sm"
+        footer={
+          <>
+            <button onClick={() => { setNewFolderOpen(false); setNewFolderName(''); }} class="command-button h-9 px-4 text-sm">Cancel</button>
+            <button onClick={handleNewFolder} disabled={processing || !newFolderName.trim()} class="command-button primary h-9 px-4 text-sm">
+              {processing ? 'Creating...' : 'Create'}
+            </button>
+          </>
+        }
+      >
+        <input
+          type="text" value={newFolderName}
+          onInput={(e) => setNewFolderName((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleNewFolder(); }}
+          class="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          placeholder="Folder name"
+          autoFocus
+        />
+      </Modal>
+
+      <Modal open={newFileOpen} onClose={() => { setNewFileOpen(false); setNewFileName(''); }} title="New File" size="sm"
+        footer={
+          <>
+            <button onClick={() => { setNewFileOpen(false); setNewFileName(''); }} class="command-button h-9 px-4 text-sm">Cancel</button>
+            <button onClick={handleNewFile} disabled={processing || !newFileName.trim()} class="command-button primary h-9 px-4 text-sm">
+              {processing ? 'Creating...' : 'Create'}
+            </button>
+          </>
+        }
+      >
+        <input
+          type="text" value={newFileName}
+          onInput={(e) => setNewFileName((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleNewFile(); }}
+          class="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          placeholder="File name"
+          autoFocus
+        />
+      </Modal>
+
       <FolderPicker
         open={folderPickerOpen}
         onClose={() => setFolderPickerOpen(false)}
@@ -268,7 +356,6 @@ export function DashboardPage() {
         actionLabel={pickerMode === 'move' ? 'Move here' : 'Copy here'}
       />
 
-      {/* File Preview */}
       {previewFile && (
         <Preview
           file={previewFile}
@@ -278,7 +365,6 @@ export function DashboardPage() {
         />
       )}
 
-      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -292,16 +378,9 @@ export function DashboardPage() {
         }}
       />
 
-      {/* Drag and drop */}
       <DropOverlay onDrop={handleUpload} />
-
-      {/* Upload panel */}
       <UploadPanel />
-
-      {/* Toast notifications */}
       <ToastContainer />
-
-      {/* Keyboard shortcuts help */}
       <KeyboardShortcuts />
     </div>
   );

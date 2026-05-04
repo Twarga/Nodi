@@ -2,7 +2,7 @@ import { signal } from '@preact/signals';
 import type { FileInfo, BreadcrumbSegment } from '../lib/api';
 
 export type ViewMode = 'list' | 'grid';
-export type SortBy = 'name' | 'size' | 'date';
+export type SortBy = 'name' | 'size' | 'modified';
 export type SortOrder = 'asc' | 'desc';
 
 export interface AppState {
@@ -16,7 +16,6 @@ export interface AppState {
   showHidden: boolean;
   selectedFiles: Set<string>;
   isLoading: boolean;
-  sidebarOpen: boolean;
 }
 
 export const appState = signal<AppState>({
@@ -30,7 +29,6 @@ export const appState = signal<AppState>({
   showHidden: localStorage.getItem('ql-show-hidden') === 'true',
   selectedFiles: new Set(),
   isLoading: false,
-  sidebarOpen: false,
 });
 
 export function setPath(path: string, breadcrumbs: BreadcrumbSegment[]) {
@@ -84,8 +82,4 @@ export function clearSelection() {
 
 export function setLoading(loading: boolean) {
   appState.value = { ...appState.value, isLoading: loading };
-}
-
-export function toggleSidebar() {
-  appState.value = { ...appState.value, sidebarOpen: !appState.value.sidebarOpen };
 }

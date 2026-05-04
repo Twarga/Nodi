@@ -1,6 +1,6 @@
 import { createContext } from 'preact';
 import { useContext, useEffect } from 'preact/hooks';
-import { signal, useSignal } from '@preact/signals';
+import { signal } from '@preact/signals';
 
 export interface User {
   name: string;
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: preact.ComponentChildren 
   const login = async (username: string, password: string): Promise<boolean> => {
     authState.value = { ...authState.value, loading: true, error: null };
     try {
-      const csrfMatch = document.cookie.match(/csrf_token=([^;]+)/);
+      const csrfMatch = document.cookie.match(/ql_csrf=([^;]+)/);
       const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
 
       const res = await fetch('/login', {

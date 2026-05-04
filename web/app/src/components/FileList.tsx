@@ -15,7 +15,6 @@ export function FileList({ onOpen, onContextMenu, lastClicked }: FileListProps) 
 
   const handleToggle = (name: string, index: number, e: MouseEvent) => {
     if (e.shiftKey && lastClicked.current >= 0) {
-      // Range selection
       const start = Math.min(lastClicked.current, index);
       const end = Math.max(lastClicked.current, index);
       const names = state.files.slice(start, end + 1).map(f => f.name);
@@ -30,8 +29,8 @@ export function FileList({ onOpen, onContextMenu, lastClicked }: FileListProps) 
 
   return (
     <div class="file-panel overflow-hidden">
-      {/* Header */}
-      <div class="grid items-center gap-2 border-b border-border/60 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-surface-hover/50 grid-cols-[34px_1fr_100px_140px_44px] sm:grid-cols-[34px_1fr_110px_160px_56px]">
+      {/* Header row */}
+      <div class="grid items-center gap-2 border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid-cols-[34px_1fr_110px_160px_56px] grid-cols-[34px_1fr_44px]">
         <div>
           <input
             type="checkbox"
@@ -42,19 +41,19 @@ export function FileList({ onOpen, onContextMenu, lastClicked }: FileListProps) 
           />
         </div>
         <span>Name</span>
-        <span class="text-right">Size</span>
-        <span class="text-right">Modified</span>
+        <span class="hidden text-right sm:block">Size</span>
+        <span class="hidden text-right sm:block">Modified</span>
         <span></span>
       </div>
 
-      {/* Rows */}
+      {/* File rows */}
       <ul class="divide-y divide-border/30">
         {state.files.map((file, i) => (
           <FileRow
             key={file.name}
             file={file}
             selected={state.selectedFiles.has(file.name)}
-            onToggle={(name) => handleToggle(name, i, event as any)}
+            onToggle={(name) => handleToggle(name, i, window.event as MouseEvent || new MouseEvent('click'))}
             onOpen={onOpen}
             onContextMenu={onContextMenu}
           />

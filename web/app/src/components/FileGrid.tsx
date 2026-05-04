@@ -1,4 +1,4 @@
-import { appState, toggleSelect } from '../stores/app';
+import { appState, toggleSelect, selectAll } from '../stores/app';
 import { FileCard } from './FileRow';
 import type { FileInfo } from '../lib/api';
 
@@ -18,11 +18,7 @@ export function FileGrid({ onOpen, onContextMenu, lastClicked }: FileGridProps) 
       const names = state.files.slice(start, end + 1).map(f => f.name);
       const next = new Set(state.selectedFiles);
       names.forEach(n => next.add(n));
-      // Use appState update directly since selectAll replaces
-      const allNames = Array.from(state.files.map(f => f.name));
-      const current = Array.from(next);
-      const isAll = allNames.length > 0 && allNames.every(n => current.includes(n));
-      appState.value = { ...state, selectedFiles: new Set(current) };
+      selectAll(Array.from(next));
     } else {
       lastClicked.current = index;
       toggleSelect(name);
@@ -35,8 +31,9 @@ export function FileGrid({ onOpen, onContextMenu, lastClicked }: FileGridProps) 
         <FileCard
           key={file.name}
           file={file}
+          currentPath={state.currentPath}
           selected={state.selectedFiles.has(file.name)}
-          onToggle={(name) => handleToggle(name, i, event as any)}
+          onToggle={(name) => handleToggle(name, i, window.event as MouseEvent || new MouseEvent('click'))}
           onOpen={onOpen}
           onContextMenu={onContextMenu}
         />
