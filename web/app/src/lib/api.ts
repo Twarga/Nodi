@@ -208,6 +208,104 @@ export const fileAPI = {
 };
 
 // ─── Upload ─────────────────────────────────────────
+
+const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks
+const CHUNK_THRESHOLD = 5 * 1024 * 1024; // use chunks for files > 5MB
+const MAX_RETRIES = 3;
+
+function uploadChunk(
+  file: File,
+  chunkIndex: number,
+  totalChunks: number,
+  flowId: string,
+  path: string,
+): Promise<void> {
+  const start = chunkIndex * CHUNK_SIZE;
+  const end = Math.min(start + CHUNK_SIZE, file.size);
+  const blob = file.slice(start, end);
+
+  const form = new FormData();
+  form.append('chunk', blob);
+  form.append('flowId', flowId);
+  form.append('chunkIndex', String(chunkIndex));
+  form.append('fileName', file.name);
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload/chunk');
+    xhr.setRequestHeader('X-CSRF-Token', getCSRFToken());
+    xhr.timeout = 30000; // 30s per chunk
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`Chunk ${chunkIndex} failed: HTTP ${xhr.status}`));
+      }
+    });
+    xhr.addEventListener('error', () => reject(new Error(`Chunk ${chunkIndex} network error`)));
+    xhr.addEventListener('timeout', () => reject(new Error(`Chunk ${chunkIndex} timeout`)));
+    xhr.addEventListener('abort', () => reject(new Error(`Chunk ${chunkIndex} aborted`)));
+
+    xhr.send(form);
+  });
+}
+
+async function uploadChunked(
+  file: File,
+  path: string,
+  onProgress: (loaded: number, total: number) => void,
+  signal?: { aborted: boolean },
+): Promise<void> {
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  const flowId = `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  for (let i = 0; i < totalChunks; i++) {
+    if (signal?.aborted) throw new Error('Aborted');
+
+    let attempts = 0;
+    let lastErr: Error | null = null;
+
+    while (attempts < MAX_RETRIES) {
+      try {
+        await uploadChunk(file, i, totalChunks, flowId, path);
+        onProgress(Math.min((i + 1) * CHUNK_SIZE, file.size), file.size);
+        break;
+      } catch (e) {
+        lastErr = e as Error;
+        attempts++;
+        if (attempts < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 1000 * attempts)); // exponential backoff
+        }
+      }
+    }
+
+    if (attempts >= MAX_RETRIES && lastErr) {
+      throw lastErr;
+    }
+  }
+
+  // Complete
+  const res = await fetch('/api/upload/complete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': getCSRFToken(),
+    },
+    body: JSON.stringify({
+      flowId,
+      fileName: file.name,
+      path,
+      totalChunks,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Complete failed: ${text || res.status}`);
+  }
+}
+
 export const uploadAPI = {
   upload: (
     files: File[],
@@ -222,62 +320,88 @@ export const uploadAPI = {
       status: 'pending' as const,
     }));
 
+    const abortSignals = new Map<number, { aborted: boolean }>();
+
     const uploads = files.map((file, i) => {
-      const form = new FormData();
-      form.append('files', file);
-      form.append('path', path);
-
-      const xhr = new XMLHttpRequest();
       const p = progresses[i];
+      const signal = { aborted: false };
+      abortSignals.set(i, signal);
 
-      return new Promise<void>((resolve, reject) => {
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            p.loaded = e.loaded;
-            p.total = e.total;
-            p.percent = Math.round((e.loaded / e.total) * 100);
-            p.status = 'uploading';
-            onProgress?.([...progresses]);
-          }
-        });
+      return new Promise<void>(async (resolve, reject) => {
+        p.status = 'uploading';
 
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            p.status = 'done';
-            p.percent = 100;
-            onProgress?.([...progresses]);
-            resolve();
+        try {
+          if (file.size > CHUNK_THRESHOLD) {
+            // Chunked upload for large files
+            await uploadChunked(
+              file,
+              path,
+              (loaded, total) => {
+                p.loaded = loaded;
+                p.total = total;
+                p.percent = Math.round((loaded / total) * 100);
+                onProgress?.([...progresses]);
+              },
+              signal,
+            );
           } else {
-            p.status = 'error';
-            p.error = `HTTP ${xhr.status}`;
-            onProgress?.([...progresses]);
-            reject(new APIError(p.error, xhr.status));
+            // Single-request upload for small files
+            const form = new FormData();
+            form.append('files', file);
+            form.append('path', path);
+
+            await new Promise<void>((res, rej) => {
+              const xhr = new XMLHttpRequest();
+              xhr.timeout = 300000; // 5 minutes for small files
+
+              xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                  p.loaded = e.loaded;
+                  p.total = e.total;
+                  p.percent = Math.round((e.loaded / e.total) * 100);
+                  onProgress?.([...progresses]);
+                }
+              });
+
+              xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                  res();
+                } else {
+                  rej(new Error(`HTTP ${xhr.status}`));
+                }
+              });
+
+              xhr.addEventListener('error', () => rej(new Error('Network error')));
+              xhr.addEventListener('timeout', () => rej(new Error('Upload timeout')));
+              xhr.addEventListener('abort', () => rej(new Error('Aborted')));
+
+              xhr.open('POST', '/api/upload');
+              xhr.setRequestHeader('X-CSRF-Token', getCSRFToken());
+              xhr.send(form);
+            });
           }
-        });
 
-        xhr.addEventListener('error', () => {
-          p.status = 'error';
-          p.error = 'Network error';
+          p.status = 'done';
+          p.percent = 100;
           onProgress?.([...progresses]);
-          reject(new APIError('Network error', 0));
-        });
-
-        xhr.addEventListener('abort', () => {
+          resolve();
+        } catch (err) {
           p.status = 'error';
-          p.error = 'Aborted';
+          p.error = (err as Error).message || 'Upload failed';
           onProgress?.([...progresses]);
-          reject(new APIError('Aborted', 0));
-        });
-
-        xhr.open('POST', '/api/upload');
-        xhr.setRequestHeader('X-CSRF-Token', getCSRFToken());
-        xhr.send(form);
-
-        p.abort = () => xhr.abort();
+          reject(new APIError(p.error, 0));
+        }
       });
     });
 
-    return { progresses, uploads: Promise.all(uploads) };
+    return {
+      progresses,
+      uploads: Promise.all(uploads),
+      abort: (index: number) => {
+        const signal = abortSignals.get(index);
+        if (signal) signal.aborted = true;
+      },
+    };
   },
 };
 

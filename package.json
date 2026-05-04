@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@remotion/cli": "^4.0.457",
+    "@remotion/renderer": "^4.0.457",
+    "@remotion/zod-types": "^4.0.457",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "remotion": "^4.0.457",
+    "zod": "4.3.6"
+  }
+}
