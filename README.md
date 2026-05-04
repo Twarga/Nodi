@@ -42,28 +42,18 @@ Nodi is a minimalist file management solution for users who value density and pe
 
 ## Deployment (Fast Install)
 
-Run the one-click installer on any Linux server with Docker installed:
+Run the one-click installer on any Linux server with Docker installed. It **always builds from the latest source** — no old images.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash
 ```
 
-The installer creates `./nodi-app`, writes `nodi.env`, pulls the latest image, and starts Docker Compose. Default credentials are `admin / admin`; change these in `nodi.env` before exposing outside a trusted network.
+The installer clones the repo, builds a fresh Docker image, and starts Nodi. Default credentials are `admin / admin`; change these in `nodi.env` before exposing outside a trusted network.
 
-**Build from source** (gets the absolute latest code, including unreleased features):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash -s -- --build
-```
-
-Useful installer overrides:
+**Custom port or directory:**
 
 ```bash
-# Custom port and directory
 curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | NODI_PORT=9090 INSTALL_DIR=/opt/nodi bash
-
-# Update existing installation
-curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh | bash -s -- --update
 ```
 
 ## Docker
