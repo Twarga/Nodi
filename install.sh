@@ -10,7 +10,7 @@ INSTALL_DIR="${INSTALL_DIR:-nodi-app}"
 HOST="${NODI_HOST:-0.0.0.0}"
 USER_NAME="${NODI_USER:-admin}"
 PASS_HASH="${NODI_PASS_HASH:-\$2b\$10\$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy}"
-MAX_UPLOAD="${NODI_MAX_UPLOAD:-2147483648}"
+MAX_UPLOAD="${NODI_MAX_UPLOAD:-1099511627776}"
 
 # ─── Colors ─────────────────────────────────────────────────────
 BOLD='\033[1m'
