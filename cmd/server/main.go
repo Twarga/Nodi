@@ -116,13 +116,13 @@ func NewHandler(cfg *config.Config) http.Handler {
 	mux.HandleFunc("/api/version", versionHandler)
 
 	// Metrics endpoint requires auth to prevent info leakage
-	mux.Handle("/api/metrics", middleware.AuthRequired(cfg.CookieSecret)(http.HandlerFunc(metricsHandler)))
+	mux.Handle("/api/metrics", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(http.HandlerFunc(metricsHandler)))
 
 	// SPA auth check
-	mux.Handle("/api/whoami", middleware.AuthRequired(cfg.CookieSecret)(handlers.Whoami()))
+	mux.Handle("/api/whoami", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Whoami()))
 
 	// Protected root endpoint — serves Preact SPA
-	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret)(handlers.SPA()))
+	mux.Handle("/", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.SPA()))
 
 	// T12: Rate Limiter (5 requests per 15 minutes)
 	loginRateLimiter := middleware.NewRateLimiter(5, 15*time.Minute)
@@ -131,51 +131,51 @@ func NewHandler(cfg *config.Config) http.Handler {
 	mux.Handle("/login", middleware.RateLimitMethods(loginRateLimiter, http.MethodPost)(handlers.Login(cfg)))
 
 	// T22: Browse endpoint
-	mux.Handle("/browse", middleware.AuthRequired(cfg.CookieSecret)(handlers.Browse(cfg)))
+	mux.Handle("/browse", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Browse(cfg)))
 
 	// T25: Create Folder API
-	mux.Handle("/api/folder/create", middleware.AuthRequired(cfg.CookieSecret)(handlers.CreateFolder(cfg)))
-	mux.Handle("/api/file/create", middleware.AuthRequired(cfg.CookieSecret)(handlers.CreateFile(cfg)))
+	mux.Handle("/api/folder/create", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.CreateFolder(cfg)))
+	mux.Handle("/api/file/create", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.CreateFile(cfg)))
 
 	// T26: Delete API
-	mux.Handle("/api/delete", middleware.AuthRequired(cfg.CookieSecret)(handlers.Delete(cfg)))
-	mux.Handle("/api/restore", middleware.AuthRequired(cfg.CookieSecret)(handlers.Restore(cfg)))
-	mux.Handle("/api/recent", middleware.AuthRequired(cfg.CookieSecret)(handlers.Recent(cfg)))
-	mux.Handle("/api/favorite", middleware.AuthRequired(cfg.CookieSecret)(handlers.Favorite(cfg)))
+	mux.Handle("/api/delete", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Delete(cfg)))
+	mux.Handle("/api/restore", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Restore(cfg)))
+	mux.Handle("/api/recent", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Recent(cfg)))
+	mux.Handle("/api/favorite", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Favorite(cfg)))
 
 	// T27: Rename API
-	mux.Handle("/api/rename", middleware.AuthRequired(cfg.CookieSecret)(handlers.Rename(cfg)))
-	mux.Handle("/api/storage", middleware.AuthRequired(cfg.CookieSecret)(handlers.StorageStats(cfg)))
-	mux.Handle("/api/password", middleware.AuthRequired(cfg.CookieSecret)(handlers.ChangePassword(cfg)))
+	mux.Handle("/api/rename", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Rename(cfg)))
+	mux.Handle("/api/storage", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.StorageStats(cfg)))
+	mux.Handle("/api/password", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.ChangePassword(cfg)))
 
 	// Share API
-	mux.Handle("/api/share", middleware.AuthRequired(cfg.CookieSecret)(handlers.SharesRouter(cfg)))
+	mux.Handle("/api/share", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.SharesRouter(cfg)))
 	mux.Handle("/s/", http.StripPrefix("/s/", handlers.ServeShare(cfg)))
 
 	// Activity log
-	mux.Handle("/api/activity", middleware.AuthRequired(cfg.CookieSecret)(handlers.Activity(cfg)))
+	mux.Handle("/api/activity", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Activity(cfg)))
 
 	// Backup / Restore
-	mux.Handle("/api/backup", middleware.AuthRequired(cfg.CookieSecret)(handlers.Backup(cfg)))
-	mux.Handle("/api/restore-backup", middleware.AuthRequired(cfg.CookieSecret)(handlers.RestoreBackup(cfg)))
+	mux.Handle("/api/backup", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Backup(cfg)))
+	mux.Handle("/api/restore-backup", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.RestoreBackup(cfg)))
 
 	// T33: Upload API
-	mux.Handle("/api/upload", middleware.AuthRequired(cfg.CookieSecret)(handlers.Upload(cfg)))
-	mux.Handle("/api/upload/chunk", middleware.AuthRequired(cfg.CookieSecret)(handlers.ChunkUpload(cfg)))
-	mux.Handle("/api/upload/complete", middleware.AuthRequired(cfg.CookieSecret)(handlers.ChunkComplete(cfg)))
+	mux.Handle("/api/upload", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Upload(cfg)))
+	mux.Handle("/api/upload/chunk", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.ChunkUpload(cfg)))
+	mux.Handle("/api/upload/complete", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.ChunkComplete(cfg)))
 
 	// Download API
-	mux.Handle("/api/download", middleware.AuthRequired(cfg.CookieSecret)(handlers.Download(cfg)))
-	mux.Handle("/api/edit", middleware.AuthRequired(cfg.CookieSecret)(handlers.Edit(cfg)))
-	mux.Handle("/api/thumb", middleware.AuthRequired(cfg.CookieSecret)(handlers.Thumb(cfg)))
-	mux.Handle("/api/stream", middleware.AuthRequired(cfg.CookieSecret)(handlers.Stream(cfg)))
+	mux.Handle("/api/download", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Download(cfg)))
+	mux.Handle("/api/edit", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Edit(cfg)))
+	mux.Handle("/api/thumb", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Thumb(cfg)))
+	mux.Handle("/api/stream", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Stream(cfg)))
 
 	// Move and Copy API
-	mux.Handle("/api/move", middleware.AuthRequired(cfg.CookieSecret)(handlers.Move(cfg)))
-	mux.Handle("/api/copy", middleware.AuthRequired(cfg.CookieSecret)(handlers.Copy(cfg)))
-	mux.Handle("/api/duplicate", middleware.AuthRequired(cfg.CookieSecret)(handlers.Duplicate(cfg)))
-	mux.Handle("/api/compress", middleware.AuthRequired(cfg.CookieSecret)(handlers.Compress(cfg)))
-	mux.Handle("/api/extract", middleware.AuthRequired(cfg.CookieSecret)(handlers.Extract(cfg)))
+	mux.Handle("/api/move", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Move(cfg)))
+	mux.Handle("/api/copy", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Copy(cfg)))
+	mux.Handle("/api/duplicate", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Duplicate(cfg)))
+	mux.Handle("/api/compress", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Compress(cfg)))
+	mux.Handle("/api/extract", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Extract(cfg)))
 
 	// Logout endpoint
 	mux.Handle("/logout", http.HandlerFunc(handlers.Logout()))

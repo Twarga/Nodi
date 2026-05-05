@@ -26,7 +26,7 @@ func Load() (*Config, error) {
 		Root:          getEnv("QL_ROOT", "./nodi_files"),
 		Host:          getEnv("QL_HOST", "0.0.0.0"),
 		Port:          getEnv("QL_PORT", "7319"),
-		MaxUpload:     int64(2147483648),
+		MaxUpload:     int64(1099511627776), // 1 TB default
 		CookieSecret:  getEnv("QL_COOKIE_SECRET", ""),
 		Theme:         getEnv("QL_THEME", "system"),
 		SessionExpiry: 24 * time.Hour,

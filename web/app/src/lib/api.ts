@@ -209,8 +209,8 @@ export const fileAPI = {
 
 // ─── Upload ─────────────────────────────────────────
 
-const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks
-const CHUNK_THRESHOLD = 5 * 1024 * 1024; // use chunks for files > 5MB
+const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB chunks
+const CHUNK_THRESHOLD = 20 * 1024 * 1024; // use chunks for files > 20MB
 const MAX_RETRIES = 3;
 
 function uploadChunk(
@@ -234,7 +234,7 @@ function uploadChunk(
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/upload/chunk');
     xhr.setRequestHeader('X-CSRF-Token', getCSRFToken());
-    xhr.timeout = 30000; // 30s per chunk
+    xhr.timeout = 120000; // 120s per chunk
 
     xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) {

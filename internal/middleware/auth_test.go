@@ -10,7 +10,7 @@ import (
 )
 
 func TestAuthMiddleware_NoCookieRedirectsBrowserToLogin(t *testing.T) {
-	handler := middleware.AuthRequired("supersecret")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.AuthRequired("supersecret", 1*time.Hour)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -28,7 +28,7 @@ func TestAuthMiddleware_NoCookieRedirectsBrowserToLogin(t *testing.T) {
 }
 
 func TestAuthMiddleware_NoCookieReturnsUnauthorizedForAPI(t *testing.T) {
-	handler := middleware.AuthRequired("supersecret")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.AuthRequired("supersecret", 1*time.Hour)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -46,7 +46,7 @@ func TestAuthMiddleware_ValidCookie(t *testing.T) {
 	secret := "supersecret"
 	token, _ := auth.Create("admin", secret, 1*time.Hour)
 
-	handler := middleware.AuthRequired(secret)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.AuthRequired(secret, 1*time.Hour)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session := r.Context().Value(middleware.SessionKey).(*auth.Session)
 		if session == nil || session.User != "admin" {
 			t.Errorf("Failed to retrieve correctly populated session from context")
@@ -63,13 +63,18 @@ func TestAuthMiddleware_ValidCookie(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected 200 OK, got %d", w.Code)
 	}
+	// Cookie should be refreshed
+	cookies := w.Result().Cookies()
+	if len(cookies) == 0 || cookies[0].Name != "ql_session" {
+		t.Errorf("Expected refreshed session cookie, got none")
+	}
 }
 
 func TestAuthMiddleware_InvalidCookie(t *testing.T) {
 	secret := "supersecret"
 	token, _ := auth.Create("admin", "wrongsecret", 1*time.Hour)
 
-	handler := middleware.AuthRequired(secret)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.AuthRequired(secret, 1*time.Hour)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
