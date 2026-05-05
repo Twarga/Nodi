@@ -10,11 +10,25 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.24+-1f1f1f?style=flat-square&logo=go&logoColor=00ADD8" alt="Go" />
-  <img src="https://img.shields.io/badge/Vanilla_JS-Frontend-1f1f1f?style=flat-square&logo=javascript&logoColor=F7DF1E" alt="Vanilla JS" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-1f1f1f?style=flat-square&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Preact-Frontend-1f1f1f?style=flat-square&logo=preact&logoColor=673AB8" alt="Preact" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4.0-1f1f1f?style=flat-square&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Docker-Packaging-1f1f1f?style=flat-square&logo=docker&logoColor=2496ED" alt="Docker" />
   <img src="https://img.shields.io/badge/Alpine-Linux-1f1f1f?style=flat-square&logo=alpinelinux&logoColor=white" alt="Alpine" />
 </p>
+
+---
+
+## 🎬 Demo
+
+<p align="center">
+  <video src="https://raw.githubusercontent.com/Twarga/Nodi/main/landing-page/nodi-demo.mp4" controls width="100%" style="max-width: 960px; border-radius: 12px;" />
+</p>
+
+<p align="center">
+  <a href="https://twarga.github.io/Nodi/">Watch on the landing page →</a>
+</p>
+
+---
 
 ## What it is
 
@@ -31,8 +45,8 @@ Nodi is a minimalist file management solution for users who value density and pe
 ## Tech stack
 
 - **Backend**: Go (standard library + `http.ServeMux`)
-- **Frontend**: Vanilla JavaScript (ES Modules)
-- **Styling**: Tailwind CSS v3
+- **Frontend**: Preact + Signals (lightweight React alternative)
+- **Styling**: Tailwind CSS v4
 - **Packaging**: Multi-stage Docker build
 - **OS**: Alpine Linux
 
@@ -106,4 +120,5 @@ This installs frontend dependencies, builds the UI, scaffolds a default `.env`, 
 Default credentials: `admin` / `admin` — change these before exposing to a network.
 
 ## License
+
 MIT License. Created by [Twarga](https://github.com/Twarga).
