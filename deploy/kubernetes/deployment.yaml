@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodi
+  template:
+    metadata:
+      labels:
+        app: nodi
+    spec:
+      containers:
+        - name: nodi
+          image: ghcr.io/twarga/nodi:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7319
+              name: http
+          env:
+            - name: QL_HOST
+              value: "0.0.0.0"
+            - name: QL_PORT
+              value: "7319"
+            - name: QL_ROOT
+              value: /nodi_files
+            - name: QL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: nodi-secrets
+                  key: QL_USER
+            - name: QL_PASS_HASH
+              valueFrom:
+                secretKeyRef:
+                  name: nodi-secrets
+                  key: QL_PASS_HASH
+            - name: QL_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nodi-secrets
+                  key: QL_COOKIE_SECRET
+            - name: GOTMPDIR
+              value: /nodi_files/.cache/tmp
+            - name: QL_MAX_UPLOAD
+              value: "1099511627776"
+            - name: QL_MAX_CHUNK_SIZE
+              value: "16777216"
+            - name: QL_UPLOAD_TTL
+              value: "48h"
+            - name: QL_TRASH_RETENTION
+              value: "720h"
+          volumeMounts:
+            - name: nodi-data
+              mountPath: /nodi_files
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: nodi-data
+          persistentVolumeClaim:
+            claimName: nodi-data

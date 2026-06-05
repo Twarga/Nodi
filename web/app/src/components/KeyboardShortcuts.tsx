@@ -24,7 +24,7 @@ export function KeyboardShortcuts() {
 
       if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !isInput) {
         e.preventDefault();
-        setOpen(prev => !prev);
+        setOpen((prev) => !prev);
       }
       if (e.key === 'Escape') {
         setOpen(false);
@@ -38,28 +38,29 @@ export function KeyboardShortcuts() {
 
   return (
     <div
-      class="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-ql-fade-in"
+      class="fixed inset-0 z-[150] flex items-center justify-center bg-foreground/30 backdrop-blur-sm p-4"
+      style={{ animation: 'ql-fade-in 0.15s ease-out forwards' }}
       onClick={() => setOpen(false)}
     >
       <div
-        class="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-2xl animate-ql-pop-in mx-4"
+        class="w-full max-w-sm bg-background border border-border rounded-[var(--radius)] p-5"
+        style={{ animation: 'ql-pop-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-lg font-semibold">Keyboard Shortcuts</h3>
-          <button onClick={() => setOpen(false)} class="icon-button h-8 w-8">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+          <h3 class="text-base font-medium tracking-tight">Keyboard shortcuts</h3>
+          <button onClick={() => setOpen(false)} class="icon-button h-7 w-7" aria-label="Close">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
         </div>
 
-        <div class="space-y-2">
+        <div class="divide-y divide-border">
           {shortcuts.map((s) => (
-            <div key={s.key} class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-surface-hover">
-              <span class="text-muted-foreground">{s.description}</span>
-              <kbd class="rounded-md border border-border bg-background px-2 py-0.5 text-xs font-mono font-semibold">
+            <div key={s.key} class="flex items-center justify-between py-2.5 text-sm">
+              <span class="text-foreground-muted">{s.description}</span>
+              <kbd class="font-mono text-xs px-1.5 py-0.5 border border-border rounded-[var(--radius)] text-foreground">
                 {s.key}
               </kbd>
             </div>

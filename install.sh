@@ -9,8 +9,12 @@ REPO_URL="https://github.com/Twarga/Nodi.git"
 INSTALL_DIR="${INSTALL_DIR:-nodi-app}"
 HOST="${NODI_HOST:-0.0.0.0}"
 USER_NAME="${NODI_USER:-admin}"
-PASS_HASH="${NODI_PASS_HASH:-\$2b\$10\$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy}"
+PASS_HASH="${NODI_PASS_HASH:-}"
+ADMIN_PASSWORD="${NODI_ADMIN_PASSWORD:-}"
 MAX_UPLOAD="${NODI_MAX_UPLOAD:-1099511627776}"
+MAX_CHUNK_SIZE="${NODI_MAX_CHUNK_SIZE:-16777216}"
+UPLOAD_TTL="${NODI_UPLOAD_TTL:-48h}"
+TRASH_RETENTION="${NODI_TRASH_RETENTION:-720h}"
 
 # ─── Colors ─────────────────────────────────────────────────────
 BOLD='\033[1m'
@@ -53,6 +57,22 @@ fail() {
     printf "  ${DIM}Need help? Open an issue at:${NC}\n"
     printf "  ${CYAN}https://github.com/Twarga/Nodi/issues${NC}\n\n"
     exit 1
+}
+
+generate_secret() {
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -base64 48 | tr -d '\n'
+    else
+        dd if=/dev/urandom bs=48 count=1 2>/dev/null | base64 | tr -d '\n'
+    fi
+}
+
+generate_password() {
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -base64 24 | tr -d '\n'
+    else
+        dd if=/dev/urandom bs=24 count=1 2>/dev/null | base64 | tr -d '\n'
+    fi
 }
 
 banner() {
@@ -140,11 +160,9 @@ clone_repo() {
 write_configs() {
     info "Writing configuration..."
 
-    COOKIE_SECRET=""
-    if command -v openssl >/dev/null 2>&1; then
-        COOKIE_SECRET=$(openssl rand -base64 48 | tr -d '\n')
-    else
-        COOKIE_SECRET=$(dd if=/dev/urandom bs=48 count=1 2>/dev/null | base64 | tr -d '\n')
+    COOKIE_SECRET="$(generate_secret)"
+    if [ -z "$PASS_HASH" ] && [ -z "$ADMIN_PASSWORD" ]; then
+        ADMIN_PASSWORD="$(generate_password)"
     fi
 
     cat > "$INSTALL_DIR/nodi.env" <<EOF
@@ -152,11 +170,19 @@ QL_HOST=$HOST
 QL_PORT=7319
 QL_ROOT=/nodi_files
 QL_USER=$USER_NAME
-QL_PASS_HASH=$PASS_HASH
 QL_COOKIE_SECRET=$COOKIE_SECRET
 QL_THEME=system
 QL_MAX_UPLOAD=$MAX_UPLOAD
+QL_MAX_CHUNK_SIZE=$MAX_CHUNK_SIZE
+QL_UPLOAD_TTL=$UPLOAD_TTL
+QL_TRASH_RETENTION=$TRASH_RETENTION
+GOTMPDIR=/nodi_files/.cache/tmp
 EOF
+    if [ -n "$PASS_HASH" ]; then
+        printf "QL_PASS_HASH=%s\n" "$PASS_HASH" >> "$INSTALL_DIR/nodi.env"
+    else
+        printf "QL_BOOTSTRAP_PASSWORD=%s\n" "$ADMIN_PASSWORD" >> "$INSTALL_DIR/nodi.env"
+    fi
 
     cat > "$INSTALL_DIR/docker-compose.yml" <<EOF
 services:
@@ -173,6 +199,7 @@ services:
         format: raw
     volumes:
       - nodi-files:/nodi_files
+      - nodi-tmp:/tmp
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7319/login"]
       interval: 30s
@@ -183,17 +210,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 128M
+    # Large uploads are streamed to disk. Do not enable tmpfs for /tmp or tight
+    # memory limits here; those settings can kill 20GB-100GB LAN transfers.
     logging:
       driver: "json-file"
       options:
@@ -202,6 +220,8 @@ services:
 
 volumes:
   nodi-files:
+    driver: local
+  nodi-tmp:
     driver: local
 EOF
 
@@ -301,9 +321,13 @@ show_success() {
     fi
     printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
     printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}User:${NC}     ${WHITE}${BOLD}${USER_NAME}${NC}                     ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}Password:${NC} ${WHITE}${BOLD}admin${NC}                        ${GREEN}${BOLD}│${NC}\n"
+    if [ -n "$PASS_HASH" ]; then
+        printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}Password:${NC} ${WHITE}${BOLD}use configured hash${NC}         ${GREEN}${BOLD}│${NC}\n"
+    else
+        printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}Password:${NC} ${WHITE}${BOLD}${ADMIN_PASSWORD}${NC} ${GREEN}${BOLD}│${NC}\n"
+    fi
     printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}   ${YELLOW}⚠  Change password after first login${NC}   ${GREEN}${BOLD}│${NC}\n"
+    printf "  ${GREEN}${BOLD}│${NC}   ${YELLOW}⚠  Save this and change it after login${NC} ${GREEN}${BOLD}│${NC}\n"
     printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
     printf "  ${GREEN}${BOLD}╰──────────────────────────────────────────╯${NC}\n"
     printf "\n"

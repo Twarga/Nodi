@@ -1,0 +1,15 @@
+# Replace this with your LAN hostname or public domain.
+# For public HTTPS, point DNS at this machine and expose ports 80/443.
+# For LAN-only use, keep Nodi on http://server-ip:7319 unless you already have
+# local DNS/TLS set up.
+nodi.example.com {
+	reverse_proxy nodi:7319
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+	}
+}

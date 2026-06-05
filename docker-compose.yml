@@ -15,6 +15,7 @@ services:
         format: raw
     volumes:
       - nodi-files:/nodi_files
+      - nodi-tmp:/tmp
     # Health check verifies the login page is reachable
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7319/login"]
@@ -27,18 +28,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
-    # Resource limits to prevent runaway consumption
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 128M
+    # Large uploads are streamed to disk. Do not use tmpfs or tight memory
+    # limits here; those settings can kill 20GB-100GB transfers on home LANs.
     # Log rotation to prevent disk fill
     logging:
       driver: "json-file"
@@ -48,4 +39,6 @@ services:
 
 volumes:
   nodi-files:
+    driver: local
+  nodi-tmp:
     driver: local

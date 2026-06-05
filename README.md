@@ -32,15 +32,17 @@
 
 ## What it is
 
-Nodi is a minimalist file management solution for users who value density and performance. It serves as a private cloud alternative that runs directly on your hardware, providing a monastic interface for interacting with your local files.
+Nodi is a LAN-first personal file hub for moving files across your own devices. It is designed around large browser uploads, drag-and-drop folders, mobile sending, safe sharing, and simple WebDAV access without becoming a full Nextcloud-style collaboration suite.
 
 ## Core workflow
 
 1. Authenticate securely via BCrypt-backed login
 2. Browse directories with zero-latency SPA navigation
 3. Manage assets with async Rename, Create, and Delete actions
-4. Track large uploads with real-time UI progress bars
-5. Toggle between Light and Dark modes instantly
+4. Upload large files with resumable chunked transfers
+5. Send files from phone or laptop with a mobile-friendly upload screen
+6. Share read-only links or upload dropboxes on your trusted network
+7. Mount storage through WebDAV from desktop and mobile tools
 
 ## Tech stack
 
@@ -52,7 +54,7 @@ Nodi is a minimalist file management solution for users who value density and pe
 
 ## Status
 
-**MVP deployment ready.** The core self-hosted file manager flow is covered by Go integration tests: login, dashboard, static assets, browse, create folder, upload, download, rename, delete, and root-escape rejection.
+**Active remake.** The project is being rebuilt toward a practical home-network Drive alternative. The current focus is reliability for large uploads, mobile-first sending, safe sharing, WebDAV, trash/restore, health checks, and packaging that does not break 20GB-100GB transfers.
 
 ## Deployment (Fast Install)
 
@@ -62,7 +64,9 @@ Run the one-click installer on any Linux server with Docker installed. It **alwa
 bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
 ```
 
-The installer clones the repo, builds a fresh Docker image, starts Nodi on port **7319**, and registers it with `systemd`. Default credentials are `admin / admin`; change these in `nodi.env` before exposing outside a trusted network.
+The installer clones the repo, builds a fresh Docker image, starts Nodi on port **7319**, and registers it with `systemd`. It generates a one-time admin password and prints it at the end of installation. Save it, log in, then change the password from Settings before exposing Nodi outside a trusted network.
+
+Nodi is safest as a LAN-only app. If you expose it remotely, put it behind HTTPS and a firewall/reverse proxy you understand.
 
 **Custom install directory:**
 
@@ -97,7 +101,17 @@ cp .env.example nodi.env
 docker compose up -d
 ```
 
-The compose file uses a named `nodi-files` volume mounted at `/nodi_files`.
+The compose file uses named volumes mounted at `/nodi_files` and `/tmp`. Large uploads stream to disk; the default compose intentionally avoids tmpfs upload storage and tight memory caps.
+
+Optional HTTPS reverse proxy with Caddy:
+
+```bash
+cp Caddyfile.example Caddyfile
+# Edit Caddyfile and replace nodi.example.com with your hostname.
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+```
+
+Use the Caddy setup only when you have DNS, firewall, and exposure rules under control. For home-only use, `http://server-ip:7319` is simpler.
 
 ## Development
 

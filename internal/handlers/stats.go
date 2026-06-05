@@ -95,6 +95,44 @@ func StorageStats(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+func HealthDetails(cfg *config.Config, version string, uptime func() time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		storage, err := computeStorage(cfg.Root)
+		if err != nil {
+			http.Error(w, "failed to compute storage", http.StatusInternalServerError)
+			return
+		}
+		activeUploads, abandonedUploads, err := UploadSessionCounts(cfg)
+		if err != nil {
+			http.Error(w, "failed to inspect uploads", http.StatusInternalServerError)
+			return
+		}
+		trashCount, err := TrashCount(cfg.Root)
+		if err != nil {
+			http.Error(w, "failed to inspect trash", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":              "ok",
+			"version":             version,
+			"uptime":              uptime().Round(time.Second).String(),
+			"storage":             storage,
+			"active_uploads":      activeUploads,
+			"abandoned_uploads":   abandonedUploads,
+			"trash_items":         trashCount,
+			"upload_ttl_seconds":  int64(uploadTTL(cfg).Seconds()),
+			"trash_retention_sec": int64(trashRetention(cfg).Seconds()),
+		})
+	}
+}
+
 func Activity(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

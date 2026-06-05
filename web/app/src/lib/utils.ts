@@ -33,3 +33,15 @@ export function getFileIconColor(mime: string): string {
   if (mime === 'application/pdf') return 'text-icon-pdf';
   return 'text-icon-generic';
 }
+
+/* Convert a <input type="datetime-local"> value (e.g. "2026-12-25T15:30")
+   into an RFC3339 / ISO-8601 UTC string the backend can parse.
+   Returns undefined for empty/invalid input. */
+export function datetimeLocalToRFC3339(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const d = new Date(trimmed);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+}

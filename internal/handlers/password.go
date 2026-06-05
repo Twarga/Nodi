@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Twarga/Nodi/internal/auth"
 	"github.com/Twarga/Nodi/internal/config"
 	"github.com/Twarga/Nodi/internal/storage"
 	"golang.org/x/crypto/bcrypt"
@@ -16,10 +17,8 @@ type passwordChangeRequest struct {
 }
 
 // ChangePassword verifies the current password, hashes the new one,
-// rewrites .env, and updates the in-memory cfg.PassHash.
-//
-// All sessions remain valid; the user can roll their session by hitting
-// logout (server already rotates cookie secret on logout — T67).
+// rewrites .env, updates the in-memory cfg.PassHash, and revokes every
+// outstanding session so old cookies stop working immediately.
 func ChangePassword(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -59,6 +58,7 @@ func ChangePassword(cfg *config.Config) http.HandlerFunc {
 		}
 
 		cfg.PassHash = string(newHash)
+		auth.RevokeAllSessions()
 		storage.Append(cfg.Root, storage.ActivityEvent{User: sessionUserFromCtx(r.Context()), Action: "password_change", Path: ""})
 
 		w.Header().Set("Content-Type", "application/json")

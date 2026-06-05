@@ -11,10 +11,11 @@ interface ContextMenuProps {
   onMove: () => void;
   onCopy: () => void;
   onDuplicate: () => void;
+  onDetails: () => void;
   onDelete: () => void;
 }
 
-export function ContextMenu({ x, y, file, onClose, onDownload, onRename, onMove, onCopy, onDuplicate, onDelete }: ContextMenuProps) {
+export function ContextMenu({ x, y, file, onClose, onDownload, onRename, onMove, onCopy, onDuplicate, onDetails, onDelete }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,9 +34,9 @@ export function ContextMenu({ x, y, file, onClose, onDownload, onRename, onMove,
       document.removeEventListener('mousedown', handler);
       document.removeEventListener('keydown', handler);
     };
-  }, [onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Position within viewport
   const menuWidth = 180;
   const menuHeight = 280;
   const posX = Math.min(x, window.innerWidth - menuWidth - 8);
@@ -47,24 +48,23 @@ export function ContextMenu({ x, y, file, onClose, onDownload, onRename, onMove,
     { label: 'Move to', action: onMove },
     { label: 'Copy to', action: onCopy },
     { label: 'Duplicate', action: onDuplicate },
+    { label: 'Details', action: onDetails },
     { label: 'Delete', action: onDelete, danger: true },
   ];
 
   return (
     <div
       ref={menuRef}
-      class="fixed z-[130] min-w-[180px] rounded-xl border border-border bg-surface py-1 shadow-xl animate-ql-pop-in"
-      style={{ left: posX, top: posY }}
+      class="fixed z-[130] min-w-[180px] bg-background border border-border rounded-[var(--radius)] py-1"
+      style={{ left: posX, top: posY, animation: 'ql-pop-in 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards', transformOrigin: 'top left' }}
     >
       {items.map((item, i) => (
         <button
           key={i}
           onClick={() => { item.action(); onClose(); }}
           class={[
-            'flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors',
-            item.danger
-              ? 'text-destructive hover:bg-destructive/10'
-              : 'text-foreground hover:bg-surface-hover',
+            'flex w-full items-center gap-2.5 px-3 py-1.5 text-sm transition-colors border-none bg-transparent text-left cursor-pointer',
+            item.danger ? 'text-destructive hover:bg-destructive-soft' : 'text-foreground hover:bg-surface-hover',
           ].join(' ')}
         >
           {item.label}

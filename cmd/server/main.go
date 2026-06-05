@@ -110,6 +110,20 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	staticFiles := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", cacheStaticHeaders(http.StripPrefix("/static/", staticFiles)))
+	mux.Handle("/icons/", cacheStaticHeaders(http.StripPrefix("/icons/", http.FileServer(http.Dir("web/static/dist/icons")))))
+	mux.HandleFunc("/favicon.svg", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "web/static/dist/favicon.svg")
+	})
+	mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/manifest+json")
+		http.ServeFile(w, r, "web/static/dist/manifest.webmanifest")
+	})
+	mux.HandleFunc("/sw.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		w.Header().Set("Service-Worker-Allowed", "/")
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeFile(w, r, "web/static/dist/sw.js")
+	})
 
 	// Health and version endpoints (no auth required)
 	mux.HandleFunc("/api/health", healthHandler)
@@ -117,6 +131,15 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	// Metrics endpoint requires auth to prevent info leakage
 	mux.Handle("/api/metrics", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(http.HandlerFunc(metricsHandler)))
+	mux.Handle("/api/health/details", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.HealthDetails(cfg, version, func() time.Duration {
+		return time.Since(startTime)
+	})))
+
+	// WebDAV for native desktop/mobile file managers. Uses Basic Auth.
+	mux.Handle("/dav/", handlers.WebDAV(cfg))
+
+	// Device connection helpers
+	mux.Handle("/api/devices", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Devices(cfg)))
 
 	// SPA auth check
 	mux.Handle("/api/whoami", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Whoami()))
@@ -132,6 +155,7 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	// T22: Browse endpoint
 	mux.Handle("/browse", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Browse(cfg)))
+	mux.Handle("/api/search", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Search(cfg)))
 
 	// T25: Create Folder API
 	mux.Handle("/api/folder/create", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.CreateFolder(cfg)))
@@ -140,6 +164,7 @@ func NewHandler(cfg *config.Config) http.Handler {
 	// T26: Delete API
 	mux.Handle("/api/delete", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Delete(cfg)))
 	mux.Handle("/api/restore", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Restore(cfg)))
+	mux.Handle("/api/trash", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Trash(cfg)))
 	mux.Handle("/api/recent", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Recent(cfg)))
 	mux.Handle("/api/favorite", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Favorite(cfg)))
 
@@ -154,6 +179,7 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	// Activity log
 	mux.Handle("/api/activity", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Activity(cfg)))
+	mux.Handle("/api/cleanup", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Cleanup(cfg)))
 
 	// Backup / Restore
 	mux.Handle("/api/backup", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Backup(cfg)))
@@ -161,12 +187,16 @@ func NewHandler(cfg *config.Config) http.Handler {
 
 	// T33: Upload API
 	mux.Handle("/api/upload", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Upload(cfg)))
+	mux.Handle("/api/upload/start", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.UploadStart(cfg)))
+	mux.Handle("/api/upload/status", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.UploadStatus(cfg)))
 	mux.Handle("/api/upload/chunk", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.ChunkUpload(cfg)))
 	mux.Handle("/api/upload/complete", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.ChunkComplete(cfg)))
+	mux.Handle("/api/upload/", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.UploadSessionRouter(cfg)))
 
 	// Download API
 	mux.Handle("/api/download", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Download(cfg)))
 	mux.Handle("/api/edit", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Edit(cfg)))
+	mux.Handle("/api/hash", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Hash(cfg)))
 	mux.Handle("/api/thumb", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Thumb(cfg)))
 	mux.Handle("/api/stream", middleware.AuthRequired(cfg.CookieSecret, cfg.SessionExpiry)(handlers.Stream(cfg)))
 
@@ -183,39 +213,6 @@ func NewHandler(cfg *config.Config) http.Handler {
 	return loggingMiddleware(securityHeaders(middleware.CSPNonce(middleware.CSRFProtect(mux))))
 }
 
-func localIPs() []string {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil
-	}
-	var ips []string
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
-				continue
-			}
-			if ipv4 := ip.To4(); ipv4 != nil {
-				ips = append(ips, ipv4.String())
-			}
-		}
-	}
-	return ips
-}
-
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -225,6 +222,14 @@ func main() {
 	if err := handlers.InitTemplates(); err != nil {
 		log.Fatalf("Template init error: %v", err)
 	}
+	if err := handlers.CleanupAbandonedUploads(cfg); err != nil {
+		log.Printf("Upload cleanup warning: %v", err)
+	}
+	if removed, err := handlers.CleanupExpiredTrash(cfg); err != nil {
+		log.Printf("Trash cleanup warning: %v", err)
+	} else if removed > 0 {
+		log.Printf("Trash cleanup removed %d expired item(s)", removed)
+	}
 
 	fmt.Printf("Nodi starting on %s:%s\n", cfg.Host, cfg.Port)
 	fmt.Printf("Serving files from: %s\n", cfg.Root)
@@ -232,11 +237,10 @@ func main() {
 	bindAddr := cfg.Host + ":" + cfg.Port
 
 	srv := &http.Server{
-		Addr:         bindAddr,
-		Handler:      NewHandler(cfg),
-		ReadTimeout:  30 * time.Minute,
-		WriteTimeout: 60 * time.Minute,
-		IdleTimeout:  120 * time.Second,
+		Addr:              bindAddr,
+		Handler:           NewHandler(cfg),
+		ReadHeaderTimeout: 30 * time.Second,
+		IdleTimeout:       5 * time.Minute,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -251,7 +255,7 @@ func main() {
 
 		fmt.Println("")
 		fmt.Printf("  Local:   http://localhost:%s\n", cfg.Port)
-		if ips := localIPs(); len(ips) > 0 {
+		if ips := handlers.LocalIPs(); len(ips) > 0 {
 			for _, ip := range ips {
 				fmt.Printf("  Network: http://%s:%s\n", ip, cfg.Port)
 			}

@@ -17,10 +17,14 @@ function FullPath(path: string, name: string): string {
   return path ? `${path}/${name}` : name;
 }
 
+function FilePath(path: string, file: FileInfo): string {
+  return file.path || FullPath(path, file.name);
+}
+
 export function Preview({ file, path, allFiles, onClose }: PreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(() => {
     const images = allFiles.filter(f => f.mime.startsWith('image/'));
-    return images.findIndex(f => f.name === file.name);
+    return images.findIndex(f => FilePath(path, f) === FilePath(path, file));
   });
 
   const handleNavigate = useCallback((newIndex: number) => {
@@ -29,8 +33,8 @@ export function Preview({ file, path, allFiles, onClose }: PreviewProps) {
 
   useEffect(() => {
     // Reset when file changes
-    setCurrentIndex(allFiles.filter(f => f.mime.startsWith('image/')).findIndex(f => f.name === file.name));
-  }, [file.name]);
+    setCurrentIndex(allFiles.filter(f => f.mime.startsWith('image/')).findIndex(f => FilePath(path, f) === FilePath(path, file)));
+  }, [file.name, file.path, path]);
 
   // Image preview with gallery
   if (file.mime.startsWith('image/')) {
@@ -38,7 +42,7 @@ export function Preview({ file, path, allFiles, onClose }: PreviewProps) {
       .filter(f => f.mime.startsWith('image/'))
       .map(f => ({
         name: f.name,
-        path: FullPath(path, f.name),
+        path: FilePath(path, f),
       }));
 
     return (
@@ -53,12 +57,12 @@ export function Preview({ file, path, allFiles, onClose }: PreviewProps) {
 
   // Video / Audio
   if (file.mime.startsWith('video/') || file.mime.startsWith('audio/')) {
-    return <MediaPlayerComponent path={FullPath(path, file.name)} name={file.name} mime={file.mime} onClose={onClose} />;
+    return <MediaPlayerComponent path={FilePath(path, file)} name={file.name} mime={file.mime} onClose={onClose} />;
   }
 
   // PDF
   if (file.mime === 'application/pdf') {
-    return <PDFViewerComponent path={FullPath(path, file.name)} onClose={onClose} />;
+    return <PDFViewerComponent path={FilePath(path, file)} onClose={onClose} />;
   }
 
   // Text / Code
@@ -69,11 +73,11 @@ export function Preview({ file, path, allFiles, onClose }: PreviewProps) {
     file.mime === 'application/xml' ||
     file.ext.match(/\.(md|yaml|yml|toml|ini|cfg|conf|sh|bash|zsh|fish|ps1|bat|cmd|go|rs|py|rb|java|c|cpp|h|hpp|cs|php|sql|r|tex|log|csv)$/i)
   ) {
-    return <TextPreviewComponent path={FullPath(path, file.name)} name={file.name} onClose={onClose} />;
+    return <TextPreviewComponent path={FilePath(path, file)} name={file.name} onClose={onClose} />;
   }
 
   // Fallback: open download
-  window.open(`/api/download?path=${encodeURIComponent(FullPath(path, file.name))}`, '_blank');
+  window.open(`/api/download?path=${encodeURIComponent(FilePath(path, file))}`, '_blank');
   onClose();
   return null;
 }

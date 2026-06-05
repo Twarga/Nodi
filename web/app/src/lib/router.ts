@@ -1,15 +1,20 @@
 import { signal } from '@preact/signals';
 
-type Route = 'dashboard' | 'login' | 'settings';
+type Route = 'devices' | 'files' | 'home' | 'login' | 'send' | 'share' | 'settings';
 
-const currentRoute = signal<Route>('dashboard');
+const currentRoute = signal<Route>('home');
 let initialized = false;
 
 function getRouteFromPath(): Route {
   const path = window.location.pathname;
+  if (path === '/devices') return 'devices';
+  if (path === '/files') return 'files';
+  if (path === '/home') return 'home';
   if (path === '/login') return 'login';
+  if (path === '/send') return 'send';
+  if (path === '/share') return 'share';
   if (path === '/settings') return 'settings';
-  return 'dashboard';
+  return 'home';
 }
 
 function initRouter() {

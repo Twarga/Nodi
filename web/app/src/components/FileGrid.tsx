@@ -28,10 +28,10 @@ export function FileGrid({ onOpen, onContextMenu, lastClicked }: FileGridProps) 
   };
 
   return (
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {_files.map((file, i) => (
         <FileCard
-          key={file.name}
+          key={file.path || file.name}
           file={file}
           currentPath={_currentPath}
           selected={_selected.has(file.name)}

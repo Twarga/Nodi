@@ -34,12 +34,13 @@ COPY --from=builder /app/nodi .
 COPY --from=builder /app/web ./web
 
 # Create default storage directory
-RUN mkdir -p /nodi_files && chown -R nodi:nodi /app /nodi_files
+RUN mkdir -p /nodi_files/.cache/tmp && chown -R nodi:nodi /app /nodi_files
 
 # Set Environment Variables
 ENV QL_HOST=0.0.0.0
 ENV QL_PORT=7319
 ENV QL_ROOT=/nodi_files
+ENV GOTMPDIR=/nodi_files/.cache/tmp
 
 EXPOSE 7319
 USER nodi:nodi

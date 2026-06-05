@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"encoding/json"
 	"fmt"
@@ -16,8 +17,11 @@ import (
 )
 
 var backupSkip = map[string]bool{
-	".trash": true,
-	".cache": true,
+	".trash":          true,
+	".cache":          true,
+	".nodifav.json":   true,
+	".nodilog.jsonl":  true,
+	".nodishare.json": true,
 }
 
 func Backup(cfg *config.Config) http.HandlerFunc {
@@ -28,57 +32,19 @@ func Backup(cfg *config.Config) http.HandlerFunc {
 		}
 
 		dateStr := time.Now().UTC().Format("2006-01-02")
-		w.Header().Set("Content-Type", "application/zip")
-		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="nodi-backup-%s.zip"`, dateStr))
-
-		zw := zip.NewWriter(w)
-		defer zw.Close()
-
-		filepath.WalkDir(cfg.Root, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return nil
+		if r.URL.Query().Get("format") == "zip" {
+			w.Header().Set("Content-Type", "application/zip")
+			w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="nodi-backup-%s.zip"`, dateStr))
+			if err := writeZipBackup(w, cfg.Root); err != nil {
+				return
 			}
-			rel, _ := filepath.Rel(cfg.Root, path)
-			rel = filepath.ToSlash(rel)
-
-			// Skip top-level entries in the skip list
-			parts := strings.Split(rel, "/")
-			if len(parts) > 0 && backupSkip[parts[0]] {
-				if d.IsDir() {
-					return filepath.SkipDir
-				}
-				return nil
+		} else {
+			w.Header().Set("Content-Type", "application/x-tar")
+			w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="nodi-backup-%s.tar"`, dateStr))
+			if err := writeTarBackup(w, cfg.Root); err != nil {
+				return
 			}
-
-			if d.IsDir() {
-				return nil
-			}
-
-			info, err := d.Info()
-			if err != nil {
-				return nil
-			}
-
-			header, err := zip.FileInfoHeader(info)
-			if err != nil {
-				return nil
-			}
-			header.Name = rel
-			header.Method = zip.Deflate
-
-			out, err := zw.CreateHeader(header)
-			if err != nil {
-				return nil
-			}
-
-			f, err := os.Open(path)
-			if err != nil {
-				return nil
-			}
-			io.Copy(out, f)
-			f.Close()
-			return nil
-		})
+		}
 
 		storage.Append(cfg.Root, storage.ActivityEvent{
 			User:   sessionUserFromCtx(r.Context()),
@@ -86,6 +52,196 @@ func Backup(cfg *config.Config) http.HandlerFunc {
 			Path:   "/",
 		})
 	}
+}
+
+func shouldSkipBackupPath(root, path string, d os.DirEntry) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == "." {
+		return false
+	}
+	rel = filepath.ToSlash(rel)
+	parts := strings.Split(rel, "/")
+	return len(parts) > 0 && (backupSkip[parts[0]] || strings.HasPrefix(parts[0], ".nodi-"))
+}
+
+func writeZipBackup(w io.Writer, root string) error {
+	zw := zip.NewWriter(w)
+	defer zw.Close()
+
+	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if shouldSkipBackupPath(root, path, d) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		rel, _ := filepath.Rel(root, path)
+		rel = filepath.ToSlash(rel)
+
+		if d.IsDir() {
+			return nil
+		}
+
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return nil
+		}
+		header.Name = rel
+		header.Method = zip.Deflate
+
+		out, err := zw.CreateHeader(header)
+		if err != nil {
+			return nil
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return nil
+		}
+		io.Copy(out, f)
+		f.Close()
+		return nil
+	})
+}
+
+func writeTarBackup(w io.Writer, root string) error {
+	tw := tar.NewWriter(w)
+	defer tw.Close()
+
+	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if shouldSkipBackupPath(root, path, d) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return nil
+		}
+		rel = filepath.ToSlash(rel)
+		header, err := tar.FileInfoHeader(info, "")
+		if err != nil {
+			return nil
+		}
+		header.Name = rel
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return nil
+		}
+		_, copyErr := io.Copy(tw, f)
+		closeErr := f.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		return closeErr
+	})
+}
+
+func safeRestoreTarget(root, name string) (string, bool) {
+	target := filepath.Join(root, filepath.FromSlash(name))
+	cleanTarget := filepath.Clean(target)
+	cleanRoot := filepath.Clean(root)
+	if !strings.HasPrefix(cleanTarget, cleanRoot+string(filepath.Separator)) && cleanTarget != cleanRoot {
+		return "", false
+	}
+	return cleanTarget, true
+}
+
+func restoreTarBackup(root string, reader io.Reader) error {
+	tr := tar.NewReader(reader)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		target, ok := safeRestoreTarget(root, hdr.Name)
+		if !ok {
+			continue
+		}
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(target, 0755); err != nil {
+				return err
+			}
+		case tar.TypeReg, tar.TypeRegA:
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				return err
+			}
+			outFile, err := os.Create(target)
+			if err != nil {
+				return err
+			}
+			_, copyErr := io.Copy(outFile, tr)
+			closeErr := outFile.Close()
+			if copyErr != nil {
+				return copyErr
+			}
+			if closeErr != nil {
+				return closeErr
+			}
+		}
+	}
+}
+
+func restoreZipBackup(root, tmpZip string) error {
+	zr, err := zip.OpenReader(tmpZip)
+	if err != nil {
+		return err
+	}
+	defer zr.Close()
+
+	for _, f := range zr.File {
+		target, ok := safeRestoreTarget(root, f.Name)
+		if !ok {
+			continue
+		}
+
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(target, 0755)
+			continue
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			continue
+		}
+
+		os.MkdirAll(filepath.Dir(target), 0755)
+		outFile, err := os.Create(target)
+		if err != nil {
+			rc.Close()
+			continue
+		}
+		io.Copy(outFile, rc)
+		outFile.Close()
+		rc.Close()
+	}
+	return nil
 }
 
 func RestoreBackup(cfg *config.Config) http.HandlerFunc {
@@ -107,17 +263,11 @@ func RestoreBackup(cfg *config.Config) http.HandlerFunc {
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
 
-		if err := r.ParseMultipartForm(32 << 20); err != nil {
-			http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		file, _, err := r.FormFile("file")
+		mr, err := r.MultipartReader()
 		if err != nil {
-			http.Error(w, "No file uploaded", http.StatusBadRequest)
+			http.Error(w, "Failed to read multipart upload: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		defer file.Close()
 
 		tmpDir, err := os.MkdirTemp(cfg.Root, ".nodi-restore-*")
 		if err != nil {
@@ -125,57 +275,74 @@ func RestoreBackup(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		tmpZip := filepath.Join(tmpDir, "upload.zip")
-		out, err := os.Create(tmpZip)
+		tmpUpload := filepath.Join(tmpDir, "upload.backup")
+		out, err := os.Create(tmpUpload)
 		if err != nil {
 			os.RemoveAll(tmpDir)
 			http.Error(w, "Failed to create temp file", http.StatusInternalServerError)
 			return
 		}
-		if _, err := io.Copy(out, file); err != nil {
-			out.Close()
+
+		foundFile := false
+		uploadedName := ""
+		for {
+			part, err := mr.NextPart()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				out.Close()
+				os.RemoveAll(tmpDir)
+				http.Error(w, "Failed to read upload", http.StatusBadRequest)
+				return
+			}
+			if part.FormName() != "file" || part.FileName() == "" {
+				part.Close()
+				continue
+			}
+			foundFile = true
+			uploadedName = strings.ToLower(part.FileName())
+			_, err = io.Copy(out, part)
+			part.Close()
+			if err != nil {
+				out.Close()
+				os.RemoveAll(tmpDir)
+				http.Error(w, "Failed to save upload", http.StatusInternalServerError)
+				return
+			}
+			break
+		}
+		if err := out.Close(); err != nil {
 			os.RemoveAll(tmpDir)
 			http.Error(w, "Failed to save upload", http.StatusInternalServerError)
 			return
 		}
-		out.Close()
-
-		// Open and extract
-		zr, err := zip.OpenReader(tmpZip)
-		if err != nil {
+		if !foundFile {
 			os.RemoveAll(tmpDir)
-			http.Error(w, "Invalid zip file", http.StatusBadRequest)
+			http.Error(w, "No file uploaded", http.StatusBadRequest)
 			return
 		}
-		defer zr.Close()
 
-		for _, f := range zr.File {
-			// Zip slip check
-			target := filepath.Join(cfg.Root, filepath.FromSlash(f.Name))
-			cleanTarget := filepath.Clean(target)
-			if !strings.HasPrefix(cleanTarget, filepath.Clean(cfg.Root)+string(filepath.Separator)) && cleanTarget != filepath.Clean(cfg.Root) {
-				continue
-			}
-
-			if f.FileInfo().IsDir() {
-				os.MkdirAll(target, 0755)
-				continue
-			}
-
-			rc, err := f.Open()
+		if strings.HasSuffix(uploadedName, ".tar") {
+			in, err := os.Open(tmpUpload)
 			if err != nil {
-				continue
+				os.RemoveAll(tmpDir)
+				http.Error(w, "Failed to open backup", http.StatusInternalServerError)
+				return
 			}
-
-			os.MkdirAll(filepath.Dir(target), 0755)
-			outFile, err := os.Create(target)
+			err = restoreTarBackup(cfg.Root, in)
+			in.Close()
 			if err != nil {
-				rc.Close()
-				continue
+				os.RemoveAll(tmpDir)
+				http.Error(w, "Invalid tar file", http.StatusBadRequest)
+				return
 			}
-			io.Copy(outFile, rc)
-			outFile.Close()
-			rc.Close()
+		} else {
+			if err := restoreZipBackup(cfg.Root, tmpUpload); err != nil {
+				os.RemoveAll(tmpDir)
+				http.Error(w, "Invalid zip file", http.StatusBadRequest)
+				return
+			}
 		}
 
 		// Clean up temp dir
