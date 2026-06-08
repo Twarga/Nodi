@@ -45,3 +45,10 @@ coverage/
 web/static/dist/assets/
 web/app/test-results/
 .env.test
+
+# Dev / planning docs (kept in repo but local edits should not be committed)
+# If you need to update these, force-add them: git add -f <file>
+/tasks.md
+/handoff.md
+/remake2.md
+/DESIGN_BRIEF.md
