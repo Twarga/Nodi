@@ -1,13 +1,9 @@
-# Nodi
-
 <p align="center">
-  <img src="./logo.png" alt="Nodi logo" width="140" />
+  <img src="./banner.png" alt="Nodi — Private. Fast. No cloud." width="100%" />
 </p>
 
 <p align="center">
   A lightweight, self-hosted web file manager for your home network.
-  <br>
-  <em>Private. Fast. No cloud.</em>
 </p>
 
 <p align="center">

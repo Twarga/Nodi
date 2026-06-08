@@ -5,6 +5,12 @@
 
 set -euo pipefail
 
+# When this script is run via `bash <(curl ...)`, stdin is the pipe from curl.
+# Reopen stdin from the terminal so interactive prompts work.
+if [ ! -t 0 ] && [ -e /dev/tty ]; then
+    exec < /dev/tty
+fi
+
 REPO_URL="https://github.com/Twarga/Nodi.git"
 INSTALL_DIR="${INSTALL_DIR:-nodi-app}"
 HOST="${NODI_HOST:-0.0.0.0}"
