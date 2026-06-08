@@ -75,13 +75,37 @@ spinner() {
 }
 
 step() { printf "  ${GREEN}✓${NC}  %s\n" "$1"; }
-info() { printf "  ${BLUE}→${NC}  %s\n" "$1"; }
-warn() { printf "  ${YELLOW}!${NC}  %s\n" "$1"; }
+info() { printf "  ${BLUE}→${NC}  %s\n" "$1" >&2; }
+warn() { printf "  ${YELLOW}!${NC}  %s\n" "$1" >&2; }
 fail() {
     printf "\n  ${RED}${BOLD}✗  ERROR:${NC} %s\n\n" "$1" >&2
     printf "  ${DIM}Need help? Open an issue at:${NC}\n"
     printf "  ${CYAN}https://github.com/Twarga/Nodi/issues${NC}\n\n"
     exit 1
+}
+
+# Read from stdin if it's a TTY; otherwise try /dev/tty so interactive
+# prompts work even when the script is fed via process substitution.
+_read_input() {
+    local var="$1"
+    if [ -t 0 ]; then
+        IFS= read -r "$var"
+    elif [ -e /dev/tty ]; then
+        IFS= read -r "$var" < /dev/tty
+    else
+        IFS= read -r "$var"
+    fi
+}
+
+_read_input_silent() {
+    local var="$1"
+    if [ -t 0 ]; then
+        IFS= read -rs "$var"
+    elif [ -e /dev/tty ]; then
+        IFS= read -rs "$var" < /dev/tty
+    else
+        IFS= read -rs "$var"
+    fi
 }
 
 prompt() {
@@ -93,7 +117,7 @@ prompt() {
         printf " " >&2
     fi
     local val=""
-    IFS= read -r val || true
+    _read_input val || true
     if [ -z "$val" ] && [ -n "$default" ]; then
         val="$default"
     fi
@@ -103,24 +127,28 @@ prompt() {
 prompt_password() {
     local msg="$1"
     local val="" val2=""
-    while true; do
+    local attempts=0
+    while [ "$attempts" -lt 3 ]; do
         printf "  ${CYAN}?${NC}  %s (hidden): " "$msg" >&2
-        IFS= read -rs val || true
+        _read_input_silent val || true
         printf "\n" >&2
         if [ ${#val} -lt 8 ]; then
             warn "Password must be at least 8 characters."
+            attempts=$((attempts + 1))
             continue
         fi
         printf "  ${CYAN}?${NC}  Confirm %s (hidden): " "$msg" >&2
-        IFS= read -rs val2 || true
+        _read_input_silent val2 || true
         printf "\n" >&2
         if [ "$val" != "$val2" ]; then
             warn "Passwords do not match. Try again."
+            attempts=$((attempts + 1))
             continue
         fi
         printf "%s\n" "$val"
-        break
+        return
     done
+    fail "Failed to set password after 3 attempts."
 }
 
 generate_secret() {
