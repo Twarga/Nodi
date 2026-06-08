@@ -10,6 +10,9 @@
 #
 # Non-interactive (uses Docker, admin user, random password):
 #   bash install.sh --auto
+#
+# Skip systemd service creation:
+#   bash install.sh --no-systemd
 
 set -eo pipefail
 
@@ -24,9 +27,13 @@ TRASH_RETENTION="${NODI_TRASH_RETENTION:-720h}"
 
 # ─── Detect mode ────────────────────────────────────────────────
 AUTO_MODE=0
+NO_SYSTEMD=0
 for arg in "$@"; do
     if [ "$arg" = "--auto" ] || [ "$arg" = "-y" ]; then
         AUTO_MODE=1
+    fi
+    if [ "$arg" = "--no-systemd" ]; then
+        NO_SYSTEMD=1
     fi
 done
 # Also auto-detect if stdin is not a TTY and /dev/tty doesn't exist
@@ -606,11 +613,17 @@ show_success() {
         printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE logs -f${NC}\n"
         printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE up -d --build${NC}\n\n"
     else
-        printf "  ${DIM}Direct install commands:${NC}\n"
-        printf "    ${CYAN}sudo systemctl status nodi${NC}    — check status\n"
-        printf "    ${CYAN}sudo systemctl stop nodi${NC}      — stop Nodi\n"
-        printf "    ${CYAN}sudo systemctl restart nodi${NC}   — restart Nodi\n"
-        printf "    ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC} — view logs\n\n"
+        if [ "$NO_SYSTEMD" -eq 1 ]; then
+            printf "  ${DIM}Direct install commands (no systemd):${NC}\n"
+            printf "    ${CYAN}cd $INSTALL_DIR && ./nodi${NC}   — start Nodi\n"
+            printf "    ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC} — view logs\n\n"
+        else
+            printf "  ${DIM}Direct install commands:${NC}\n"
+            printf "    ${CYAN}sudo systemctl status nodi${NC}    — check status\n"
+            printf "    ${CYAN}sudo systemctl stop nodi${NC}      — stop Nodi\n"
+            printf "    ${CYAN}sudo systemctl restart nodi${NC}   — restart Nodi\n"
+            printf "    ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC} — view logs\n\n"
+        fi
     fi
 }
 
@@ -629,12 +642,20 @@ main() {
         write_docker_compose "$INSTALL_DIR/docker-compose.yml"
         build_image
         start_docker_app
-        setup_docker_systemd
+        if [ "$NO_SYSTEMD" -eq 1 ]; then
+            info "Skipping systemd service (--no-systemd)"
+        else
+            setup_docker_systemd
+        fi
     else
         preflight_direct
         build_direct
         start_direct_app
-        setup_direct_systemd
+        if [ "$NO_SYSTEMD" -eq 1 ]; then
+            info "Skipping systemd service (--no-systemd)"
+        else
+            setup_direct_systemd
+        fi
     fi
 
     show_success
