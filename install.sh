@@ -271,7 +271,7 @@ ask_credentials() {
     printf "\n  ${BOLD}Create your admin account${NC}\n\n" >&2
     local username password hash
     username=$(prompt "Username:" "admin")
-    password=$(prompt_password "password")
+    password=$(prompt_password "password (min 8 chars)")
     printf "\n" >&2
     info "Hashing password..."
     hash=$(hash_password "$password")
