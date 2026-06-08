@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-
+#
 # Nodi Installer — Choose Docker or Direct install, with interactive setup
-# Usage: bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
+#
+# Usage:
+#   bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
+#   # or save first:
+#   curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh -o install.sh
+#   bash install.sh
+#
+# Non-interactive (uses Docker, admin user, random password):
+#   bash install.sh --auto
 
-set -euo pipefail
-
-# When this script is run via `bash <(curl ...)`, stdin is the pipe from curl.
-# Reopen stdin from the terminal so interactive prompts work.
-if [ ! -t 0 ] && [ -e /dev/tty ]; then
-    exec < /dev/tty
-fi
+set -eo pipefail
 
 REPO_URL="https://github.com/Twarga/Nodi.git"
 INSTALL_DIR="${INSTALL_DIR:-nodi-app}"
@@ -19,6 +21,18 @@ MAX_UPLOAD="${NODI_MAX_UPLOAD:-1099511627776}"
 MAX_CHUNK_SIZE="${NODI_MAX_CHUNK_SIZE:-16777216}"
 UPLOAD_TTL="${NODI_UPLOAD_TTL:-48h}"
 TRASH_RETENTION="${NODI_TRASH_RETENTION:-720h}"
+
+# ─── Detect mode ────────────────────────────────────────────────
+AUTO_MODE=0
+for arg in "$@"; do
+    if [ "$arg" = "--auto" ] || [ "$arg" = "-y" ]; then
+        AUTO_MODE=1
+    fi
+done
+# Also auto-detect if stdin is not a TTY and /dev/tty doesn't exist
+if [ "$AUTO_MODE" -eq 0 ] && [ ! -t 0 ] && [ ! -e /dev/tty ]; then
+    AUTO_MODE=1
+fi
 
 # ─── Colors ─────────────────────────────────────────────────────
 BOLD='\033[1m'
@@ -46,18 +60,18 @@ spinner() {
     wait "$pid" || true
     local exit_code=$?
     if [ $exit_code -eq 0 ]; then
-        printf "${CLEAR}  ${GREEN}\u2713${NC}  %s\n" "$msg"
+        printf "${CLEAR}  ${GREEN}✓${NC}  %s\n" "$msg"
     else
-        printf "${CLEAR}  ${RED}\u2717${NC}  %s\n" "$msg"
+        printf "${CLEAR}  ${RED}✗${NC}  %s\n" "$msg"
         return $exit_code
     fi
 }
 
-step() { printf "  ${GREEN}\u2713${NC}  %s\n" "$1"; }
-info() { printf "  ${BLUE}\u2192${NC}  %s\n" "$1"; }
+step() { printf "  ${GREEN}✓${NC}  %s\n" "$1"; }
+info() { printf "  ${BLUE}→${NC}  %s\n" "$1"; }
 warn() { printf "  ${YELLOW}!${NC}  %s\n" "$1"; }
 fail() {
-    printf "\n  ${RED}${BOLD}\u2717  ERROR:${NC} %s\n\n" "$1" >&2
+    printf "\n  ${RED}${BOLD}✗  ERROR:${NC} %s\n\n" "$1" >&2
     printf "  ${DIM}Need help? Open an issue at:${NC}\n"
     printf "  ${CYAN}https://github.com/Twarga/Nodi/issues${NC}\n\n"
     exit 1
@@ -65,13 +79,14 @@ fail() {
 
 prompt() {
     local msg="$1" default="${2:-}"
-    printf "  ${CYAN}?${NC}  %s" "$msg"
+    printf "  ${CYAN}?${NC}  %s" "$msg" >&2
     if [ -n "$default" ]; then
-        printf " [${DIM}%s${NC}] " "$default"
+        printf " [${DIM}%s${NC}] " "$default" >&2
     else
-        printf " "
+        printf " " >&2
     fi
-    read -r val
+    local val=""
+    IFS= read -r val || true
     if [ -z "$val" ] && [ -n "$default" ]; then
         val="$default"
     fi
@@ -82,16 +97,16 @@ prompt_password() {
     local msg="$1"
     local val="" val2=""
     while true; do
-        printf "  ${CYAN}?${NC}  %s (hidden): " "$msg"
-        read -rs val
-        printf "\n"
+        printf "  ${CYAN}?${NC}  %s (hidden): " "$msg" >&2
+        IFS= read -rs val || true
+        printf "\n" >&2
         if [ ${#val} -lt 8 ]; then
             warn "Password must be at least 8 characters."
             continue
         fi
-        printf "  ${CYAN}?${NC}  Confirm %s (hidden): " "$msg"
-        read -rs val2
-        printf "\n"
+        printf "  ${CYAN}?${NC}  Confirm %s (hidden): " "$msg" >&2
+        IFS= read -rs val2 || true
+        printf "\n" >&2
         if [ "$val" != "$val2" ]; then
             warn "Passwords do not match. Try again."
             continue
@@ -109,9 +124,16 @@ generate_secret() {
     fi
 }
 
+generate_password() {
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -base64 16 | tr -d '\n'
+    else
+        dd if=/dev/urandom bs=16 count=1 2>/dev/null | base64 | tr -d '\n' | head -c 16
+    fi
+}
+
 hash_password_go() {
     local password="$1"
-    # Create a tiny Go program to hash with bcrypt
     local tmpdir
     tmpdir=$(mktemp -d)
     cat > "$tmpdir/hash.go" <<'GOEOF'
@@ -141,11 +163,9 @@ GOEOF
 hash_password() {
     local password="$1"
     local hash=""
-    # Try Go first (best quality)
     if command -v go >/dev/null 2>&1; then
         hash=$(hash_password_go "$password")
     fi
-    # Fallback: python3 with passlib if available
     if [ -z "$hash" ] && command -v python3 >/dev/null 2>&1; then
         hash=$(python3 -c "
 import sys
@@ -156,14 +176,10 @@ except Exception:
     pass
 " "$password" 2>/dev/null || true)
     fi
-    # Fallback: htpasswd if available
     if [ -z "$hash" ] && command -v htpasswd >/dev/null 2>&1; then
         hash=$(htpasswd -nbBC 10 admin "$password" 2>/dev/null | cut -d: -f2)
     fi
-    # Fallback: openssl (Apache-style bcrypt not available in all versions)
     if [ -z "$hash" ]; then
-        # Generate a simple SHA512 hash as last resort — the app accepts bcrypt,
-        # but we need SOMETHING. Tell user to change it from Settings.
         hash=$(openssl passwd -6 "$password" 2>/dev/null || echo "")
         if [ -n "$hash" ]; then
             warn "Could not generate bcrypt hash (Go, Python passlib, or htpasswd required)."
@@ -175,46 +191,53 @@ except Exception:
 
 banner() {
     printf "\n"
-    printf "  ${CYAN}${BOLD}\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}                                          ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2588\u2557   \u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2554\u2588\u2588\u2557 \u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2551\u255a\u2588\u2588\u2557\u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2551 \u255a\u2588\u2588\u2588\u2588\u2551\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u2559\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u2559\u2588\u2588\u2551${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u255a\u2550\u255d  \u255a\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u255d${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}                                          ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}     ${DIM}Self-hosted file manager${NC}              ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u2502${NC}                                          ${CYAN}${BOLD}\u2502${NC}\n"
-    printf "  ${CYAN}${BOLD}\u256f\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f${NC}\n"
+    printf "  ${CYAN}${BOLD}=========================================${NC}\n"
+    printf "  ${CYAN}${BOLD}  NODI INSTALLER${NC}\n"
+    printf "  ${CYAN}${BOLD}  Self-hosted file manager${NC}\n"
+    printf "  ${CYAN}${BOLD}=========================================${NC}\n"
     printf "\n"
 }
 
 # ─── Ask install mode ───────────────────────────────────────────
 
 choose_install_mode() {
-    printf "\n  ${BOLD}How would you like to install Nodi?${NC}\n\n"
-    printf "  ${CYAN}1)${NC} Docker ${DIM}(recommended — easy updates, isolated)${NC}\n"
-    printf "  ${CYAN}2)${NC} Direct / Native ${DIM}(builds from source, no containers)${NC}\n\n"
-    local choice
-    while true; do
+    if [ "$AUTO_MODE" -eq 1 ]; then
+        info "Auto mode: using Docker install"
+        INSTALL_MODE="1"
+        return
+    fi
+    printf "\n  ${BOLD}How would you like to install Nodi?${NC}\n\n" >&2
+    printf "  ${CYAN}1)${NC} Docker ${DIM}(recommended — easy updates, isolated)${NC}\n" >&2
+    printf "  ${CYAN}2)${NC} Direct / Native ${DIM}(builds from source, no containers)${NC}\n\n" >&2
+    local choice=""
+    while [ "$choice" != "1" ] && [ "$choice" != "2" ]; do
         choice=$(prompt "Choose 1 or 2:" "1")
-        if [ "$choice" = "1" ] || [ "$choice" = "2" ]; then
-            break
+        if [ "$choice" != "1" ] && [ "$choice" != "2" ]; then
+            warn "Please enter 1 or 2."
         fi
-        warn "Please enter 1 or 2."
     done
-    printf "%s\n" "$choice"
+    INSTALL_MODE="$choice"
 }
 
 # ─── Ask credentials ────────────────────────────────────────────
 
 ask_credentials() {
-    printf "\n  ${BOLD}Create your admin account${NC}\n\n"
+    if [ "$AUTO_MODE" -eq 1 ]; then
+        info "Auto mode: creating admin account with generated password"
+        USER_NAME="admin"
+        ADMIN_PASSWORD="$(generate_password)"
+        info "Hashing password..."
+        PASS_HASH="$(hash_password "$ADMIN_PASSWORD")"
+        if [ -z "$PASS_HASH" ]; then
+            fail "Could not generate password hash. Install Go, htpasswd, or Python passlib."
+        fi
+        return
+    fi
+    printf "\n  ${BOLD}Create your admin account${NC}\n\n" >&2
     local username password hash
     username=$(prompt "Username:" "admin")
     password=$(prompt_password "password")
-    printf "\n"
+    printf "\n" >&2
     info "Hashing password..."
     hash=$(hash_password "$password")
     if [ -z "$hash" ]; then
@@ -390,7 +413,7 @@ EOF
 
 build_image() {
     info "Building Docker image..."
-    info "${DIM}This takes 2\u20135 minutes on first run. Grab a coffee.${NC}"
+    info "${DIM}This takes 2–5 minutes on first run. Grab a coffee.${NC}"
     printf "\n"
 
     if ! (cd "$INSTALL_DIR" && $COMPOSE build --no-cache); then
@@ -471,7 +494,6 @@ start_direct_app() {
     info "Starting Nodi..."
     mkdir -p "$INSTALL_DIR/nodi_files/.cache/tmp"
 
-    # Create a simple wrapper script
     cat > "$INSTALL_DIR/run-nodi.sh" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
@@ -487,7 +509,6 @@ EOF
     local pid=$!
     echo $pid > "$INSTALL_DIR/nodi.pid"
 
-    # Wait a moment for startup
     sleep 2
     if kill -0 "$pid" 2>/dev/null; then
         step "Nodi is running (pid $pid)"
@@ -518,7 +539,6 @@ RestartSec=5
 StandardOutput=append:$INSTALL_ABS/nodi.log
 StandardError=append:$INSTALL_ABS/nodi.log
 
-# Hardening that does not break large uploads
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
@@ -541,7 +561,6 @@ EOF
     sudo systemctl daemon-reload >/dev/null 2>&1
     sudo systemctl enable nodi >/dev/null 2>&1
 
-    # Stop the background nohup process and hand over to systemd
     if [ -f "$INSTALL_DIR/nodi.pid" ]; then
         local pid
         pid=$(cat "$INSTALL_DIR/nodi.pid")
@@ -558,26 +577,29 @@ EOF
 show_success() {
     LOCAL_IP=""
     if command -v ip >/dev/null 2>&1; then
-        LOCAL_IP=$(ip -4 route get 1 2>/dev/null | awk '{print \$7; exit}')
+        LOCAL_IP=$(ip -4 route get 1 2>/dev/null | awk '{print $7; exit}')
     elif command -v hostname >/dev/null 2>&1; then
-        LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print \$1}')
+        LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
     fi
 
     printf "\n"
-    printf "  ${GREEN}${BOLD}\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e${NC}\n"
-    printf "  ${GREEN}${BOLD}\u2502${NC}                                          ${GREEN}${BOLD}\u2502${NC}\n"
-    printf "  ${GREEN}${BOLD}\u2502${NC}   ${BOLD}\u2708  Nodi is live!${NC}                      ${GREEN}${BOLD}\u2502${NC}\n"
-    printf "  ${GREEN}${BOLD}\u2502${NC}                                          ${GREEN}${BOLD}\u2502${NC}\n"
-    printf "  ${GREEN}${BOLD}\u2502${NC}   ${CYAN}Local:${NC}   http://localhost:$PORT         ${GREEN}${BOLD}\u2502${NC}\n"
-    if [ -n "$LOCAL_IP" ]; then
-        printf "  ${GREEN}${BOLD}\u2502${NC}   ${CYAN}Network:${NC} http://${LOCAL_IP}:$PORT       ${GREEN}${BOLD}\u2502${NC}\n"
-    fi
-    printf "  ${GREEN}${BOLD}\u2502${NC}                                          ${GREEN}${BOLD}\u2502${NC}\n"
-    printf "  ${GREEN}${BOLD}\u2502${NC}   ${BOLD}User:${NC}     ${WHITE}${BOLD}%s${NC}                     ${GREEN}${BOLD}\u2502${NC}\n" "$USER_NAME"
-    printf "  ${GREEN}${BOLD}\u2502${NC}   ${BOLD}Password:${NC} ${WHITE}${BOLD}(set during install)${NC}         ${GREEN}${BOLD}\u2502${NC}\n"
-    printf "  ${GREEN}${BOLD}\u2502${NC}                                          ${GREEN}${BOLD}\u2502${NC}\n"
-    printf "  ${GREEN}${BOLD}\u256f\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f${NC}\n"
+    printf "  ${GREEN}${BOLD}=========================================${NC}\n"
+    printf "  ${GREEN}${BOLD}  Nodi is live!${NC}\n"
+    printf "  ${GREEN}${BOLD}=========================================${NC}\n"
     printf "\n"
+    printf "  ${CYAN}Local:${NC}   http://localhost:$PORT\n"
+    if [ -n "$LOCAL_IP" ]; then
+        printf "  ${CYAN}Network:${NC} http://${LOCAL_IP}:$PORT\n"
+    fi
+    printf "\n"
+    printf "  ${BOLD}User:${NC}     $USER_NAME\n"
+    printf "  ${BOLD}Password:${NC} $ADMIN_PASSWORD\n"
+    printf "\n"
+    if [ "$AUTO_MODE" -eq 1 ]; then
+        printf "  ${YELLOW}!  Save this password — it was auto-generated.${NC}\n\n"
+    else
+        printf "  ${YELLOW}!  Save this and change it from Settings after login${NC}\n\n"
+    fi
 
     if [ "$INSTALL_MODE" = "1" ]; then
         printf "  ${DIM}Docker commands:${NC}\n"
@@ -585,10 +607,10 @@ show_success() {
         printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE up -d --build${NC}\n\n"
     else
         printf "  ${DIM}Direct install commands:${NC}\n"
-        printf "    ${CYAN}sudo systemctl status nodi${NC}    \u2014 check status\n"
-        printf "    ${CYAN}sudo systemctl stop nodi${NC}      \u2014 stop Nodi\n"
-        printf "    ${CYAN}sudo systemctl restart nodi${NC}   \u2014 restart Nodi\n"
-        printf "    ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC} \u2014 view logs\n\n"
+        printf "    ${CYAN}sudo systemctl status nodi${NC}    — check status\n"
+        printf "    ${CYAN}sudo systemctl stop nodi${NC}      — stop Nodi\n"
+        printf "    ${CYAN}sudo systemctl restart nodi${NC}   — restart Nodi\n"
+        printf "    ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC} — view logs\n\n"
     fi
 }
 
@@ -596,7 +618,7 @@ show_success() {
 
 main() {
     banner
-    INSTALL_MODE=$(choose_install_mode)
+    choose_install_mode
     ask_credentials
     cleanup_old
     clone_repo
