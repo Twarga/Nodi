@@ -14,13 +14,21 @@ Create a bcrypt password hash first:
 htpasswd -bnBC 10 "" "your-long-admin-password" | tr -d ':\n'
 ```
 
-Create the secret:
+Create the secret imperatively:
 
 ```bash
 kubectl -n nodi create secret generic nodi-secrets \
   --from-literal=QL_USER=admin \
   --from-literal=QL_PASS_HASH='$2y$10$replace-me-with-your-bcrypt-hash' \
   --from-literal=QL_COOKIE_SECRET='replace-with-at-least-32-random-bytes'
+```
+
+Or copy `secret.example.yaml`, fill in the values, and apply it:
+
+```bash
+cp deploy/kubernetes/secret.example.yaml deploy/kubernetes/secret.yaml
+# edit deploy/kubernetes/secret.yaml with real values
+kubectl apply -f deploy/kubernetes/secret.yaml
 ```
 
 ## 2. Apply the manifests

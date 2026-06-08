@@ -12,6 +12,8 @@ spec:
       labels:
         app: nodi
     spec:
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: nodi
           image: ghcr.io/twarga/nodi:latest
