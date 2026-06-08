@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
 #
-# Nodi Installer — Choose Docker or Direct install, with interactive setup
+# ╔═══════════════════════════════════════════════════════════════════╗
+# ║                    NODI INSTALLER                                 ║
+# ║          Self-hosted file manager for your network               ║
+# ╚═══════════════════════════════════════════════════════════════════╝
 #
 # Usage:
 #   bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
-#   # or save first:
-#   curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh -o install.sh
-#   bash install.sh
 #
-# Non-interactive (uses Docker, admin user, random password):
-#   bash install.sh --auto
-#
-# Skip systemd service creation:
-#   bash install.sh --no-systemd
+# Options:
+#   --auto         Non-interactive Docker install with random password
+#   --no-systemd   Skip systemd service creation
 
 set -eo pipefail
 
@@ -25,23 +23,20 @@ MAX_CHUNK_SIZE="${NODI_MAX_CHUNK_SIZE:-16777216}"
 UPLOAD_TTL="${NODI_UPLOAD_TTL:-48h}"
 TRASH_RETENTION="${NODI_TRASH_RETENTION:-720h}"
 
-# ─── Detect mode ────────────────────────────────────────────────
+# ─── Detect mode ──────────────────────────────────────────────────
 AUTO_MODE=0
 NO_SYSTEMD=0
 for arg in "$@"; do
-    if [ "$arg" = "--auto" ] || [ "$arg" = "-y" ]; then
-        AUTO_MODE=1
-    fi
-    if [ "$arg" = "--no-systemd" ]; then
-        NO_SYSTEMD=1
-    fi
+    case "$arg" in
+        --auto|-y)      AUTO_MODE=1 ;;
+        --no-systemd)   NO_SYSTEMD=1 ;;
+    esac
 done
-# Also auto-detect if stdin is not a TTY and /dev/tty doesn't exist
 if [ "$AUTO_MODE" -eq 0 ] && [ ! -t 0 ] && [ ! -e /dev/tty ]; then
     AUTO_MODE=1
 fi
 
-# ─── Colors ─────────────────────────────────────────────────────
+# ─── Colors ───────────────────────────────────────────────────────
 BOLD='\033[1m'
 DIM='\033[2m'
 RED='\033[0;31m'
@@ -49,11 +44,39 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 WHITE='\033[1;37m'
 NC='\033[0m'
 CLEAR='\r\033[K'
 
-# ─── Helpers ────────────────────────────────────────────────────
+# ─── UI Helpers ───────────────────────────────────────────────────
+
+box_top()    { printf "\n  ${CYAN}┌─────────────────────────────────────────────────────────────────┐${NC}\n"; }
+box_mid()    { printf "  ${CYAN}├─────────────────────────────────────────────────────────────────┤${NC}\n"; }
+box_bot()    { printf "  ${CYAN}└─────────────────────────────────────────────────────────────────┘${NC}\n\n"; }
+box_title()  { printf "  ${CYAN}│${NC}  ${BOLD}${WHITE}%-63s${NC} ${CYAN}│${NC}\n" "$1"; }
+box_line()   { printf "  ${CYAN}│${NC}  %-63s ${CYAN}│${NC}\n" "$1"; }
+box_info()   { printf "  ${CYAN}│${NC}  ${BLUE}→${NC}  %-61s ${CYAN}│${NC}\n" "$1"; }
+box_warn()   { printf "  ${CYAN}│${NC}  ${YELLOW}!${NC}  %-61s ${CYAN}│${NC}\n" "$1"; }
+box_ok()     { printf "  ${CYAN}│${NC}  ${GREEN}✓${NC}  %-61s ${CYAN}│${NC}\n" "$1"; }
+box_err()    { printf "  ${CYAN}│${NC}  ${RED}✗${NC}  %-61s ${CYAN}│${NC}\n" "$1"; }
+
+header() {
+    box_top
+    box_title "NODI INSTALLER"
+    box_title "Self-hosted file manager"
+    box_bot
+}
+
+step()   { printf "  ${GREEN}✓${NC}  %s\n" "$1"; }
+info()   { printf "  ${BLUE}→${NC}  %s\n" "$1" >&2; }
+warn()   { printf "  ${YELLOW}!${NC}  %s\n" "$1" >&2; }
+fail() {
+    printf "\n  ${RED}${BOLD}✗  ERROR:${NC} %s\n\n" "$1" >&2
+    printf "  ${DIM}Need help? Open an issue at:${NC}\n"
+    printf "  ${CYAN}https://github.com/Twarga/Nodi/issues${NC}\n\n"
+    exit 1
+}
 
 spinner() {
     local pid=$1 msg="$2"
@@ -74,18 +97,8 @@ spinner() {
     fi
 }
 
-step() { printf "  ${GREEN}✓${NC}  %s\n" "$1"; }
-info() { printf "  ${BLUE}→${NC}  %s\n" "$1" >&2; }
-warn() { printf "  ${YELLOW}!${NC}  %s\n" "$1" >&2; }
-fail() {
-    printf "\n  ${RED}${BOLD}✗  ERROR:${NC} %s\n\n" "$1" >&2
-    printf "  ${DIM}Need help? Open an issue at:${NC}\n"
-    printf "  ${CYAN}https://github.com/Twarga/Nodi/issues${NC}\n\n"
-    exit 1
-}
+# ─── Interactive Prompts ────────────────────────────────────────────
 
-# Read from /dev/tty when available so interactive prompts always work,
-# even when the script is fed via process substitution (bash <(curl ...)).
 _read_input() {
     local var="$1"
     if [ -r /dev/tty ]; then
@@ -106,12 +119,11 @@ _read_input_silent() {
 
 prompt() {
     local msg="$1" default="${2:-}"
-    printf "  ${CYAN}?${NC}  %s" "$msg" >&2
+    printf "\n  ${CYAN}?${NC}  ${BOLD}%s${NC}" "$msg" >&2
     if [ -n "$default" ]; then
-        printf " [${DIM}%s${NC}] " "$default" >&2
-    else
-        printf " " >&2
+        printf " ${DIM}[default: %s]${NC}" "$default" >&2
     fi
+    printf "\n     ${DIM}>${NC} " >&2
     local val=""
     _read_input val || true
     printf "\n" >&2
@@ -126,19 +138,19 @@ prompt_password() {
     local val="" val2=""
     local attempts=0
     while [ "$attempts" -lt 3 ]; do
-        printf "  ${CYAN}?${NC}  %s (hidden): " "$msg" >&2
+        printf "\n  ${CYAN}?${NC}  ${BOLD}%s${NC}\n     ${DIM}(minimum 8 characters, hidden)${NC}\n     ${DIM}>${NC} " "$msg" >&2
         _read_input_silent val || true
         printf "\n" >&2
         if [ ${#val} -lt 8 ]; then
-            warn "Password must be at least 8 characters."
+            warn "Password too short — must be at least 8 characters."
             attempts=$((attempts + 1))
             continue
         fi
-        printf "  ${CYAN}?${NC}  Confirm %s (hidden): " "$msg" >&2
+        printf "  ${CYAN}?${NC}  ${BOLD}Confirm %s${NC}\n     ${DIM}>${NC} " "$msg" >&2
         _read_input_silent val2 || true
         printf "\n" >&2
         if [ "$val" != "$val2" ]; then
-            warn "Passwords do not match. Try again."
+            warn "Passwords do not match. Please try again."
             attempts=$((attempts + 1))
             continue
         fi
@@ -147,6 +159,8 @@ prompt_password() {
     done
     fail "Failed to set password after 3 attempts."
 }
+
+# ─── Secrets & Passwords ──────────────────────────────────────────
 
 generate_secret() {
     if command -v openssl >/dev/null 2>&1; then
@@ -164,17 +178,15 @@ generate_password() {
     fi
 }
 
-hash_password_go() {
-    local password="$1"
-    local tmpdir
-    tmpdir=$(mktemp -d)
-    cat > "$tmpdir/hash.go" <<'GOEOF'
+hash_password() {
+    local password="$1" hash=""
+    # Try Go first (fast, no external deps if present)
+    if command -v go >/dev/null 2>&1; then
+        local tmpdir
+        tmpdir=$(mktemp -d)
+        cat > "$tmpdir/hash.go" <<'GOEOF'
 package main
-import (
-    "fmt"
-    "os"
-    "golang.org/x/crypto/bcrypt"
-)
+import ("fmt"; "os"; "golang.org/x/crypto/bcrypt")
 func main() {
     if len(os.Args) < 2 { fmt.Fprintln(os.Stderr, "usage: hash <password>"); os.Exit(1) }
     h, err := bcrypt.GenerateFromPassword([]byte(os.Args[1]), bcrypt.DefaultCost)
@@ -182,22 +194,16 @@ func main() {
     fmt.Println(string(h))
 }
 GOEOF
-    cat > "$tmpdir/go.mod" <<'GOEOF'
+        cat > "$tmpdir/go.mod" <<'GOEOF'
 module hash
 go 1.24
 require golang.org/x/crypto v0.36.0
 GOEOF
-    (cd "$tmpdir" && GOPROXY=https://proxy.golang.org,direct go mod download 2>/dev/null)
-    (cd "$tmpdir" && go run hash.go "$password" 2>/dev/null)
-    rm -rf "$tmpdir"
-}
-
-hash_password() {
-    local password="$1"
-    local hash=""
-    if command -v go >/dev/null 2>&1; then
-        hash=$(hash_password_go "$password")
+        (cd "$tmpdir" && GOPROXY=https://proxy.golang.org,direct go mod download 2>/dev/null)
+        hash=$(cd "$tmpdir" && go run hash.go "$password" 2>/dev/null)
+        rm -rf "$tmpdir"
     fi
+    # Fallback: Python passlib
     if [ -z "$hash" ] && command -v python3 >/dev/null 2>&1; then
         hash=$(python3 -c "
 import sys
@@ -208,9 +214,11 @@ except Exception:
     pass
 " "$password" 2>/dev/null || true)
     fi
+    # Fallback: htpasswd
     if [ -z "$hash" ] && command -v htpasswd >/dev/null 2>&1; then
         hash=$(htpasswd -nbBC 10 admin "$password" 2>/dev/null | cut -d: -f2)
     fi
+    # Last resort: openssl (not bcrypt, will warn)
     if [ -z "$hash" ]; then
         hash=$(openssl passwd -6 "$password" 2>/dev/null || echo "")
         if [ -n "$hash" ]; then
@@ -221,16 +229,135 @@ except Exception:
     printf "%s\n" "$hash"
 }
 
-banner() {
-    printf "\n"
-    printf "  ${CYAN}${BOLD}=========================================${NC}\n"
-    printf "  ${CYAN}${BOLD}  NODI INSTALLER${NC}\n"
-    printf "  ${CYAN}${BOLD}  Self-hosted file manager${NC}\n"
-    printf "  ${CYAN}${BOLD}=========================================${NC}\n"
-    printf "\n"
+# ─── OS Detection ─────────────────────────────────────────────────
+
+detect_os() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        printf "%s\n" "$ID"
+    elif command -v uname >/dev/null 2>&1; then
+        printf "%s\n" "$(uname -s | tr '[:upper:]' '[:lower:]')"
+    else
+        printf "unknown\n"
+    fi
 }
 
-# ─── Ask install mode ───────────────────────────────────────────
+detect_arch() {
+    local arch
+    arch=$(uname -m)
+    case "$arch" in
+        x86_64)  printf "amd64\n" ;;
+        aarch64) printf "arm64\n" ;;
+        armv7l)  printf "armv6l\n" ;;
+        *)       printf "%s\n" "$arch" ;;
+    esac
+}
+
+is_wsl() {
+    if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] || [ -n "${WSL_DISTRO_NAME:-}" ]; then
+        return 0
+    fi
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+# ─── Auto-install dependencies ────────────────────────────────────
+
+install_go() {
+    local os arch version url tmpdir
+    os="linux"
+    arch=$(detect_arch)
+    version="1.24.4"
+    url="https://go.dev/dl/go${version}.${os}-${arch}.tar.gz"
+    tmpdir=$(mktemp -d)
+    info "Downloading Go ${version} for ${os}/${arch}..."
+    if ! curl -fsSL "$url" -o "$tmpdir/go.tar.gz" 2>/dev/null; then
+        rm -rf "$tmpdir"
+        return 1
+    fi
+    info "Extracting Go to /usr/local..."
+    sudo tar -C /usr/local -xzf "$tmpdir/go.tar.gz"
+    rm -rf "$tmpdir"
+    export PATH="/usr/local/go/bin:$PATH"
+    if command -v go >/dev/null 2>&1; then
+        step "Go $(go version | awk '{print $3}') installed"
+        return 0
+    fi
+    return 1
+}
+
+install_node() {
+    local os arch version url tmpdir
+    os="linux"
+    arch=$(uname -m)
+    case "$arch" in
+        x86_64)  arch="x64" ;;
+        aarch64) arch="arm64" ;;
+    esac
+    version="22.16.0"
+    url="https://nodejs.org/dist/v${version}/node-v${version}-${os}-${arch}.tar.xz"
+    tmpdir=$(mktemp -d)
+    info "Downloading Node.js ${version} for ${os}/${arch}..."
+    if ! curl -fsSL "$url" -o "$tmpdir/node.tar.xz" 2>/dev/null; then
+        rm -rf "$tmpdir"
+        return 1
+    fi
+    info "Extracting Node.js to /usr/local..."
+    sudo tar -C /usr/local --strip-components=1 -xf "$tmpdir/node.tar.xz"
+    rm -rf "$tmpdir"
+    export PATH="/usr/local/bin:$PATH"
+    if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+        step "Node.js $(node --version) + npm $(npm --version) installed"
+        return 0
+    fi
+    return 1
+}
+
+ensure_go() {
+    if command -v go >/dev/null 2>&1; then
+        local gv
+        gv=$(go version | awk '{print $3}')
+        step "Go ${gv} already installed"
+        return 0
+    fi
+    box_top
+    box_warn "Go is not installed"
+    box_info "Nodi needs Go to build from source."
+    box_info "I can download and install it automatically."
+    box_bot
+    local choice
+    choice=$(prompt "Auto-install Go now?" "yes")
+    if [ "$choice" != "n" ] && [ "$choice" != "no" ] && [ "$choice" != "N" ]; then
+        if install_go; then
+            return 0
+        fi
+    fi
+    fail "Go is required for direct install.\n\n  Install Go 1.24+ first:\n  ${CYAN}https://go.dev/doc/install${NC}"
+}
+
+ensure_node() {
+    if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+        step "Node.js $(node --version) + npm $(npm --version) already installed"
+        return 0
+    fi
+    box_top
+    box_warn "Node.js is not installed"
+    box_info "Nodi needs Node.js and npm to build the frontend."
+    box_info "I can download and install them automatically."
+    box_bot
+    local choice
+    choice=$(prompt "Auto-install Node.js now?" "yes")
+    if [ "$choice" != "n" ] && [ "$choice" != "no" ] && [ "$choice" != "N" ]; then
+        if install_node; then
+            return 0
+        fi
+    fi
+    fail "Node.js and npm are required for direct install.\n\n  Install Node.js 22+ first:\n  ${CYAN}https://nodejs.org/${NC}"
+}
+
+# ─── Installation Steps ───────────────────────────────────────────
 
 choose_install_mode() {
     if [ "$AUTO_MODE" -eq 1 ]; then
@@ -238,20 +365,20 @@ choose_install_mode() {
         INSTALL_MODE="1"
         return
     fi
-    printf "\n  ${BOLD}How would you like to install Nodi?${NC}\n\n" >&2
-    printf "  ${CYAN}1)${NC} Docker ${DIM}(recommended — easy updates, isolated)${NC}\n" >&2
-    printf "  ${CYAN}2)${NC} Direct / Native ${DIM}(builds from source, no containers)${NC}\n\n" >&2
+    box_top
+    box_title "How would you like to install Nodi?"
+    box_bot
+    printf "  ${CYAN}1)${NC}  ${BOLD}Docker${NC}        ${DIM}Recommended — easy updates, fully isolated${NC}\n"
+    printf "  ${CYAN}2)${NC}  ${BOLD}Direct / Native${NC} ${DIM}Builds from source, no containers${NC}\n\n"
     local choice=""
     while [ "$choice" != "1" ] && [ "$choice" != "2" ]; do
-        choice=$(prompt "Choose 1 or 2:" "1")
+        choice=$(prompt "Choose 1 or 2" "1")
         if [ "$choice" != "1" ] && [ "$choice" != "2" ]; then
             warn "Please enter 1 or 2."
         fi
     done
     INSTALL_MODE="$choice"
 }
-
-# ─── Ask credentials ────────────────────────────────────────────
 
 ask_credentials() {
     if [ "$AUTO_MODE" -eq 1 ]; then
@@ -265,10 +392,12 @@ ask_credentials() {
         fi
         return
     fi
-    printf "\n  ${BOLD}Create your admin account${NC}\n\n" >&2
+    box_top
+    box_title "Create your admin account"
+    box_bot
     local username password hash
-    username=$(prompt "Username:" "admin")
-    password=$(prompt_password "password (min 8 chars)")
+    username=$(prompt "Username" "admin")
+    password=$(prompt_password "Password")
     printf "\n" >&2
     info "Hashing password..."
     hash=$(hash_password "$password")
@@ -280,382 +409,219 @@ ask_credentials() {
     ADMIN_PASSWORD="$password"
 }
 
-# ─── Preflight Checks ───────────────────────────────────────────
-
-preflight_docker() {
-    info "Checking requirements..."
-
-    if ! command -v docker >/dev/null 2>&1; then
-        fail "Docker is not installed.\n\n  Install it first:\n  ${CYAN}https://docs.docker.com/engine/install/${NC}"
-    fi
-
-    if ! docker info >/dev/null 2>&1; then
-        fail "Docker daemon is not running. Start Docker and try again."
-    fi
-
-    COMPOSE="docker compose"
-    if ! $COMPOSE version >/dev/null 2>&1; then
-        if command -v docker-compose >/dev/null 2>&1; then
-            COMPOSE="docker-compose"
-        else
-            fail "Docker Compose plugin not found.\n\n  Install it:\n  ${CYAN}https://docs.docker.com/compose/install/${NC}"
-        fi
-    fi
-
-    if ! command -v git >/dev/null 2>&1; then
-        fail "Git is not installed.\n\n  ${CYAN}sudo apt install git${NC}  (Debian/Ubuntu)\n  ${CYAN}sudo yum install git${NC}  (RHEL/CentOS)"
-    fi
-
-    step "Docker, Compose, and Git are ready"
-}
-
-preflight_direct() {
-    info "Checking requirements..."
-
-    if ! command -v git >/dev/null 2>&1; then
-        fail "Git is not installed.\n\n  ${CYAN}sudo apt install git${NC}  (Debian/Ubuntu)\n  ${CYAN}sudo yum install git${NC}  (RHEL/CentOS)"
-    fi
-
-    if ! command -v go >/dev/null 2>&1; then
-        fail "Go is not installed.\n\n  Install Go 1.24+ first:\n  ${CYAN}https://go.dev/doc/install${NC}"
-    fi
-
-    local go_version
-    go_version=$(go version | awk '{print $3}' | sed 's/go//')
-    if ! printf "%s\n%s\n" "1.24" "$go_version" | sort -V -C; then
-        fail "Go 1.24+ is required. Found: $go_version\n\n  ${CYAN}https://go.dev/doc/install${NC}"
-    fi
-
-    if ! command -v node >/dev/null 2>&1; then
-        fail "Node.js is not installed.\n\n  Install Node.js 20+ first:\n  ${CYAN}https://nodejs.org/${NC}"
-    fi
-
-    local node_major
-    node_major=$(node --version | sed 's/v//' | cut -d. -f1)
-    if [ "$node_major" -lt 20 ]; then
-        fail "Node.js 20+ is required. Found: $(node --version)"
-    fi
-
-    if ! command -v npm >/dev/null 2>&1; then
-        fail "npm is not installed."
-    fi
-
-    step "Go $(go version | awk '{print $3}'), Node $(node --version), and npm are ready"
-}
-
-# ─── Remove Old Installation ────────────────────────────────────
-
 cleanup_old() {
     if [ -d "$INSTALL_DIR" ]; then
-        info "Removing old installation..."
-        (
-            cd "$INSTALL_DIR"
-            $COMPOSE down --remove-orphans 2>/dev/null || true
-        ) >/dev/null 2>&1
+        info "Removing old install directory: $INSTALL_DIR"
         rm -rf "$INSTALL_DIR"
-        step "Old installation cleaned up"
-    fi
-
-    if [ -f /etc/systemd/system/nodi.service ]; then
-        info "Removing old systemd service..."
-        sudo systemctl stop nodi 2>/dev/null || true
-        sudo systemctl disable nodi 2>/dev/null || true
-        sudo rm -f /etc/systemd/system/nodi.service
-        sudo systemctl daemon-reload 2>/dev/null || true
-        step "Old systemd service removed"
     fi
 }
-
-# ─── Clone ──────────────────────────────────────────────────────
 
 clone_repo() {
     info "Cloning latest source code..."
-    (
-        git clone --depth 1 "$REPO_URL" "$INSTALL_DIR" >/dev/null 2>&1
-    ) &
+    (git clone --depth=1 "$REPO_URL" "$INSTALL_DIR" >/dev/null 2>&1) &
     spinner $! "Cloning repository"
     step "Latest source cloned"
 }
 
-# ─── Write Configs ──────────────────────────────────────────────
-
 write_env_file() {
-    local env_file="$1"
-    COOKIE_SECRET="$(generate_secret)"
-
-    cat > "$env_file" <<EOF
+    local out="$1"
+    local secret="$(generate_secret)"
+    cat > "$out" <<EOF
 QL_HOST=$HOST
 QL_PORT=$PORT
 QL_ROOT=/nodi_files
 QL_USER=$USER_NAME
 QL_PASS_HASH=$PASS_HASH
-QL_COOKIE_SECRET=$COOKIE_SECRET
-QL_THEME=system
+QL_COOKIE_SECRET=$secret
 QL_MAX_UPLOAD=$MAX_UPLOAD
 QL_MAX_CHUNK_SIZE=$MAX_CHUNK_SIZE
 QL_UPLOAD_TTL=$UPLOAD_TTL
 QL_TRASH_RETENTION=$TRASH_RETENTION
 GOTMPDIR=/nodi_files/.cache/tmp
 EOF
+    step "Environment file written"
 }
 
 write_docker_compose() {
-    local dc_file="$1"
-    cat > "$dc_file" <<EOF
+    local out="$1"
+    local compose
+    if command -v docker-compose >/dev/null 2>&1; then
+        compose="docker-compose"
+    else
+        compose="docker compose"
+    fi
+    COMPOSE="$compose"
+    cat > "$out" <<EOF
 services:
   nodi:
-    image: ghcr.io/twarga/nodi:latest
-    build:
-      context: .
-    container_name: nodi
-    restart: unless-stopped
+    build: .
     ports:
       - "$PORT:$PORT"
     env_file:
-      - path: nodi.env
-        format: raw
+      - nodi.env
     volumes:
-      - nodi-files:/nodi_files
-      - nodi-tmp:/tmp
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:$PORT/api/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - nodi_files:/nodi_files
+    restart: unless-stopped
 
 volumes:
-  nodi-files:
-    driver: local
-  nodi-tmp:
-    driver: local
+  nodi_files:
 EOF
+    step "Docker Compose file written"
 }
-
-# ─── Docker Build ───────────────────────────────────────────────
 
 build_image() {
     info "Building Docker image..."
-    info "${DIM}This takes 2–5 minutes on first run. Grab a coffee.${NC}"
-    printf "\n"
-
-    if ! (cd "$INSTALL_DIR" && $COMPOSE build --no-cache); then
-        printf "\n"
-        fail "Docker build failed.\n\n  Try running manually to see the error:\n  ${CYAN}cd $INSTALL_DIR && $COMPOSE build --no-cache${NC}"
-    fi
-    step "Image built successfully"
+    (cd "$INSTALL_DIR" && $COMPOSE build --no-cache >/dev/null 2>&1) &
+    spinner $! "Building Docker image"
 }
 
 start_docker_app() {
     info "Starting Nodi..."
-    (cd "$INSTALL_DIR" && $COMPOSE up -d >/dev/null 2>&1)
-    step "Container started"
-
-    info "Waiting for health check..."
-    local healthy=false
-    for i in $(seq 1 60); do
-        if (cd "$INSTALL_DIR" && $COMPOSE ps 2>/dev/null | grep -q "(healthy)"); then
-            healthy=true
-            break
-        fi
-        sleep 1
-    done
-
-    if [ "$healthy" = false ]; then
-        warn "Nodi is slow to start."
-        warn "Check logs: ${CYAN}cd $INSTALL_DIR && $COMPOSE logs -f${NC}"
-    fi
-
-    step "Nodi is running"
+    (cd "$INSTALL_DIR" && $COMPOSE up -d >/dev/null 2>&1) &
+    spinner $! "Starting containers"
 }
 
 setup_docker_systemd() {
-    info "Creating systemd service..."
-
-    INSTALL_ABS="$(cd "$INSTALL_DIR" && pwd)"
-
-    sudo tee /etc/systemd/system/nodi.service > /dev/null <<EOF
+    if [ "$NO_SYSTEMD" -eq 1 ]; then return; fi
+    if ! command -v systemctl >/dev/null 2>&1; then
+        warn "systemctl not found — skipping systemd service"
+        return
+    fi
+    local svc="/etc/systemd/system/nodi.service"
+    local compose_path
+    compose_path="$(cd "$INSTALL_DIR" && pwd)/docker-compose.yml"
+    cat > /tmp/nodi.service <<EOF
 [Unit]
-Description=Nodi Self-Hosted File Manager
-Documentation=https://github.com/Twarga/Nodi
-Requires=docker.service
-After=docker.service
+Description=Nodi File Manager (Docker)
+After=docker.service network.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=$INSTALL_ABS
-ExecStart=$COMPOSE up -d
-ExecStop=$COMPOSE down
-ExecReload=$COMPOSE up -d --build
-TimeoutStartSec=0
+WorkingDirectory=$(cd "$INSTALL_DIR" && pwd)
+ExecStart=$COMPOSE -f $compose_path up -d
+ExecStop=$COMPOSE -f $compose_path down
 
 [Install]
 WantedBy=multi-user.target
 EOF
-
+    sudo mv /tmp/nodi.service "$svc"
     sudo systemctl daemon-reload >/dev/null 2>&1
     sudo systemctl enable nodi >/dev/null 2>&1
-    step "Systemd service created and enabled"
+    step "Systemd service created: nodi"
 }
 
-# ─── Direct Build ─────────────────────────────────────────────
+preflight_direct() {
+    ensure_go
+    ensure_node
+}
 
 build_direct() {
     info "Building frontend..."
     (cd "$INSTALL_DIR/web/app" && npm ci --no-audit --no-fund >/dev/null 2>&1 && npm run build >/dev/null 2>&1) &
     spinner $! "Building frontend"
 
-    info "Building Go binary..."
-    (cd "$INSTALL_DIR" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(git describe --tags --always 2>/dev/null || echo dev)" -o nodi ./cmd/server) &
-    spinner $! "Building Go binary"
-
-    step "Build complete"
+    info "Building Go server..."
+    (cd "$INSTALL_DIR" && go build -trimpath -ldflags="-s -w" -o nodi ./cmd/server >/dev/null 2>&1) &
+    spinner $! "Building Go server"
 }
 
 start_direct_app() {
     info "Starting Nodi..."
     mkdir -p "$INSTALL_DIR/nodi_files/.cache/tmp"
-
-    cat > "$INSTALL_DIR/run-nodi.sh" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$(cd "$INSTALL_DIR" && pwd)"
-set -a
-source ./nodi.env
-set +a
-exec ./nodi
-EOF
-    chmod +x "$INSTALL_DIR/run-nodi.sh"
-
-    nohup "$INSTALL_DIR/run-nodi.sh" > "$INSTALL_DIR/nodi.log" 2>&1 &
-    local pid=$!
-    echo $pid > "$INSTALL_DIR/nodi.pid"
-
-    sleep 2
-    if kill -0 "$pid" 2>/dev/null; then
-        step "Nodi is running (pid $pid)"
-    else
-        warn "Nodi exited quickly. Check logs: ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC}"
-    fi
+    export GOTMPDIR="$INSTALL_DIR/nodi_files/.cache/tmp"
+    set -a
+    . "$INSTALL_DIR/nodi.env"
+    set +a
+    nohup "$INSTALL_DIR/nodi" > "$INSTALL_DIR/nodi.log" 2>&1 &
+    step "Nodi started (PID $!)"
 }
 
 setup_direct_systemd() {
-    info "Creating systemd service..."
-
-    INSTALL_ABS="$(cd "$INSTALL_DIR" && pwd)"
-
-    sudo tee /etc/systemd/system/nodi.service > /dev/null <<EOF
+    if [ "$NO_SYSTEMD" -eq 1 ]; then return; fi
+    if ! command -v systemctl >/dev/null 2>&1; then
+        warn "systemctl not found — skipping systemd service"
+        return
+    fi
+    local svc="/etc/systemd/system/nodi.service"
+    local bin_path env_path
+    bin_path="$(cd "$INSTALL_DIR" && pwd)/nodi"
+    env_path="$(cd "$INSTALL_DIR" && pwd)/nodi.env"
+    cat > /tmp/nodi.service <<EOF
 [Unit]
-Description=Nodi Self-Hosted File Manager
-Documentation=https://github.com/Twarga/Nodi
+Description=Nodi File Manager
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=$INSTALL_ABS
-EnvironmentFile=$INSTALL_ABS/nodi.env
-ExecStart=$INSTALL_ABS/nodi
-ExecReload=/bin/kill -HUP \$MAINPID
+User=root
+WorkingDirectory=$(cd "$INSTALL_DIR" && pwd)
+EnvironmentFile=$env_path
+ExecStart=$bin_path
 Restart=on-failure
-RestartSec=5
-StandardOutput=append:$INSTALL_ABS/nodi.log
-StandardError=append:$INSTALL_ABS/nodi.log
-
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=$INSTALL_ABS/nodi_files /tmp
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-RestrictSUIDSGID=true
-RestrictNamespaces=true
-LockPersonality=true
-MemoryDenyWriteExecute=true
-RestrictRealtime=true
-RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target
 EOF
-
+    sudo mv /tmp/nodi.service "$svc"
     sudo systemctl daemon-reload >/dev/null 2>&1
     sudo systemctl enable nodi >/dev/null 2>&1
-
-    if [ -f "$INSTALL_DIR/nodi.pid" ]; then
-        local pid
-        pid=$(cat "$INSTALL_DIR/nodi.pid")
-        kill "$pid" 2>/dev/null || true
-        rm -f "$INSTALL_DIR/nodi.pid"
-    fi
-
     sudo systemctl start nodi >/dev/null 2>&1
-    step "Systemd service created and started"
+    step "Systemd service created and started: nodi"
 }
 
-# ─── Success Screen ─────────────────────────────────────────────
-
 show_success() {
-    LOCAL_IP=""
+    local LOCAL_IP=""
     if command -v ip >/dev/null 2>&1; then
         LOCAL_IP=$(ip -4 route get 1 2>/dev/null | awk '{print $7; exit}')
     elif command -v hostname >/dev/null 2>&1; then
         LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
     fi
 
-    printf "\n"
-    printf "  ${GREEN}${BOLD}=========================================${NC}\n"
-    printf "  ${GREEN}${BOLD}  Nodi is live!${NC}\n"
-    printf "  ${GREEN}${BOLD}=========================================${NC}\n"
-    printf "\n"
+    box_top
+    box_ok "Nodi is live!"
+    box_bot
+
+    printf "  ${BOLD}URLs${NC}\n"
     printf "  ${CYAN}Local:${NC}   http://localhost:$PORT\n"
     if [ -n "$LOCAL_IP" ]; then
-        printf "  ${CYAN}Network:${NC} http://${LOCAL_IP}:$PORT\n"
+        printf "  ${CYAN}LAN:${NC}     http://${LOCAL_IP}:$PORT\n"
     fi
     printf "\n"
-    printf "  ${BOLD}User:${NC}     $USER_NAME\n"
-    printf "  ${BOLD}Password:${NC} $ADMIN_PASSWORD\n"
+    printf "  ${BOLD}Credentials${NC}\n"
+    printf "  ${CYAN}User:${NC}     $USER_NAME\n"
+    printf "  ${CYAN}Password:${NC} $ADMIN_PASSWORD\n"
     printf "\n"
+
     if [ "$AUTO_MODE" -eq 1 ]; then
         printf "  ${YELLOW}!  Save this password — it was auto-generated.${NC}\n\n"
     else
-        printf "  ${YELLOW}!  Save this and change it from Settings after login${NC}\n\n"
+        printf "  ${YELLOW}!  Change it from Settings after first login${NC}\n\n"
     fi
 
     if [ "$INSTALL_MODE" = "1" ]; then
-        printf "  ${DIM}Docker commands:${NC}\n"
-        printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE logs -f${NC}\n"
-        printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE up -d --build${NC}\n\n"
+        printf "  ${DIM}Docker commands${NC}\n"
+        printf "  ${CYAN}cd $INSTALL_DIR && $COMPOSE logs -f${NC}\n"
+        printf "  ${CYAN}cd $INSTALL_DIR && $COMPOSE up -d --build${NC}\n\n"
     else
         if [ "$NO_SYSTEMD" -eq 1 ]; then
-            printf "  ${DIM}Direct install commands (no systemd):${NC}\n"
-            printf "    ${CYAN}cd $INSTALL_DIR && ./nodi${NC}   — start Nodi\n"
-            printf "    ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC} — view logs\n\n"
+            printf "  ${DIM}Manual commands${NC}\n"
+            printf "  ${CYAN}cd $INSTALL_DIR && ./nodi${NC}\n"
+            printf "  ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC}\n\n"
         else
-            printf "  ${DIM}Direct install commands:${NC}\n"
-            printf "    ${CYAN}sudo systemctl status nodi${NC}    — check status\n"
-            printf "    ${CYAN}sudo systemctl stop nodi${NC}      — stop Nodi\n"
-            printf "    ${CYAN}sudo systemctl restart nodi${NC}   — restart Nodi\n"
-            printf "    ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC} — view logs\n\n"
+            printf "  ${DIM}Systemd commands${NC}\n"
+            printf "  ${CYAN}sudo systemctl status nodi${NC}\n"
+            printf "  ${CYAN}sudo systemctl stop nodi${NC}\n"
+            printf "  ${CYAN}sudo systemctl restart nodi${NC}\n"
+            printf "  ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC}\n\n"
         fi
     fi
 }
 
-# ─── Main ───────────────────────────────────────────────────────
+# ─── Main ─────────────────────────────────────────────────────────
 
 main() {
-    banner
+    header
     choose_install_mode
     ask_credentials
     cleanup_old
@@ -663,7 +629,6 @@ main() {
     write_env_file "$INSTALL_DIR/nodi.env"
 
     if [ "$INSTALL_MODE" = "1" ]; then
-        preflight_docker
         write_docker_compose "$INSTALL_DIR/docker-compose.yml"
         build_image
         start_docker_app
