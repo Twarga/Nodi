@@ -42,3 +42,6 @@ nodi_files/
 coverage.txt
 coverage/
 *.prof
+web/static/dist/assets/
+web/app/test-results/
+.env.test

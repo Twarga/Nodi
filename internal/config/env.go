@@ -49,6 +49,9 @@ func Load() (*Config, error) {
 		if len(bootstrapPassword) < 12 {
 			return nil, fmt.Errorf("QL_BOOTSTRAP_PASSWORD must be at least 12 characters")
 		}
+		if unsafeBootstrapPassword(bootstrapPassword) {
+			return nil, fmt.Errorf("QL_BOOTSTRAP_PASSWORD is an unsafe default or placeholder; change it to a real password")
+		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(bootstrapPassword), bcrypt.DefaultCost)
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash QL_BOOTSTRAP_PASSWORD: %w", err)
@@ -143,6 +146,32 @@ func unsafeCookieSecret(secret string) bool {
 		"changeme":  true,
 		"secret":    true,
 		"password":  true,
+	}
+	if knownUnsafe[normalized] {
+		return true
+	}
+	if strings.Contains(normalized, "change-this") || strings.Contains(normalized, "changeme") || strings.Contains(normalized, "example") || strings.Contains(normalized, "placeholder") {
+		return true
+	}
+	return false
+}
+
+func unsafeBootstrapPassword(password string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(password))
+	if normalized == "" {
+		return true
+	}
+	knownUnsafe := map[string]bool{
+		"change-this-to-a-secure-password-min-12-chars": true,
+		"changeme":     true,
+		"password":     true,
+		"admin":        true,
+		"123456":       true,
+		"12345678":     true,
+		"password123":  true,
+		"qwerty":       true,
+		"letmein":      true,
+		"welcome":      true,
 	}
 	if knownUnsafe[normalized] {
 		return true

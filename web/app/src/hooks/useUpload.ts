@@ -205,8 +205,10 @@ function updateUpload(id: string, updater: (item: UploadItem) => UploadItem) {
 function maybeAutoHide() {
   syncBeforeUnloadGuard();
   setTimeout(() => {
-    const allDone = uploads.value.length > 0 && uploads.value.every(u => u.status === 'done');
-    if (allDone) panelOpen.value = false;
+    // Auto-hide when nothing is still active (pending/uploading/paused)
+    const anyActive = uploads.value.some(u => u.status === 'pending' || u.status === 'uploading' || u.status === 'paused');
+    const hasItems = uploads.value.length > 0;
+    if (hasItems && !anyActive) panelOpen.value = false;
   }, 2000);
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Nodi Installer — Beautiful, bulletproof, always fresh
+# Nodi Installer — Choose Docker or Direct install, with interactive setup
 # Usage: bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
 
 set -euo pipefail
@@ -8,9 +8,7 @@ set -euo pipefail
 REPO_URL="https://github.com/Twarga/Nodi.git"
 INSTALL_DIR="${INSTALL_DIR:-nodi-app}"
 HOST="${NODI_HOST:-0.0.0.0}"
-USER_NAME="${NODI_USER:-admin}"
-PASS_HASH="${NODI_PASS_HASH:-}"
-ADMIN_PASSWORD="${NODI_ADMIN_PASSWORD:-}"
+PORT="${NODI_PORT:-7319}"
 MAX_UPLOAD="${NODI_MAX_UPLOAD:-1099511627776}"
 MAX_CHUNK_SIZE="${NODI_MAX_CHUNK_SIZE:-16777216}"
 UPLOAD_TTL="${NODI_UPLOAD_TTL:-48h}"
@@ -42,21 +40,59 @@ spinner() {
     wait "$pid" || true
     local exit_code=$?
     if [ $exit_code -eq 0 ]; then
-        printf "${CLEAR}  ${GREEN}✓${NC}  %s\n" "$msg"
+        printf "${CLEAR}  ${GREEN}\u2713${NC}  %s\n" "$msg"
     else
-        printf "${CLEAR}  ${RED}✗${NC}  %s\n" "$msg"
+        printf "${CLEAR}  ${RED}\u2717${NC}  %s\n" "$msg"
         return $exit_code
     fi
 }
 
-step() { printf "  ${GREEN}✓${NC}  %s\n" "$1"; }
-info() { printf "  ${BLUE}→${NC}  %s\n" "$1"; }
+step() { printf "  ${GREEN}\u2713${NC}  %s\n" "$1"; }
+info() { printf "  ${BLUE}\u2192${NC}  %s\n" "$1"; }
 warn() { printf "  ${YELLOW}!${NC}  %s\n" "$1"; }
 fail() {
-    printf "\n  ${RED}${BOLD}✗  ERROR:${NC} %s\n\n" "$1" >&2
+    printf "\n  ${RED}${BOLD}\u2717  ERROR:${NC} %s\n\n" "$1" >&2
     printf "  ${DIM}Need help? Open an issue at:${NC}\n"
     printf "  ${CYAN}https://github.com/Twarga/Nodi/issues${NC}\n\n"
     exit 1
+}
+
+prompt() {
+    local msg="$1" default="${2:-}"
+    printf "  ${CYAN}?${NC}  %s" "$msg"
+    if [ -n "$default" ]; then
+        printf " [${DIM}%s${NC}] " "$default"
+    else
+        printf " "
+    fi
+    read -r val
+    if [ -z "$val" ] && [ -n "$default" ]; then
+        val="$default"
+    fi
+    printf "%s\n" "$val"
+}
+
+prompt_password() {
+    local msg="$1"
+    local val="" val2=""
+    while true; do
+        printf "  ${CYAN}?${NC}  %s (hidden): " "$msg"
+        read -rs val
+        printf "\n"
+        if [ ${#val} -lt 8 ]; then
+            warn "Password must be at least 8 characters."
+            continue
+        fi
+        printf "  ${CYAN}?${NC}  Confirm %s (hidden): " "$msg"
+        read -rs val2
+        printf "\n"
+        if [ "$val" != "$val2" ]; then
+            warn "Passwords do not match. Try again."
+            continue
+        fi
+        printf "%s\n" "$val"
+        break
+    done
 }
 
 generate_secret() {
@@ -67,34 +103,125 @@ generate_secret() {
     fi
 }
 
-generate_password() {
-    if command -v openssl >/dev/null 2>&1; then
-        openssl rand -base64 24 | tr -d '\n'
-    else
-        dd if=/dev/urandom bs=24 count=1 2>/dev/null | base64 | tr -d '\n'
+hash_password_go() {
+    local password="$1"
+    # Create a tiny Go program to hash with bcrypt
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    cat > "$tmpdir/hash.go" <<'GOEOF'
+package main
+import (
+    "fmt"
+    "os"
+    "golang.org/x/crypto/bcrypt"
+)
+func main() {
+    if len(os.Args) < 2 { fmt.Fprintln(os.Stderr, "usage: hash <password>"); os.Exit(1) }
+    h, err := bcrypt.GenerateFromPassword([]byte(os.Args[1]), bcrypt.DefaultCost)
+    if err != nil { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+    fmt.Println(string(h))
+}
+GOEOF
+    cat > "$tmpdir/go.mod" <<'GOEOF'
+module hash
+go 1.24
+require golang.org/x/crypto v0.36.0
+GOEOF
+    (cd "$tmpdir" && GOPROXY=https://proxy.golang.org,direct go mod download 2>/dev/null)
+    (cd "$tmpdir" && go run hash.go "$password" 2>/dev/null)
+    rm -rf "$tmpdir"
+}
+
+hash_password() {
+    local password="$1"
+    local hash=""
+    # Try Go first (best quality)
+    if command -v go >/dev/null 2>&1; then
+        hash=$(hash_password_go "$password")
     fi
+    # Fallback: python3 with passlib if available
+    if [ -z "$hash" ] && command -v python3 >/dev/null 2>&1; then
+        hash=$(python3 -c "
+import sys
+try:
+    from passlib.hash import bcrypt
+    print(bcrypt.using(rounds=10).hash(sys.argv[1]))
+except Exception:
+    pass
+" "$password" 2>/dev/null || true)
+    fi
+    # Fallback: htpasswd if available
+    if [ -z "$hash" ] && command -v htpasswd >/dev/null 2>&1; then
+        hash=$(htpasswd -nbBC 10 admin "$password" 2>/dev/null | cut -d: -f2)
+    fi
+    # Fallback: openssl (Apache-style bcrypt not available in all versions)
+    if [ -z "$hash" ]; then
+        # Generate a simple SHA512 hash as last resort — the app accepts bcrypt,
+        # but we need SOMETHING. Tell user to change it from Settings.
+        hash=$(openssl passwd -6 "$password" 2>/dev/null || echo "")
+        if [ -n "$hash" ]; then
+            warn "Could not generate bcrypt hash (Go, Python passlib, or htpasswd required)."
+            warn "The app may not accept this hash. Install Go or htpasswd and re-run."
+        fi
+    fi
+    printf "%s\n" "$hash"
 }
 
 banner() {
     printf "\n"
-    printf "  ${CYAN}${BOLD}╭──────────────────────────────────────────╮${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}                                          ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}  ${WHITE}${BOLD}███╗   ██╗ ██████╗ ██████╗ ██╗${NC}           ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}  ${WHITE}${BOLD}████╗  ██║██╔═══██╗██╔══██╗██║${NC}           ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}  ${WHITE}${BOLD}██╔██╗ ██║██║   ██║██║  ██║██║${NC}           ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}  ${WHITE}${BOLD}██║╚██╗██║██║   ██║██║  ██║██║${NC}           ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}  ${WHITE}${BOLD}██║ ╚████║╚██████╔╝██████╔╝██║${NC}           ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}  ${WHITE}${BOLD}╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚═╝${NC}           ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}                                          ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}     ${DIM}Self-hosted file manager${NC}              ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}│${NC}                                          ${CYAN}${BOLD}│${NC}\n"
-    printf "  ${CYAN}${BOLD}╰──────────────────────────────────────────╯${NC}\n"
+    printf "  ${CYAN}${BOLD}\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}                                          ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2588\u2557   \u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2554\u2588\u2588\u2557 \u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2551\u255a\u2588\u2588\u2557\u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u2588\u2588\u2551 \u255a\u2588\u2588\u2588\u2588\u2551\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u2559\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u2559\u2588\u2588\u2551${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}  ${WHITE}${BOLD}\u255a\u2550\u255d  \u255a\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u255d${NC}           ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}                                          ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}     ${DIM}Self-hosted file manager${NC}              ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u2502${NC}                                          ${CYAN}${BOLD}\u2502${NC}\n"
+    printf "  ${CYAN}${BOLD}\u256f\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f${NC}\n"
     printf "\n"
+}
+
+# ─── Ask install mode ───────────────────────────────────────────
+
+choose_install_mode() {
+    printf "\n  ${BOLD}How would you like to install Nodi?${NC}\n\n"
+    printf "  ${CYAN}1)${NC} Docker ${DIM}(recommended — easy updates, isolated)${NC}\n"
+    printf "  ${CYAN}2)${NC} Direct / Native ${DIM}(builds from source, no containers)${NC}\n\n"
+    local choice
+    while true; do
+        choice=$(prompt "Choose 1 or 2:" "1")
+        if [ "$choice" = "1" ] || [ "$choice" = "2" ]; then
+            break
+        fi
+        warn "Please enter 1 or 2."
+    done
+    printf "%s\n" "$choice"
+}
+
+# ─── Ask credentials ────────────────────────────────────────────
+
+ask_credentials() {
+    printf "\n  ${BOLD}Create your admin account${NC}\n\n"
+    local username password hash
+    username=$(prompt "Username:" "admin")
+    password=$(prompt_password "password")
+    printf "\n"
+    info "Hashing password..."
+    hash=$(hash_password "$password")
+    if [ -z "$hash" ]; then
+        fail "Could not generate password hash. Install Go (golang.org) or htpasswd (apache2-utils) and try again."
+    fi
+    USER_NAME="$username"
+    PASS_HASH="$hash"
+    ADMIN_PASSWORD="$password"
 }
 
 # ─── Preflight Checks ───────────────────────────────────────────
 
-preflight() {
+preflight_docker() {
     info "Checking requirements..."
 
     if ! command -v docker >/dev/null 2>&1; then
@@ -119,6 +246,40 @@ preflight() {
     fi
 
     step "Docker, Compose, and Git are ready"
+}
+
+preflight_direct() {
+    info "Checking requirements..."
+
+    if ! command -v git >/dev/null 2>&1; then
+        fail "Git is not installed.\n\n  ${CYAN}sudo apt install git${NC}  (Debian/Ubuntu)\n  ${CYAN}sudo yum install git${NC}  (RHEL/CentOS)"
+    fi
+
+    if ! command -v go >/dev/null 2>&1; then
+        fail "Go is not installed.\n\n  Install Go 1.24+ first:\n  ${CYAN}https://go.dev/doc/install${NC}"
+    fi
+
+    local go_version
+    go_version=$(go version | awk '{print $3}' | sed 's/go//')
+    if ! printf "%s\n%s\n" "1.24" "$go_version" | sort -V -C; then
+        fail "Go 1.24+ is required. Found: $go_version\n\n  ${CYAN}https://go.dev/doc/install${NC}"
+    fi
+
+    if ! command -v node >/dev/null 2>&1; then
+        fail "Node.js is not installed.\n\n  Install Node.js 20+ first:\n  ${CYAN}https://nodejs.org/${NC}"
+    fi
+
+    local node_major
+    node_major=$(node --version | sed 's/v//' | cut -d. -f1)
+    if [ "$node_major" -lt 20 ]; then
+        fail "Node.js 20+ is required. Found: $(node --version)"
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        fail "npm is not installed."
+    fi
+
+    step "Go $(go version | awk '{print $3}'), Node $(node --version), and npm are ready"
 }
 
 # ─── Remove Old Installation ────────────────────────────────────
@@ -157,19 +318,16 @@ clone_repo() {
 
 # ─── Write Configs ──────────────────────────────────────────────
 
-write_configs() {
-    info "Writing configuration..."
-
+write_env_file() {
+    local env_file="$1"
     COOKIE_SECRET="$(generate_secret)"
-    if [ -z "$PASS_HASH" ] && [ -z "$ADMIN_PASSWORD" ]; then
-        ADMIN_PASSWORD="$(generate_password)"
-    fi
 
-    cat > "$INSTALL_DIR/nodi.env" <<EOF
+    cat > "$env_file" <<EOF
 QL_HOST=$HOST
-QL_PORT=7319
+QL_PORT=$PORT
 QL_ROOT=/nodi_files
 QL_USER=$USER_NAME
+QL_PASS_HASH=$PASS_HASH
 QL_COOKIE_SECRET=$COOKIE_SECRET
 QL_THEME=system
 QL_MAX_UPLOAD=$MAX_UPLOAD
@@ -178,22 +336,20 @@ QL_UPLOAD_TTL=$UPLOAD_TTL
 QL_TRASH_RETENTION=$TRASH_RETENTION
 GOTMPDIR=/nodi_files/.cache/tmp
 EOF
-    if [ -n "$PASS_HASH" ]; then
-        printf "QL_PASS_HASH=%s\n" "$PASS_HASH" >> "$INSTALL_DIR/nodi.env"
-    else
-        printf "QL_BOOTSTRAP_PASSWORD=%s\n" "$ADMIN_PASSWORD" >> "$INSTALL_DIR/nodi.env"
-    fi
+}
 
-    cat > "$INSTALL_DIR/docker-compose.yml" <<EOF
+write_docker_compose() {
+    local dc_file="$1"
+    cat > "$dc_file" <<EOF
 services:
   nodi:
+    image: ghcr.io/twarga/nodi:latest
     build:
       context: .
-      dockerfile: Dockerfile
     container_name: nodi
     restart: unless-stopped
     ports:
-      - "7319:7319"
+      - "$PORT:$PORT"
     env_file:
       - path: nodi.env
         format: raw
@@ -201,7 +357,7 @@ services:
       - nodi-files:/nodi_files
       - nodi-tmp:/tmp
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7319/login"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:$PORT/api/health"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -210,8 +366,6 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    # Large uploads are streamed to disk. Do not enable tmpfs for /tmp or tight
-    # memory limits here; those settings can kill 20GB-100GB LAN transfers.
     logging:
       driver: "json-file"
       options:
@@ -224,18 +378,15 @@ volumes:
   nodi-tmp:
     driver: local
 EOF
-
-    step "Configuration written"
 }
 
-# ─── Build ──────────────────────────────────────────────────────
+# ─── Docker Build ───────────────────────────────────────────────
 
 build_image() {
     info "Building Docker image..."
-    info "${DIM}This takes 2–5 minutes on first run. Grab a coffee.${NC}"
+    info "${DIM}This takes 2\u20135 minutes on first run. Grab a coffee.${NC}"
     printf "\n"
 
-    # Show build output so errors are visible
     if ! (cd "$INSTALL_DIR" && $COMPOSE build --no-cache); then
         printf "\n"
         fail "Docker build failed.\n\n  Try running manually to see the error:\n  ${CYAN}cd $INSTALL_DIR && $COMPOSE build --no-cache${NC}"
@@ -243,9 +394,7 @@ build_image() {
     step "Image built successfully"
 }
 
-# ─── Start ──────────────────────────────────────────────────────
-
-start_app() {
+start_docker_app() {
     info "Starting Nodi..."
     (cd "$INSTALL_DIR" && $COMPOSE up -d >/dev/null 2>&1)
     step "Container started"
@@ -268,9 +417,7 @@ start_app() {
     step "Nodi is running"
 }
 
-# ─── Systemd Service ────────────────────────────────────────────
-
-setup_systemd() {
+setup_docker_systemd() {
     info "Creating systemd service..."
 
     INSTALL_ABS="$(cd "$INSTALL_DIR" && pwd)"
@@ -300,60 +447,168 @@ EOF
     step "Systemd service created and enabled"
 }
 
+# ─── Direct Build ─────────────────────────────────────────────
+
+build_direct() {
+    info "Building frontend..."
+    (cd "$INSTALL_DIR/web/app" && npm ci --no-audit --no-fund >/dev/null 2>&1 && npm run build >/dev/null 2>&1) &
+    spinner $! "Building frontend"
+
+    info "Building Go binary..."
+    (cd "$INSTALL_DIR" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(git describe --tags --always 2>/dev/null || echo dev)" -o nodi ./cmd/server) &
+    spinner $! "Building Go binary"
+
+    step "Build complete"
+}
+
+start_direct_app() {
+    info "Starting Nodi..."
+    mkdir -p "$INSTALL_DIR/nodi_files/.cache/tmp"
+
+    # Create a simple wrapper script
+    cat > "$INSTALL_DIR/run-nodi.sh" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(cd "$INSTALL_DIR" && pwd)"
+set -a
+source ./nodi.env
+set +a
+exec ./nodi
+EOF
+    chmod +x "$INSTALL_DIR/run-nodi.sh"
+
+    nohup "$INSTALL_DIR/run-nodi.sh" > "$INSTALL_DIR/nodi.log" 2>&1 &
+    local pid=$!
+    echo $pid > "$INSTALL_DIR/nodi.pid"
+
+    # Wait a moment for startup
+    sleep 2
+    if kill -0 "$pid" 2>/dev/null; then
+        step "Nodi is running (pid $pid)"
+    else
+        warn "Nodi exited quickly. Check logs: ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC}"
+    fi
+}
+
+setup_direct_systemd() {
+    info "Creating systemd service..."
+
+    INSTALL_ABS="$(cd "$INSTALL_DIR" && pwd)"
+
+    sudo tee /etc/systemd/system/nodi.service > /dev/null <<EOF
+[Unit]
+Description=Nodi Self-Hosted File Manager
+Documentation=https://github.com/Twarga/Nodi
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$INSTALL_ABS
+EnvironmentFile=$INSTALL_ABS/nodi.env
+ExecStart=$INSTALL_ABS/nodi
+ExecReload=/bin/kill -HUP \$MAINPID
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:$INSTALL_ABS/nodi.log
+StandardError=append:$INSTALL_ABS/nodi.log
+
+# Hardening that does not break large uploads
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$INSTALL_ABS/nodi_files /tmp
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo systemctl daemon-reload >/dev/null 2>&1
+    sudo systemctl enable nodi >/dev/null 2>&1
+
+    # Stop the background nohup process and hand over to systemd
+    if [ -f "$INSTALL_DIR/nodi.pid" ]; then
+        local pid
+        pid=$(cat "$INSTALL_DIR/nodi.pid")
+        kill "$pid" 2>/dev/null || true
+        rm -f "$INSTALL_DIR/nodi.pid"
+    fi
+
+    sudo systemctl start nodi >/dev/null 2>&1
+    step "Systemd service created and started"
+}
+
 # ─── Success Screen ─────────────────────────────────────────────
 
 show_success() {
     LOCAL_IP=""
     if command -v ip >/dev/null 2>&1; then
-        LOCAL_IP=$(ip -4 route get 1 2>/dev/null | awk '{print $7; exit}')
+        LOCAL_IP=$(ip -4 route get 1 2>/dev/null | awk '{print \$7; exit}')
     elif command -v hostname >/dev/null 2>&1; then
-        LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print \$1}')
     fi
 
     printf "\n"
-    printf "  ${GREEN}${BOLD}╭──────────────────────────────────────────╮${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}🚀  Nodi is live!${NC}                      ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}   ${CYAN}Local:${NC}   http://localhost:7319         ${GREEN}${BOLD}│${NC}\n"
+    printf "  ${GREEN}${BOLD}\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e${NC}\n"
+    printf "  ${GREEN}${BOLD}\u2502${NC}                                          ${GREEN}${BOLD}\u2502${NC}\n"
+    printf "  ${GREEN}${BOLD}\u2502${NC}   ${BOLD}\u2708  Nodi is live!${NC}                      ${GREEN}${BOLD}\u2502${NC}\n"
+    printf "  ${GREEN}${BOLD}\u2502${NC}                                          ${GREEN}${BOLD}\u2502${NC}\n"
+    printf "  ${GREEN}${BOLD}\u2502${NC}   ${CYAN}Local:${NC}   http://localhost:$PORT         ${GREEN}${BOLD}\u2502${NC}\n"
     if [ -n "$LOCAL_IP" ]; then
-        printf "  ${GREEN}${BOLD}│${NC}   ${CYAN}Network:${NC} http://${LOCAL_IP}:7319       ${GREEN}${BOLD}│${NC}\n"
+        printf "  ${GREEN}${BOLD}\u2502${NC}   ${CYAN}Network:${NC} http://${LOCAL_IP}:$PORT       ${GREEN}${BOLD}\u2502${NC}\n"
     fi
-    printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}User:${NC}     ${WHITE}${BOLD}${USER_NAME}${NC}                     ${GREEN}${BOLD}│${NC}\n"
-    if [ -n "$PASS_HASH" ]; then
-        printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}Password:${NC} ${WHITE}${BOLD}use configured hash${NC}         ${GREEN}${BOLD}│${NC}\n"
+    printf "  ${GREEN}${BOLD}\u2502${NC}                                          ${GREEN}${BOLD}\u2502${NC}\n"
+    printf "  ${GREEN}${BOLD}\u2502${NC}   ${BOLD}User:${NC}     ${WHITE}${BOLD}%s${NC}                     ${GREEN}${BOLD}\u2502${NC}\n" "$USER_NAME"
+    printf "  ${GREEN}${BOLD}\u2502${NC}   ${BOLD}Password:${NC} ${WHITE}${BOLD}(set during install)${NC}         ${GREEN}${BOLD}\u2502${NC}\n"
+    printf "  ${GREEN}${BOLD}\u2502${NC}                                          ${GREEN}${BOLD}\u2502${NC}\n"
+    printf "  ${GREEN}${BOLD}\u256f\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f${NC}\n"
+    printf "\n"
+
+    if [ "$INSTALL_MODE" = "1" ]; then
+        printf "  ${DIM}Docker commands:${NC}\n"
+        printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE logs -f${NC}\n"
+        printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE up -d --build${NC}\n\n"
     else
-        printf "  ${GREEN}${BOLD}│${NC}   ${BOLD}Password:${NC} ${WHITE}${BOLD}${ADMIN_PASSWORD}${NC} ${GREEN}${BOLD}│${NC}\n"
+        printf "  ${DIM}Direct install commands:${NC}\n"
+        printf "    ${CYAN}sudo systemctl status nodi${NC}    \u2014 check status\n"
+        printf "    ${CYAN}sudo systemctl stop nodi${NC}      \u2014 stop Nodi\n"
+        printf "    ${CYAN}sudo systemctl restart nodi${NC}   \u2014 restart Nodi\n"
+        printf "    ${CYAN}tail -f $INSTALL_DIR/nodi.log${NC} \u2014 view logs\n\n"
     fi
-    printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}   ${YELLOW}⚠  Save this and change it after login${NC} ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}│${NC}                                          ${GREEN}${BOLD}│${NC}\n"
-    printf "  ${GREEN}${BOLD}╰──────────────────────────────────────────╯${NC}\n"
-    printf "\n"
-    printf "  ${DIM}Systemd commands:${NC}\n"
-    printf "    ${CYAN}sudo systemctl status nodi${NC}    — check status\n"
-    printf "    ${CYAN}sudo systemctl stop nodi${NC}      — stop Nodi\n"
-    printf "    ${CYAN}sudo systemctl start nodi${NC}     — start Nodi\n"
-    printf "    ${CYAN}sudo systemctl restart nodi${NC}   — restart Nodi\n"
-    printf "\n"
-    printf "  ${DIM}Docker commands:${NC}\n"
-    printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE logs -f${NC}\n"
-    printf "    ${CYAN}cd $INSTALL_DIR && $COMPOSE up -d --build${NC}\n"
-    printf "\n"
 }
 
 # ─── Main ───────────────────────────────────────────────────────
 
 main() {
     banner
-    preflight
+    INSTALL_MODE=$(choose_install_mode)
+    ask_credentials
     cleanup_old
     clone_repo
-    write_configs
-    build_image
-    start_app
-    setup_systemd
+    write_env_file "$INSTALL_DIR/nodi.env"
+
+    if [ "$INSTALL_MODE" = "1" ]; then
+        preflight_docker
+        write_docker_compose "$INSTALL_DIR/docker-compose.yml"
+        build_image
+        start_docker_app
+        setup_docker_systemd
+    else
+        preflight_direct
+        build_direct
+        start_direct_app
+        setup_direct_systemd
+    fi
+
     show_success
 }
 

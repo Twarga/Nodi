@@ -1,72 +1,58 @@
 # Nodi
 
 <p align="center">
-  <img src="./logo.png" alt="Nodi logo" width="180" />
+  <img src="./logo.png" alt="Nodi logo" width="140" />
 </p>
 
 <p align="center">
-  A lightweight, self-hosted web file manager built for speed, security, and a quiet technical aesthetic.
+  A lightweight, self-hosted web file manager for your home network.
+  <br>
+  <em>Private. Fast. No cloud.</em>
 </p>
 
 <p align="center">
+  <a href="https://github.com/Twarga/Nodi/actions/workflows/docker-publish.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/Twarga/Nodi/docker-publish.yml?branch=main&style=flat-square" alt="Build" />
+  </a>
   <img src="https://img.shields.io/badge/Go-1.24+-1f1f1f?style=flat-square&logo=go&logoColor=00ADD8" alt="Go" />
   <img src="https://img.shields.io/badge/Preact-Frontend-1f1f1f?style=flat-square&logo=preact&logoColor=673AB8" alt="Preact" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.0-1f1f1f?style=flat-square&logo=tailwindcss&logoColor=38BDF8" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Docker-Packaging-1f1f1f?style=flat-square&logo=docker&logoColor=2496ED" alt="Docker" />
-  <img src="https://img.shields.io/badge/Alpine-Linux-1f1f1f?style=flat-square&logo=alpinelinux&logoColor=white" alt="Alpine" />
-</p>
-
----
-
-## 🎬 Demo
-
-<p align="center">
-  <video src="https://raw.githubusercontent.com/Twarga/Nodi/main/landing-page/nodi-demo.mp4" controls width="100%" style="max-width: 960px; border-radius: 12px;" />
-</p>
-
-<p align="center">
-  <a href="https://twarga.github.io/Nodi/">Watch on the landing page →</a>
 </p>
 
 ---
 
 ## What it is
 
-Nodi is a LAN-first personal file hub for moving files across your own devices. It is designed around large browser uploads, drag-and-drop folders, mobile sending, safe sharing, and simple WebDAV access without becoming a full Nextcloud-style collaboration suite.
+Nodi is a personal file hub for moving files between your own devices — laptop, phone, tablet, TV — over your home LAN. It is NOT a collaboration suite. Think of it as a private Dropbox that lives on your own hardware.
 
-## Core workflow
+**Core workflow:**
+1. Log in securely with a bcrypt-hashed password
+2. Browse folders with zero-latency SPA navigation
+3. Upload large files with resumable chunked transfers (20 GB–100 GB+)
+4. Preview images, video, audio, PDF, and text files
+5. Share read-only links or upload dropboxes on your trusted network
+6. Mount storage via WebDAV from desktop and mobile file managers
 
-1. Authenticate securely via BCrypt-backed login
-2. Browse directories with zero-latency SPA navigation
-3. Manage assets with async Rename, Create, and Delete actions
-4. Upload large files with resumable chunked transfers
-5. Send files from phone or laptop with a mobile-friendly upload screen
-6. Share read-only links or upload dropboxes on your trusted network
-7. Mount storage through WebDAV from desktop and mobile tools
+---
 
-## Tech stack
+## Quick Start
 
-- **Backend**: Go (standard library + `http.ServeMux`)
-- **Frontend**: Preact + Signals (lightweight React alternative)
-- **Styling**: Tailwind CSS v4
-- **Packaging**: Multi-stage Docker build
-- **OS**: Alpine Linux
+### Option A: One-Click Installer (Docker or Direct)
 
-## Status
-
-**Active remake.** The project is being rebuilt toward a practical home-network Drive alternative. The current focus is reliability for large uploads, mobile-first sending, safe sharing, WebDAV, trash/restore, health checks, and packaging that does not break 20GB-100GB transfers.
-
-## Deployment (Fast Install)
-
-Run the one-click installer on any Linux server with Docker installed. It **always builds from the latest source** and creates a **systemd service** so Nodi auto-starts on boot.
+Run the installer on any Linux server. It will ask you to choose **Docker** or **Direct** install, and set your own admin username and password.
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
 ```
 
-The installer clones the repo, builds a fresh Docker image, starts Nodi on port **7319**, and registers it with `systemd`. It generates a one-time admin password and prints it at the end of installation. Save it, log in, then change the password from Settings before exposing Nodi outside a trusted network.
-
-Nodi is safest as a LAN-only app. If you expose it remotely, put it behind HTTPS and a firewall/reverse proxy you understand.
+The installer:
+- Clones the latest source
+- Lets you choose Docker or native (no containers)
+- Asks for your admin username and password
+- Generates a secure cookie secret automatically
+- Starts Nodi on port **7319**
+- Registers a **systemd** service so it auto-starts on boot
 
 **Custom install directory:**
 
@@ -74,64 +60,128 @@ Nodi is safest as a LAN-only app. If you expose it remotely, put it behind HTTPS
 INSTALL_DIR=/opt/nodi bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/install.sh)
 ```
 
-**Manage Nodi:**
+**After install:**
 
 ```bash
-sudo systemctl status nodi     # check status
-sudo systemctl stop nodi       # stop
-sudo systemctl start nodi      # start
-sudo systemctl restart nodi    # restart
+sudo systemctl status nodi   # check status
+sudo systemctl stop nodi     # stop
+sudo systemctl restart nodi  # restart
 ```
 
-**Remove completely:**
-
-```bash
-sudo systemctl stop nodi && sudo systemctl disable nodi
-sudo rm /etc/systemd/system/nodi.service
-sudo systemctl daemon-reload
-cd nodi-app && docker compose down -v && cd .. && rm -rf nodi-app
-```
-
-## Docker
-
-Run from a clone:
+### Option B: Docker Compose
 
 ```bash
 cp .env.example nodi.env
+# Edit nodi.env and set QL_BOOTSTRAP_PASSWORD or QL_PASS_HASH
 docker compose up -d
 ```
 
-The compose file uses named volumes mounted at `/nodi_files` and `/tmp`. Large uploads stream to disk; the default compose intentionally avoids tmpfs upload storage and tight memory caps.
-
-Optional HTTPS reverse proxy with Caddy:
-
-```bash
-cp Caddyfile.example Caddyfile
-# Edit Caddyfile and replace nodi.example.com with your hostname.
-docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
-```
-
-Use the Caddy setup only when you have DNS, firewall, and exposure rules under control. For home-only use, `http://server-ip:7319` is simpler.
-
-## Development
-
-Prerequisites:
-- [Go 1.24+](https://go.dev/)
-- [Docker](https://www.docker.com/) (optional)
-
-## Quick Start (Local)
-
-Run the full app with one command:
+### Option C: Local Development
 
 ```bash
 ./run.sh
 ```
 
-This installs frontend dependencies, builds the UI, scaffolds a default `.env`, and starts the Go server.
+Requires Go 1.24+ and Node.js 20+.
 
-**Requires:** Go 1.24+, Node.js 20+, npm
+**`run.sh` options:**
 
-Default credentials: `admin` / `admin` — change these before exposing to a network.
+```bash
+./run.sh --no-build    # skip frontend build
+./run.sh --test        # run tests, no server start
+./run.sh --reset       # wipe nodi_files and .env for clean start
+./run.sh --bg          # start in background
+./run.sh --stop        # kill background process
+```
+
+---
+
+## Uninstall
+
+To completely remove Nodi:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Twarga/Nodi/main/uninstall.sh)
+```
+
+This removes the systemd service, Docker containers/volumes, source code, and optionally all user data. You can also run it locally:
+
+```bash
+./uninstall.sh
+```
+
+Set `REMOVE_DATA=yes` to also delete uploaded files:
+
+```bash
+REMOVE_DATA=yes ./uninstall.sh
+```
+
+---
+
+## Tech Stack
+
+- **Backend:** Go 1.24+ (standard library + `http.ServeMux`)
+- **Frontend:** Preact + Signals
+- **Styling:** Tailwind CSS v4
+- **Build:** Vite
+- **Packaging:** Multi-stage Docker build + GitHub Container Registry
+- **Deployment:** Docker Compose, Kubernetes manifests included
+
+---
+
+## Security
+
+- Passwords hashed with bcrypt (never stored plain)
+- Session cookies are signed HMAC tokens with sliding expiry
+- CSRF protection with per-session tokens
+- Share links use unguessable hashed tokens (never in URLs)
+- Request body limits on all JSON endpoints
+- Rate-limited login attempts
+- Unsafe default secrets are rejected at startup
+
+**Important:** Nodi is safest as a **LAN-only** app. If you expose it remotely, put it behind HTTPS and a firewall you understand.
+
+---
+
+## Features
+
+| Feature | Status |
+|---------|--------|
+| Large-file uploads (stream to disk) | ✅ |
+| Resumable chunked uploads | ✅ |
+| Folder upload with structure preserved | ✅ |
+| Mobile-friendly upload screen (Send) | ✅ |
+| Image / video / audio / PDF / text preview | ✅ |
+| Search across storage | ✅ |
+| Share links (read-only & upload dropbox) | ✅ |
+| Password-protected shares | ✅ |
+| Expiring share links | ✅ |
+| WebDAV endpoint | ✅ |
+| Trash & restore | ✅ |
+| Streaming TAR backup | ✅ |
+| Dark / Light / System theme | ✅ |
+| PWA support | ✅ |
+| Keyboard shortcuts | ✅ |
+| Drag-and-drop upload | ✅ |
+| Bulk actions (move, copy, delete, compress) | ✅ |
+
+---
+
+## Kubernetes
+
+Pre-built manifests are in `deploy/kubernetes/`.
+
+```bash
+cd deploy/kubernetes
+# Create a secret with your credentials first
+kubectl apply -k .
+```
+
+The Kubernetes deployment uses the `ghcr.io/twarga/nodi:latest` image with readiness and liveness probes on `/api/health`.
+
+See [`deploy/kubernetes/README.md`](./deploy/kubernetes/README.md) for details.
+
+---
 
 ## License
 

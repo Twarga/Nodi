@@ -1015,6 +1015,7 @@ func Search(cfg *config.Config) http.HandlerFunc {
 		}
 
 		limit := 200
+		page := 1
 		if raw := r.URL.Query().Get("limit"); raw != "" {
 			if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
 				limit = parsed
@@ -1023,8 +1024,14 @@ func Search(cfg *config.Config) http.HandlerFunc {
 		if limit > 500 {
 			limit = 500
 		}
+		if raw := r.URL.Query().Get("page"); raw != "" {
+			if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+				page = parsed
+			}
+		}
 		showHidden := r.URL.Query().Get("showHidden") == "true"
 
+		// Collect all matching results first so we can paginate accurately.
 		results := make([]FileInfo, 0, min(limit, 64))
 		err := filepath.WalkDir(cfg.Root, func(path string, entry os.DirEntry, err error) error {
 			if err != nil {
@@ -1069,9 +1076,6 @@ func Search(cfg *config.Config) http.HandlerFunc {
 				return nil
 			}
 			results = append(results, info)
-			if len(results) >= limit {
-				return filepath.SkipAll
-			}
 			return nil
 		})
 		if err != nil && err != filepath.SkipAll {
@@ -1085,10 +1089,22 @@ func Search(cfg *config.Config) http.HandlerFunc {
 			return a < b
 		})
 
+		total := len(results)
+		start := (page - 1) * limit
+		if start > total {
+			start = total
+		}
+		end := start + limit
+		if end > total {
+			end = total
+		}
+		hasMore := end < total
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
-			"files": results,
-			"total": len(results),
+			"files":   results[start:end],
+			"total":   total,
+			"hasMore": hasMore,
 		})
 	}
 }

@@ -224,7 +224,10 @@ func saveShares(root string, sf shareFile) error {
 }
 
 func shareCookieName(token string) string {
-	return "ql_share_" + token
+	// Use a hash prefix instead of the raw token so the cookie name does not
+	// leak the unhashed share token in request headers and server logs.
+	sum := sha256.Sum256([]byte(token))
+	return "ql_share_" + hex.EncodeToString(sum[:8])
 }
 
 func signShareUnlock(secret, token string, exp int64) string {

@@ -141,6 +141,7 @@ func Activity(cfg *config.Config) http.HandlerFunc {
 		}
 
 		limit := 100
+		page := 1
 		if l := r.URL.Query().Get("limit"); l != "" {
 			if parsed, err := fmt.Sscanf(l, "%d", &limit); err != nil || parsed != 1 || limit <= 0 {
 				limit = 100
@@ -149,17 +150,32 @@ func Activity(cfg *config.Config) http.HandlerFunc {
 				limit = 500
 			}
 		}
+		if p := r.URL.Query().Get("page"); p != "" {
+			if parsed, err := fmt.Sscanf(p, "%d", &page); err != nil || parsed != 1 || page <= 0 {
+				page = 1
+			}
+		}
 
 		logPath := filepath.Join(cfg.Root, ".nodilog.jsonl")
 		f, err := os.Open(logPath)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode([]storage.ActivityEvent{})
+			json.NewEncoder(w).Encode(map[string]any{
+				"events":  []storage.ActivityEvent{},
+				"total":   0,
+				"hasMore": false,
+			})
 			return
 		}
 		defer f.Close()
 
-		var events []storage.ActivityEvent
+		// Read events into a ring buffer so we only keep the last maxCount in memory.
+		// This prevents OOM on huge log files.
+		maxCount := page * limit
+		if maxCount < limit {
+			maxCount = limit
+		}
+		ring := make([]storage.ActivityEvent, 0, maxCount)
 		scanner := bufio.NewScanner(f)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 		for scanner.Scan() {
@@ -167,20 +183,33 @@ func Activity(cfg *config.Config) http.HandlerFunc {
 			if err := json.Unmarshal(scanner.Bytes(), &ev); err != nil {
 				continue
 			}
-			events = append(events, ev)
+			ring = append(ring, ev)
+			if len(ring) > maxCount {
+				ring = ring[1:]
+			}
 		}
 
 		// Reverse: newest first
-		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
-			events[i], events[j] = events[j], events[i]
+		for i, j := 0, len(ring)-1; i < j; i, j = i+1, j-1 {
+			ring[i], ring[j] = ring[j], ring[i]
 		}
 
-		if limit > len(events) {
-			limit = len(events)
+		total := len(ring)
+		start := (page - 1) * limit
+		if start > total {
+			start = total
 		}
-		events = events[:limit]
+		end := start + limit
+		if end > total {
+			end = total
+		}
+		hasMore := end < total
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(events)
+		json.NewEncoder(w).Encode(map[string]any{
+			"events":  ring[start:end],
+			"total":   total,
+			"hasMore": hasMore,
+		})
 	}
 }

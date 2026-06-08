@@ -26,7 +26,6 @@ NC='\033[0m'
 # ─── Defaults ────────────────────────────────────────────────────
 DEFAULT_HOST="0.0.0.0"
 DEFAULT_PORT="7319"
-DEFAULT_PASS_HASH='$2b$10$giD/vH5ZWt26q8GEN0PdZejq/ZdpxdMci5bK4U2fnLHj1mfqZXmCy'
 PID_FILE="$SCRIPT_DIR/.nodi.pid"
 LOG_FILE="$SCRIPT_DIR/nodi.log"
 
@@ -64,6 +63,14 @@ generate_secret() {
     return
   fi
   dd if=/dev/urandom bs=48 count=1 2>/dev/null | base64 | tr -d '\n'
+}
+
+generate_password() {
+  if command -v openssl &>/dev/null; then
+    openssl rand -base64 16 | tr -d '\n'
+    return
+  fi
+  dd if=/dev/urandom bs=16 count=1 2>/dev/null | base64 | tr -d '\n'
 }
 
 check_cmd() {
@@ -179,12 +186,13 @@ step "Checking environment"
 if [[ ! -f .env ]]; then
   warn ".env not found — creating default"
   COOKIE_SECRET="$(generate_secret)"
+  BOOTSTRAP_PASSWORD="$(generate_password)"
   cat > .env <<EOF
 QL_HOST=$DEFAULT_HOST
 QL_PORT=$PORT
 QL_ROOT=./nodi_files
 QL_USER=admin
-QL_PASS_HASH=$DEFAULT_PASS_HASH
+QL_BOOTSTRAP_PASSWORD=$BOOTSTRAP_PASSWORD
 QL_COOKIE_SECRET=$COOKIE_SECRET
 QL_THEME=system
 QL_MAX_UPLOAD=1099511627776
@@ -194,8 +202,8 @@ QL_TRASH_RETENTION=720h
 GOTMPDIR=./nodi_files/.cache/tmp
 EOF
   ok "Created .env with default values"
-  warn "Default credentials: admin / admin"
-  warn "Change QL_PASS_HASH before production use"
+  warn "Bootstrap password: $BOOTSTRAP_PASSWORD"
+  warn "Change it from Settings after first login"
 else
   # Keep the port in .env in sync with --port if it was overridden.
   if [[ "$PORT" != "$DEFAULT_PORT" ]]; then
@@ -205,7 +213,7 @@ else
   fi
 fi
 
-if grep -Eq '^QL_COOKIE_SECRET=(local-development-secret-keep-it-safe-123|change-this-to-a-random-string-at-least-32-bytes-long|change-me|changeme|secret|password)$' .env; then
+if grep -Eq '^QL_COOKIE_SECRET=(local-development-secret-keep-it-safe-123|change-this-to-a-random-string-at-least-32-bytes-long|change-this-to-a-secure-password-min-12-chars|change-me|changeme|secret|password)$' .env; then
   warn "Unsafe QL_COOKIE_SECRET found — replacing with a random value"
   COOKIE_SECRET="$(generate_secret)"
   tmp_env="$(mktemp)"
@@ -230,6 +238,12 @@ ok "Storage directory ready: ./nodi_files"
 
 # ─── Start Server ───────────────────────────────────────────────
 
+# Read bootstrap password from .env for display
+BOOTSTRAP_DISPLAY=""
+while IFS='=' read -r key val; do
+  [[ "$key" == "QL_BOOTSTRAP_PASSWORD" ]] && BOOTSTRAP_DISPLAY="$val"
+done < .env
+
 step "Starting Nodi server"
 echo ""
 echo -e "   ${GREEN}Local:${NC}   http://localhost:${PORT}"
@@ -237,7 +251,12 @@ NETWORK_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || ip route get 1 2>/dev
 if [[ -n "$NETWORK_IP" ]]; then
   echo -e "   ${GREEN}Network:${NC} http://${NETWORK_IP}:${PORT}"
 fi
-echo -e "   ${GREEN}Login:${NC}   admin / admin"
+if [[ -n "$BOOTSTRAP_DISPLAY" ]]; then
+  echo -e "   ${GREEN}Login:${NC}   admin / $BOOTSTRAP_DISPLAY"
+  echo -e "   ${YELLOW}Warning:${NC} Change this password from Settings after login"
+else
+  echo -e "   ${GREEN}Login:${NC}   admin / (configured hash)"
+fi
 echo ""
 
 if [[ $DO_BG -eq 1 ]]; then

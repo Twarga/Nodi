@@ -1,59 +1,62 @@
 @import 'tailwindcss';
 
 @theme {
-  /* ── Dark-first Linear-style color system ── */
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
-  --color-foreground-muted: #a1a1a1;
-  --color-foreground-subtle: #707070;
+  /* ── Light-first color system ──
+     Default is light. Dark mode is activated by adding .dark to <html>.
+     This matches the design brief: "Dark mode is supported via CSS class .dark on <html>".
+  */
+  --color-background: #fbfbfb;
+  --color-foreground: #0a0a0a;
+  --color-foreground-muted: #6b7280;
+  --color-foreground-subtle: #9ca3af;
 
-  --color-surface: #111111;
-  --color-surface-hover: #1a1a1a;
-  --color-surface-raised: #161616;
-  --color-surface-sunken: #0d0d0d;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f5f5;
+  --color-surface-raised: #f0f0f0;
+  --color-surface-sunken: #f7f7f7;
 
-  --color-card: #141414;
-  --color-card-foreground: #ededed;
-  --color-popover: #161616;
-  --color-popover-foreground: #ededed;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0a0a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0a0a0a;
 
   --color-primary: #14b8a6;
-  --color-primary-foreground: #0a0a0a;
-  --color-primary-hover: #2dd4bf;
-  --color-primary-soft: rgba(20, 184, 166, 0.15);
+  --color-primary-foreground: #ffffff;
+  --color-primary-hover: #0d9488;
+  --color-primary-soft: rgba(20, 184, 166, 0.10);
 
-  --color-secondary: #1a1a1a;
-  --color-secondary-foreground: #ededed;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #0a0a0a;
 
-  --color-muted: #1a1a1a;
-  --color-muted-foreground: #a1a1a1;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #6b7280;
 
   --color-accent: #14b8a6;
-  --color-accent-foreground: #0a0a0a;
+  --color-accent-foreground: #ffffff;
 
-  --color-destructive: #ef4444;
+  --color-destructive: #b91c1c;
   --color-destructive-foreground: #ffffff;
-  --color-destructive-soft: rgba(239, 68, 68, 0.12);
+  --color-destructive-soft: rgba(185, 28, 28, 0.08);
 
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-warning-soft: rgba(245, 158, 11, 0.12);
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-warning-soft: rgba(180, 83, 9, 0.08);
 
-  --color-border: #262626;
-  --color-border-strong: #333333;
-  --color-input: #262626;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-input: #e5e5e5;
   --color-ring: #14b8a6;
 
-  /* File type icon colors — vibrant for dark mode */
+  /* File type icon colors */
   --color-icon-folder: #3b82f6;
   --color-icon-image: #22c55e;
   --color-icon-pdf: #ef4444;
   --color-icon-video: #a855f7;
   --color-icon-audio: #06b6d4;
   --color-icon-archive: #f59e0b;
-  --color-icon-generic: #a1a1a1;
+  --color-icon-generic: #6b7280;
 
-  --radius: 0.5rem;
+  --radius: 0.25rem;
 
   /* Animations */
   --animate-ql-slide-in-right: ql-slide-in-right 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -151,51 +154,51 @@
   100% { transform: translateX(100%); }
 }
 
-/* ── Light theme overrides ──
-   Placed outside @layer so they override @layer theme.
-   Toggled by adding .light to <html>.
+/* ── Dark theme overrides ──
+   Activated by adding .dark to <html>.
+   Toggled by the theme switcher in the UI.
 */
-html.light {
-  --color-background: #ffffff;
-  --color-foreground: #171717;
-  --color-foreground-muted: #737373;
-  --color-foreground-subtle: #a3a3a3;
+html.dark {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+  --color-foreground-muted: #a1a1a1;
+  --color-foreground-subtle: #707070;
 
-  --color-surface: #fafafa;
-  --color-surface-hover: #f5f5f5;
-  --color-surface-raised: #f0f0f0;
-  --color-surface-sunken: #f7f7f7;
+  --color-surface: #111111;
+  --color-surface-hover: #1a1a1a;
+  --color-surface-raised: #161616;
+  --color-surface-sunken: #0d0d0d;
 
-  --color-card: #ffffff;
-  --color-card-foreground: #171717;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #171717;
+  --color-card: #141414;
+  --color-card-foreground: #ededed;
+  --color-popover: #161616;
+  --color-popover-foreground: #ededed;
 
   --color-primary: #14b8a6;
-  --color-primary-foreground: #ffffff;
-  --color-primary-hover: #0d9488;
-  --color-primary-soft: rgba(20, 184, 166, 0.10);
+  --color-primary-foreground: #0a0a0a;
+  --color-primary-hover: #2dd4bf;
+  --color-primary-soft: rgba(20, 184, 166, 0.15);
 
-  --color-secondary: #f5f5f5;
-  --color-secondary-foreground: #171717;
+  --color-secondary: #1a1a1a;
+  --color-secondary-foreground: #ededed;
 
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #737373;
+  --color-muted: #1a1a1a;
+  --color-muted-foreground: #a1a1a1;
 
   --color-accent: #14b8a6;
-  --color-accent-foreground: #ffffff;
+  --color-accent-foreground: #0a0a0a;
 
   --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
-  --color-destructive-soft: rgba(239, 68, 68, 0.08);
+  --color-destructive-soft: rgba(239, 68, 68, 0.12);
 
   --color-success: #22c55e;
   --color-warning: #f59e0b;
-  --color-warning-soft: rgba(245, 158, 11, 0.08);
+  --color-warning-soft: rgba(245, 158, 11, 0.12);
 
-  --color-border: #e5e5e5;
-  --color-border-strong: #d4d4d4;
-  --color-input: #e5e5e5;
+  --color-border: #262626;
+  --color-border-strong: #333333;
+  --color-input: #262626;
   --color-ring: #14b8a6;
 
   --color-icon-folder: #3b82f6;
@@ -204,7 +207,7 @@ html.light {
   --color-icon-video: #a855f7;
   --color-icon-audio: #06b6d4;
   --color-icon-archive: #f59e0b;
-  --color-icon-generic: #737373;
+  --color-icon-generic: #a1a1a1;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -425,8 +428,11 @@ html.light {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  background: linear-gradient(90deg, transparent, rgba(128,128,128,0.08), transparent);
   animation: shimmer 1.5s infinite;
+}
+html.dark .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
 }
 
 /* ── Drop overlay ── */

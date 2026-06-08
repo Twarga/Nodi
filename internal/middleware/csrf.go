@@ -33,10 +33,15 @@ func SetCSRFCookie(w http.ResponseWriter, token string) {
 func CSRFProtect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isSafeMethod(r.Method) {
-			// Set a fresh CSRF token on safe requests
-			token := GenerateCSRFToken()
+			// Reuse existing token if present; otherwise generate a new one.
+			var token string
+			if cookie, err := r.Cookie("ql_csrf"); err == nil && cookie.Value != "" {
+				token = cookie.Value
+			} else {
+				token = GenerateCSRFToken()
+			}
 			SetCSRFCookie(w, token)
-			// Also expose it in a header so templates can read it
+			// Also expose it in a header so the frontend can read it
 			w.Header().Set("X-CSRF-Token", token)
 			next.ServeHTTP(w, r)
 			return
