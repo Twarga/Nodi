@@ -84,13 +84,11 @@ fail() {
     exit 1
 }
 
-# Read from stdin if it's a TTY; otherwise try /dev/tty so interactive
-# prompts work even when the script is fed via process substitution.
+# Read from /dev/tty when available so interactive prompts always work,
+# even when the script is fed via process substitution (bash <(curl ...)).
 _read_input() {
     local var="$1"
-    if [ -t 0 ]; then
-        IFS= read -r "$var"
-    elif [ -e /dev/tty ]; then
+    if [ -r /dev/tty ]; then
         IFS= read -r "$var" < /dev/tty
     else
         IFS= read -r "$var"
@@ -99,9 +97,7 @@ _read_input() {
 
 _read_input_silent() {
     local var="$1"
-    if [ -t 0 ]; then
-        IFS= read -rs "$var"
-    elif [ -e /dev/tty ]; then
+    if [ -r /dev/tty ]; then
         IFS= read -rs "$var" < /dev/tty
     else
         IFS= read -rs "$var"
@@ -118,6 +114,7 @@ prompt() {
     fi
     local val=""
     _read_input val || true
+    printf "\n" >&2
     if [ -z "$val" ] && [ -n "$default" ]; then
         val="$default"
     fi
